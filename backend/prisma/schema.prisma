@@ -1,0 +1,158 @@
+// FishLeague MVP – Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  EMAIL
+  APPLE
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum ModerationActionType {
+  APPROVE
+  REJECT
+  SUSPEND_USER
+  FLAG
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String?   @unique
+  appleId          String?   @unique
+  authProvider     AuthProvider
+  displayName      String
+  regionId         String
+  suspended        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  region           Region    @relation(fields: [regionId], references: [id])
+  submissions      Submission[]
+  leaderboardEntries LeaderboardEntry[]
+  moderationActions  ModerationAction[] @relation("ModeratorActions")
+
+  @@index([regionId])
+}
+
+model Region {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  // Simple bounding box: minLat, maxLat, minLng, maxLng
+  minLat      Float
+  maxLat      Float
+  minLng      Float
+  maxLng      Float
+  createdAt   DateTime @default(now())
+
+  users        User[]
+  tournaments  Tournament[]
+}
+
+model Tournament {
+  id          String    @id @default(uuid())
+  regionId    String
+  name        String
+  weekNumber  Int
+  year        Int
+  startsAt    DateTime
+  endsAt      DateTime
+  isOpen      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  region      Region    @relation(fields: [regionId], references: [id])
+  submissions Submission[]
+  leaderboardEntries LeaderboardEntry[]
+
+  @@unique([regionId, weekNumber, year])
+  @@index([regionId, isOpen])
+}
+
+model MatSerial {
+  id          String    @id @default(uuid())
+  serialCode  String    @unique
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  submissions Submission[]
+}
+
+model Submission {
+  id               String           @id @default(uuid())
+  userId           String
+  tournamentId     String
+  matSerialId      String
+  status           SubmissionStatus @default(PENDING)
+
+  fishLengthCm     Float
+  gpsLat           Float
+  gpsLng           Float
+  capturedAt       DateTime         // client timestamp
+  serverReceivedAt DateTime         @default(now())
+
+  photo1Key        String           // S3 key – fish on mat
+  photo2Key        String           // S3 key – angler holding fish
+  imageHash1       String
+  imageHash2       String
+
+  flagDuplicateHash    Boolean @default(false)
+  flagDuplicateGps     Boolean @default(false)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User       @relation(fields: [userId], references: [id])
+  tournament       Tournament @relation(fields: [tournamentId], references: [id])
+  matSerial        MatSerial  @relation(fields: [matSerialId], references: [id])
+  moderationActions ModerationAction[]
+
+  @@index([tournamentId, status])
+  @@index([userId, tournamentId])
+  @@index([imageHash1])
+  @@index([imageHash2])
+  @@index([gpsLat, gpsLng])
+}
+
+model LeaderboardEntry {
+  id           String   @id @default(uuid())
+  tournamentId String
+  userId       String
+  fishLengthCm Float
+  submissionId String   @unique
+  rank         Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId, fishLengthCm(sort: Desc)])
+}
+
+model ModerationAction {
+  id           String               @id @default(uuid())
+  submissionId String
+  moderatorId  String
+  actionType   ModerationActionType
+  note         String?
+  createdAt    DateTime             @default(now())
+
+  submission   Submission @relation(fields: [submissionId], references: [id])
+  moderator    User       @relation("ModeratorActions", fields: [moderatorId], references: [id])
+
+  @@index([submissionId])
+}

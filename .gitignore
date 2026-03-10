@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.npm
+
+# Build output
+dist/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Prisma generated
+backend/node_modules/
+backend/dist/
+
+# Admin build
+admin/.next/
+admin/node_modules/
+admin/out/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes (local data)
+pg_data/
+
+# IDE
+.vscode/
+.idea/
+
+# iOS build artifacts
+ios/FishLeague.xcworkspace/xcuserdata/
+ios/FishLeague/DerivedData/
+ios/*.xcarchive
+ios/Pods/

@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FishLeague – iOS Simulator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #1c1c1e; color: #f2f2f7; min-height: 100vh; display: flex; gap: 0; }
+
+    /* Phone shell */
+    #phone {
+      width: 390px;
+      min-width: 390px;
+      background: #000;
+      border-radius: 50px;
+      margin: 24px;
+      box-shadow: 0 0 0 2px #3a3a3c, 0 20px 60px rgba(0,0,0,0.8);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #status-bar {
+      background: #000;
+      color: #fff;
+      padding: 14px 24px 8px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+    #screen {
+      background: #f2f2f7;
+      flex: 1;
+      overflow-y: auto;
+      color: #000;
+      min-height: 700px;
+    }
+    .nav-bar {
+      background: rgba(242,242,247,0.9);
+      border-bottom: 1px solid #d1d1d6;
+      padding: 12px 16px;
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .view { padding: 20px 16px; display: none; }
+    .view.active { display: block; }
+
+    /* Buttons */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: opacity 0.15s;
+    }
+    .btn:active { opacity: 0.7; }
+    .btn-primary { background: #007aff; color: white; }
+    .btn-green { background: #34c759; color: white; }
+    .btn-red { background: #ff3b30; color: white; }
+    .btn-gray { background: #e5e5ea; color: #000; }
+
+    /* Form fields */
+    .field {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-size: 15px;
+      border: none;
+      width: 100%;
+      outline: none;
+    }
+    .field-label { font-size: 12px; color: #8e8e93; margin-bottom: 4px; display: block; }
+    .section { background: white; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+    .section-row { padding: 14px 16px; border-bottom: 1px solid #f2f2f7; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .section-row:last-child { border-bottom: none; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-green { background: #d1f2d9; color: #1a7a34; }
+    .badge-yellow { background: #fff3d0; color: #7a5c00; }
+    .badge-red { background: #ffd6d4; color: #7a1a1a; }
+
+    /* Camera mock */
+    #camera-box {
+      background: #1c1c1e;
+      border-radius: 12px;
+      height: 280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    #camera-box canvas { border-radius: 8px; }
+    #qr-badge {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(52,199,89,0.85);
+      color: white;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+    }
+
+    /* Leaderboard */
+    .lb-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f2f2f7; }
+    .lb-rank { width: 40px; font-size: 22px; }
+    .lb-name { flex: 1; font-size: 15px; }
+    .lb-len { font-size: 15px; color: #8e8e93; font-variant-numeric: tabular-nums; }
+    .lb-me { background: #e8f0fe; }
+
+    /* Log panel */
+    #log {
+      flex: 1;
+      background: #1c1c1e;
+      margin: 24px 24px 24px 0;
+      border-radius: 16px;
+      padding: 20px;
+      overflow-y: auto;
+      font-family: 'Menlo', monospace;
+      font-size: 13px;
+      min-width: 320px;
+    }
+    #log h3 { color: #8e8e93; margin-bottom: 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .log-entry { margin-bottom: 8px; line-height: 1.5; }
+    .log-req { color: #64d2ff; }
+    .log-res { color: #30d158; }
+    .log-err { color: #ff453a; }
+    .log-info { color: #ffd60a; }
+    .log-dim { color: #636366; }
+
+    /* GPS bar */
+    .gps-bar { background: #e9f7ff; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #0071e3; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .hero-icon { font-size: 56px; text-align: center; margin: 20px 0 8px; }
+    .hero-title { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .hero-sub { font-size: 14px; color: #8e8e93; text-align: center; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+<!-- Phone -->
+<div id="phone">
+  <div id="status-bar">
+    <span>9:41</span>
+    <span>●●● ᯤ 100%</span>
+  </div>
+  <div id="screen">
+
+    <!-- LOGIN VIEW -->
+    <div class="view active" id="view-login">
+      <div class="nav-bar">FishLeague</div>
+      <div style="padding:20px 16px">
+        <div class="hero-icon">🎣</div>
+        <div class="hero-title">FishLeague</div>
+        <div class="hero-sub">Competitive fishing, verified catches</div>
+
+        <span class="field-label">Display Name</span>
+        <input class="field" id="inp-name" value="Angler Dan" />
+        <span class="field-label">Email</span>
+        <input class="field" id="inp-email" value="dan@test.com" />
+        <span class="field-label">Password</span>
+        <input class="field" id="inp-pw" type="password" value="password123" />
+
+        <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
+        <button class="btn btn-gray" onclick="doLogin()">Sign In (existing)</button>
+      </div>
+    </div>
+
+    <!-- HOME VIEW -->
+    <div class="view" id="view-home">
+      <div class="nav-bar">FishLeague</div>
+      <div style="padding:20px 16px">
+        <div id="tournament-card" class="section">
+          <div class="section-row"><span style="font-weight:600">Loading tournament…</span></div>
+        </div>
+        <button class="btn btn-green" onclick="showView('view-camera1')">📸 Submit Catch</button>
+        <button class="btn btn-primary" onclick="loadLeaderboard()">🏆 View Leaderboard</button>
+        <div id="my-submissions" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- CAMERA STEP 1: Fish on mat -->
+    <div class="view" id="view-camera1">
+      <div class="nav-bar">Photo 1 – Fish on Mat</div>
+      <div style="padding:16px">
+        <p style="font-size:13px;color:#8e8e93;margin-bottom:12px;text-align:center">Place fish on measuring mat. QR code must be visible.</p>
+        <div id="camera-box">
+          <canvas id="cam-canvas1" width="340" height="240"></canvas>
+          <div id="qr-badge">✓ QR: MAT-0001</div>
+        </div>
+        <div id="gps-bar1" class="gps-bar" style="display:none">📍 GPS acquired: <span id="gps-coords1"></span></div>
+        <button class="btn btn-primary" id="btn-capture1" onclick="capturePhoto1()" disabled>Scan QR…</button>
+      </div>
+    </div>
+
+    <!-- CAMERA STEP 2: Angler holding -->
+    <div class="view" id="view-camera2">
+      <div class="nav-bar">Photo 2 – Angler Holding</div>
+      <div style="padding:16px">
+        <p style="font-size:13px;color:#8e8e93;margin-bottom:12px;text-align:center">Hold the fish up for the camera.</p>
+        <div id="camera-box2">
+          <canvas id="cam-canvas2" width="340" height="240" style="border-radius:8px"></canvas>
+        </div>
+        <button class="btn btn-primary" onclick="capturePhoto2()">📸 Capture</button>
+      </div>
+    </div>
+
+    <!-- REVIEW VIEW -->
+    <div class="view" id="view-review">
+      <div class="nav-bar">Review Submission</div>
+      <div style="padding:16px">
+        <div class="section">
+          <div class="section-row"><span>QR Code</span><span id="rev-qr" style="color:#34c759;font-weight:600"></span></div>
+          <div class="section-row"><span>GPS Location</span><span id="rev-gps" style="font-size:12px;color:#8e8e93"></span></div>
+          <div class="section-row"><span>Timestamp</span><span id="rev-time" style="font-size:12px;color:#8e8e93"></span></div>
+        </div>
+
+        <span class="field-label">Fish Length (cm)</span>
+        <input class="field" id="inp-length" type="number" value="45.5" min="10" max="300" step="0.1" />
+
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <img id="thumb1" width="160" height="100" style="border-radius:8px;object-fit:cover" />
+          <img id="thumb2" width="160" height="100" style="border-radius:8px;object-fit:cover" />
+        </div>
+
+        <button class="btn btn-green" onclick="doSubmit()">Submit Catch</button>
+        <button class="btn btn-gray" onclick="showView('view-home')">Cancel</button>
+      </div>
+    </div>
+
+    <!-- UPLOADING VIEW -->
+    <div class="view" id="view-uploading">
+      <div class="nav-bar">Submitting…</div>
+      <div style="padding:60px 16px;text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">⏳</div>
+        <div style="font-size:17px;font-weight:600">Uploading your catch…</div>
+        <div style="font-size:14px;color:#8e8e93;margin-top:8px">Photos uploading to S3</div>
+      </div>
+    </div>
+
+    <!-- SUCCESS VIEW -->
+    <div class="view" id="view-success">
+      <div class="nav-bar">Submitted!</div>
+      <div style="padding:60px 16px;text-align:center">
+        <div style="font-size:64px;margin-bottom:16px">✅</div>
+        <div style="font-size:22px;font-weight:700;margin-bottom:8px">Catch Received!</div>
+        <div style="font-size:14px;color:#8e8e93;margin-bottom:8px">Pending moderation review.</div>
+        <div style="font-size:12px;color:#8e8e93" id="sub-id-display"></div>
+        <button class="btn btn-primary" style="margin-top:24px" onclick="goHome()">Back to Home</button>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD VIEW -->
+    <div class="view" id="view-leaderboard">
+      <div class="nav-bar">🏆 Leaderboard</div>
+      <div id="lb-my-rank" style="padding:12px 16px;background:#e8f0fe;font-size:14px;font-weight:600;color:#0071e3"></div>
+      <div id="lb-list"></div>
+      <div style="padding:16px">
+        <button class="btn btn-gray" onclick="showView('view-home')">← Back</button>
+      </div>
+    </div>
+
+  </div><!-- /screen -->
+</div><!-- /phone -->
+
+<!-- Log panel -->
+<div id="log">
+  <h3>API Traffic</h3>
+</div>
+
+<script>
+const API = 'http://localhost:3000';
+let token = null;
+let userId = null;
+let regionId = null;
+let tournament = null;
+let photo1DataUrl = null;
+let photo2DataUrl = null;
+let detectedQR = 'MAT-0001';
+let gpsLat = 47.6062;
+let gpsLng = -122.3321;
+
+// ── Logging ───────────────────────────────────────────────────────────
+function log(type, msg) {
+  const el = document.createElement('div');
+  el.className = `log-entry log-${type}`;
+  const time = new Date().toLocaleTimeString();
+  el.textContent = `[${time}] ${msg}`;
+  document.getElementById('log').appendChild(el);
+  document.getElementById('log').scrollTop = 99999;
+}
+
+// ── Navigation ────────────────────────────────────────────────────────
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── API helpers ───────────────────────────────────────────────────────
+async function apiFetch(method, path, body) {
+  log('req', `${method} ${path}`);
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(API + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    log('err', `${res.status} ${JSON.stringify(data.message ?? data)}`);
+    throw new Error(data.message ?? `HTTP ${res.status}`);
+  }
+  log('res', JSON.stringify(data).slice(0, 120));
+  return data;
+}
+
+async function apiMultipart(path, fields, blob1, blob2) {
+  log('req', `POST ${path} (multipart)`);
+  const fd = new FormData();
+  Object.entries(fields).forEach(([k, v]) => fd.append(k, v));
+  fd.append('photo1', blob1, 'photo1.jpg');
+  fd.append('photo2', blob2, 'photo2.jpg');
+  const res = await fetch(API + path, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    log('err', `${res.status} ${JSON.stringify(data.message ?? data)}`);
+    throw new Error(data.message ?? `HTTP ${res.status}`);
+  }
+  log('res', JSON.stringify(data));
+  return data;
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────
+async function doRegister() {
+  log('info', '── Register ──');
+  try {
+    // Get regions first
+    const regions = await apiFetch('GET', '/users/regions');
+    regionId = regions[0]?.id;
+    if (!regionId) { alert('No region found. Run the seed script first:\ndocker compose exec backend npm run prisma:seed'); return; }
+    log('info', `Using region: ${regions[0].name}`);
+
+    const name = document.getElementById('inp-name').value;
+    const email = document.getElementById('inp-email').value;
+    const pw = document.getElementById('inp-pw').value;
+
+    const data = await apiFetch('POST', '/auth/register', { email, password: pw, displayName: name, regionId });
+    token = data.token;
+    userId = data.userId;
+    log('info', `Registered. userId=${userId}`);
+    await afterAuth();
+  } catch(e) {
+    if (e.message.includes('already')) {
+      log('info', 'Email exists — trying login instead');
+      await doLogin();
+    } else {
+      alert('Register failed: ' + e.message);
+    }
+  }
+}
+
+async function doLogin() {
+  log('info', '── Login ──');
+  try {
+    const regions = await apiFetch('GET', '/users/regions');
+    regionId = regions[0]?.id;
+    const email = document.getElementById('inp-email').value;
+    const pw = document.getElementById('inp-pw').value;
+    const data = await apiFetch('POST', '/auth/login', { email, password: pw });
+    token = data.token;
+    userId = data.userId;
+    log('info', `Logged in. userId=${userId}`);
+    await afterAuth();
+  } catch(e) {
+    alert('Login failed: ' + e.message);
+  }
+}
+
+async function afterAuth() {
+  showView('view-home');
+  await loadTournament();
+  await loadMySubmissions();
+}
+
+// ── Tournament ────────────────────────────────────────────────────────
+async function loadTournament() {
+  log('info', '── GET /tournaments/active ──');
+  try {
+    tournament = await apiFetch('GET', '/tournaments/active');
+    const card = document.getElementById('tournament-card');
+    const end = new Date(tournament.endsAt).toLocaleString();
+    card.innerHTML = `
+      <div class="section-row"><span style="font-weight:700">${tournament.name}</span><span class="badge badge-green">● LIVE</span></div>
+      <div class="section-row"><span style="font-size:13px;color:#8e8e93">Ends ${end}</span></div>
+    `;
+    log('info', `Active tournament: ${tournament.name} (${tournament.id})`);
+  } catch(e) {
+    document.getElementById('tournament-card').innerHTML = `
+      <div class="section-row" style="color:#ff3b30">No active tournament. Open one in the admin dashboard first.</div>
+    `;
+  }
+}
+
+async function loadMySubmissions() {
+  if (!tournament) return;
+  try {
+    const subs = await apiFetch('GET', `/submissions/mine?tournamentId=${tournament.id}`);
+    const el = document.getElementById('my-submissions');
+    if (!subs.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div style="font-weight:600;margin-bottom:8px;font-size:13px;color:#8e8e93">MY SUBMISSIONS</div>` +
+      subs.map(s => `
+        <div class="section-row" style="background:white;border-radius:10px;margin-bottom:6px">
+          <span>${s.fishLengthCm} cm</span>
+          <span class="badge ${s.status==='APPROVED'?'badge-green':s.status==='REJECTED'?'badge-red':'badge-yellow'}">${s.status}</span>
+        </div>`).join('');
+  } catch(e) {}
+}
+
+// ── Camera sim ────────────────────────────────────────────────────────
+function drawFishScene(canvas, withQR, withAngler) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, '#1a6b8a');
+  grad.addColorStop(1, '#0d3d52');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  if (withAngler) {
+    // Draw angler stick figure
+    ctx.fillStyle = '#f5cba7';
+    ctx.beginPath(); ctx.arc(w/2, 60, 20, 0, Math.PI*2); ctx.fill(); // head
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(w/2, 80); ctx.lineTo(w/2, 160); ctx.stroke(); // body
+    ctx.beginPath(); ctx.moveTo(w/2, 100); ctx.lineTo(w/2-40, 140); ctx.stroke(); // left arm
+    ctx.beginPath(); ctx.moveTo(w/2, 100); ctx.lineTo(w/2+40, 130); ctx.stroke(); // right arm
+  }
+
+  // Measuring mat
+  ctx.fillStyle = '#2ecc71';
+  const matY = withAngler ? 180 : h/2 - 20;
+  ctx.fillRect(40, matY, w - 80, 50);
+  ctx.fillStyle = 'white';
+  ctx.font = '11px monospace';
+  for (let i = 0; i <= 60; i += 10) {
+    const x = 40 + (i / 60) * (w - 80);
+    ctx.fillText(`${i}`, x, matY + 30);
+    ctx.fillRect(x, matY, 1, 10);
+  }
+
+  // Fish on mat
+  ctx.fillStyle = '#e8a97d';
+  ctx.beginPath();
+  ctx.ellipse(w/2, matY + 25, 100, 16, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#c0392b';
+  ctx.beginPath(); ctx.arc(w/2 + 95, matY + 25, 8, 0, Math.PI*2); ctx.fill();
+
+  // QR code mock
+  if (withQR) {
+    const qx = w - 90, qy = matY - 60;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(qx, qy, 70, 70);
+    ctx.fillStyle = 'black';
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        if (Math.random() > 0.5 || (r < 2 && c < 2) || (r < 2 && c > 2)) {
+          ctx.fillRect(qx + 5 + c*12, qy + 5 + r*12, 10, 10);
+        }
+      }
+    }
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = '#000';
+    ctx.fillText('MAT-0001', qx - 2, qy + 78);
+  }
+
+  // Timestamp watermark
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '11px monospace';
+  ctx.fillText(new Date().toISOString().replace('T', ' ').slice(0, 19), 10, h - 10);
+}
+
+let qrScanTimeout;
+
+function startCamera1() {
+  const canvas = document.getElementById('cam-canvas1');
+  drawFishScene(canvas, true, false);
+  document.getElementById('qr-badge').style.display = 'none';
+  document.getElementById('btn-capture1').disabled = true;
+  document.getElementById('btn-capture1').textContent = 'Scan QR…';
+
+  log('info', 'Camera open — scanning for QR code');
+
+  // Simulate QR detection after 2s
+  clearTimeout(qrScanTimeout);
+  qrScanTimeout = setTimeout(() => {
+    document.getElementById('qr-badge').style.display = 'block';
+    document.getElementById('btn-capture1').disabled = false;
+    document.getElementById('btn-capture1').textContent = '📸 Capture';
+
+    // Simulate GPS
+    document.getElementById('gps-bar1').style.display = 'flex';
+    document.getElementById('gps-coords1').textContent = `${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}`;
+    log('info', `QR detected: ${detectedQR}`);
+    log('info', `GPS acquired: ${gpsLat}, ${gpsLng}`);
+  }, 2000);
+}
+
+function capturePhoto1() {
+  const canvas = document.getElementById('cam-canvas1');
+  photo1DataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  log('info', 'Photo 1 captured (fish on mat + QR)');
+  drawFishScene(document.getElementById('cam-canvas2'), false, true);
+  showView('view-camera2');
+}
+
+function capturePhoto2() {
+  const canvas = document.getElementById('cam-canvas2');
+  photo2DataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  log('info', 'Photo 2 captured (angler holding)');
+
+  // Populate review
+  document.getElementById('rev-qr').textContent = detectedQR;
+  document.getElementById('rev-gps').textContent = `${gpsLat.toFixed(5)}, ${gpsLng.toFixed(5)}`;
+  document.getElementById('rev-time').textContent = new Date().toLocaleString();
+  document.getElementById('thumb1').src = photo1DataUrl;
+  document.getElementById('thumb2').src = photo2DataUrl;
+  showView('view-review');
+}
+
+// ── Submission ────────────────────────────────────────────────────────
+async function doSubmit() {
+  if (!tournament) { alert('No active tournament found.'); return; }
+
+  const lengthCm = parseFloat(document.getElementById('inp-length').value);
+  if (!lengthCm || lengthCm < 10) { alert('Enter a valid fish length.'); return; }
+
+  showView('view-uploading');
+  log('info', '── Submit Catch ──');
+
+  try {
+    // Convert data URLs to Blobs
+    const blob1 = await dataUrlToBlob(photo1DataUrl);
+    const blob2 = await dataUrlToBlob(photo2DataUrl);
+
+    const result = await apiMultipart('/submissions', {
+      tournamentId: tournament.id,
+      matSerialCode: detectedQR,
+      fishLengthCm: String(lengthCm),
+      gpsLat: String(gpsLat),
+      gpsLng: String(gpsLng),
+      capturedAt: new Date().toISOString(),
+    }, blob1, blob2);
+
+    log('info', `Submission created: ${result.submissionId} → ${result.status}`);
+    document.getElementById('sub-id-display').textContent = `ID: ${result.submissionId}`;
+    showView('view-success');
+  } catch(e) {
+    showView('view-review');
+    alert('Submission failed: ' + e.message);
+  }
+}
+
+function dataUrlToBlob(dataUrl) {
+  return new Promise(resolve => {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    const u8arr = new Uint8Array(bstr.length);
+    for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+    resolve(new Blob([u8arr], { type: mime }));
+  });
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────
+async function loadLeaderboard() {
+  if (!tournament) { alert('No active tournament.'); return; }
+  log('info', '── GET /leaderboard ──');
+
+  try {
+    const [entries, myRank] = await Promise.all([
+      apiFetch('GET', `/leaderboard/${tournament.id}`),
+      apiFetch('GET', `/leaderboard/${tournament.id}/me`),
+    ]);
+
+    const rankEl = document.getElementById('lb-my-rank');
+    if (myRank.rank) {
+      rankEl.textContent = `Your rank: #${myRank.rank}  •  ${myRank.fishLengthCm} cm`;
+    } else {
+      rankEl.textContent = 'You have no approved entries yet.';
+    }
+
+    const medals = ['🥇','🥈','🥉'];
+    const list = document.getElementById('lb-list');
+    if (!entries.length) {
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:#8e8e93">No approved entries yet.<br>Submit a catch and approve it in the admin dashboard.</div>';
+    } else {
+      list.innerHTML = entries.map(e => `
+        <div class="lb-row ${e.userId === userId ? 'lb-me' : ''}">
+          <div class="lb-rank">${medals[e.rank-1] ?? '#'+e.rank}</div>
+          <div class="lb-name">${e.displayName}${e.userId === userId ? ' (you)' : ''}</div>
+          <div class="lb-len">${e.fishLengthCm.toFixed(1)} cm</div>
+        </div>`).join('');
+    }
+
+    showView('view-leaderboard');
+  } catch(e) {
+    alert('Failed: ' + e.message);
+  }
+}
+
+// ── Home ──────────────────────────────────────────────────────────────
+async function goHome() {
+  showView('view-home');
+  await loadMySubmissions();
+}
+
+// ── View transitions with side effects ───────────────────────────────
+const origShowView = showView;
+window.showView = function(id) {
+  origShowView(id);
+  if (id === 'view-camera1') startCamera1();
+};
+
+// ── Boot ──────────────────────────────────────────────────────────────
+log('info', 'iOS Simulator ready');
+log('dim', 'Backend: ' + API);
+log('dim', '1. Click "Create Account" to register');
+log('dim', '2. Open a tournament in the admin dashboard first');
+log('dim', '3. Submit a catch, then approve it in admin to see leaderboard update');
+</script>
+</body>
+</html>
