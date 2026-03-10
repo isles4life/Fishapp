@@ -1,0 +1,15 @@
+aws_region      = "us-east-1"
+environment     = "production"
+apple_bundle_id = "com.yourcompany.fishleague"
+
+# Sensitive — use environment variables instead of committing these:
+#   export TF_VAR_db_password="your-strong-password"
+#   export TF_VAR_jwt_secret="your-32-char-random-secret"
+#
+# db_password = ""
+# jwt_secret  = ""
+
+# Scale up for production load:
+# db_instance_class = "db.t3.small"
+# backend_cpu       = 512
+# backend_memory    = 1024
