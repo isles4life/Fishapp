@@ -135,7 +135,7 @@ resource "aws_ecs_service" "backend" {
     container_port   = 3000
   }
 
-  depends_on = [aws_lb_listener.backend]
+  depends_on = [aws_lb_listener.backend_https]
   tags       = local.tags
 
   lifecycle {
@@ -163,7 +163,7 @@ resource "aws_ecs_service" "admin" {
     container_port   = 3001
   }
 
-  depends_on = [aws_lb_listener.admin]
+  depends_on = [aws_lb_listener.admin_https]
   tags       = local.tags
 
   lifecycle {
