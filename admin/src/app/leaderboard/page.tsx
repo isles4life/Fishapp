@@ -2,12 +2,16 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 
-interface Entry {
-  rank: number;
-  displayName: string;
-  fishLengthCm: number;
-  userId: string;
-}
+const C = {
+  surface: '#162032', surfaceHigh: '#1e2d40', border: '#2a3f55',
+  green: '#2ecc71', gold: '#FFD700', silver: '#C0C0C0', bronze: '#CD7F32',
+  text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580', red: '#e74c3c',
+};
+
+interface Entry { rank: number; displayName: string; fishLengthCm: number; userId: string; }
+
+const rankColor = (r: number) => r === 1 ? C.gold : r === 2 ? C.silver : r === 3 ? C.bronze : C.textMuted;
+const medal = (r: number) => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `#${r}`;
 
 export default function LeaderboardPage() {
   const [tournamentId, setTournamentId] = useState('');
@@ -16,58 +20,57 @@ export default function LeaderboardPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getTournaments()
-      .then(ts => setTournaments(Array.isArray(ts) ? ts : []))
-      .catch(e => setError(e.message));
+    api.getTournaments().then(ts => setTournaments(Array.isArray(ts) ? ts : [])).catch(e => setError(e.message));
   }, []);
 
   useEffect(() => {
     if (!tournamentId) return;
     setError('');
-    api.getLeaderboard(tournamentId)
-      .then(data => setEntries(Array.isArray(data) ? data : []))
-      .catch(e => setError(e.message));
+    api.getLeaderboard(tournamentId).then(data => setEntries(Array.isArray(data) ? data : [])).catch(e => setError(e.message));
   }, [tournamentId]);
-
-  const medal = (rank: number) => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
 
   return (
     <div>
-      <h2>Leaderboard</h2>
-      {error && <p style={{ color: 'red', background: '#fff0f0', padding: '8px 12px', borderRadius: 4 }}>{error}</p>}
+      <h2 style={{ color: C.text, marginBottom: 20 }}>Leaderboard</h2>
+      {error && <div style={{ color: C.red, background: C.red + '15', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
-      <select
-        value={tournamentId}
-        onChange={e => setTournamentId(e.target.value)}
-        style={{ padding: 8, marginBottom: 20, minWidth: 280 }}
-      >
+      <select value={tournamentId} onChange={e => setTournamentId(e.target.value)} style={{
+        padding: '10px 14px', marginBottom: 24, minWidth: 300, borderRadius: 8,
+        backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text, fontSize: 14,
+      }}>
         <option value="">Select tournament...</option>
         {tournaments.map((t: any) => (
-          <option key={t.id} value={t.id}>{t.name} {t.isOpen ? '(open)' : ''}</option>
+          <option key={t.id} value={t.id}>{t.name}{t.isOpen ? ' (open)' : ''}</option>
         ))}
       </select>
 
-      {entries.length > 0 && (
-        <table style={{ width: '100%', maxWidth: 600, borderCollapse: 'collapse', background: 'white', borderRadius: 8, overflow: 'hidden' }}>
-          <thead style={{ background: '#1a3a5c', color: 'white' }}>
-            <tr>
-              <th style={{ padding: '10px 16px', textAlign: 'left' }}>Rank</th>
-              <th style={{ padding: '10px 16px', textAlign: 'left' }}>Angler</th>
-              <th style={{ padding: '10px 16px', textAlign: 'right' }}>Length (cm)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((e, i) => (
-              <tr key={e.userId} style={{ background: i % 2 === 0 ? '#fafafa' : 'white' }}>
-                <td style={{ padding: '10px 16px', fontSize: 20 }}>{medal(e.rank)}</td>
-                <td style={{ padding: '10px 16px', fontWeight: e.rank <= 3 ? 700 : 400 }}>{e.displayName}</td>
-                <td style={{ padding: '10px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{e.fishLengthCm.toFixed(1)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {tournamentId && entries.length === 0 && !error && (
+        <p style={{ color: C.textMuted }}>No approved entries yet.</p>
       )}
-      {tournamentId && entries.length === 0 && !error && <p>No approved entries yet.</p>}
+
+      {entries.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 600 }}>
+          {entries.map((e) => (
+            <div key={e.userId} style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              backgroundColor: e.rank <= 3 ? C.surfaceHigh : C.surface,
+              borderRadius: 10, padding: '12px 16px',
+              border: `1px solid ${e.rank <= 3 ? rankColor(e.rank) + '50' : C.border}`,
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 20,
+                border: `1.5px solid ${rankColor(e.rank)}60`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: e.rank <= 3 ? 20 : 13, fontWeight: 800, color: rankColor(e.rank), flexShrink: 0,
+              }}>
+                {medal(e.rank)}
+              </div>
+              <div style={{ flex: 1, color: C.text, fontWeight: 600 }}>{e.displayName}</div>
+              <div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{e.fishLengthCm.toFixed(1)} cm</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

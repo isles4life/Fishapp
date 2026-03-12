@@ -5,6 +5,18 @@ import { useRouter } from 'next/navigation';
 import { api, setToken } from '../../lib/api';
 import type { Region } from '../../lib/api';
 
+const C = {
+  bg: '#0d1821', surface: '#162032', border: '#2a3f55',
+  green: '#2ecc71', greenMuted: '#1a3a2a',
+  text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '12px 14px', marginBottom: 12,
+  backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+  color: C.text, fontSize: 16, boxSizing: 'border-box',
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState('');
@@ -16,10 +28,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getRegions().then(r => {
-      setRegions(r);
-      if (r.length) setRegionId(r[0].id);
-    }).catch(() => {});
+    api.getRegions().then(r => { setRegions(r); if (r.length) setRegionId(r[0].id); }).catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -38,107 +47,55 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={page}>
-      <div style={card}>
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ backgroundColor: C.surface, borderRadius: 14, padding: 36, width: '100%', maxWidth: 400, border: `1px solid ${C.border}` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon.png" alt="FishLeague" style={{ width: 80, display: 'block', margin: '0 auto 8px' }} />
-        <h1 style={title}>Create Account</h1>
-        <p style={subtitle}>Join the competition</p>
+        <img src="/icon.png" alt="FishLeague" style={{ width: 80, display: 'block', margin: '0 auto 12px' }} />
+        <h1 style={{ color: C.text, textAlign: 'center', margin: '0 0 4px', fontSize: 26, fontWeight: 800 }}>Create Account</h1>
+        <p style={{ color: C.textMuted, textAlign: 'center', margin: '0 0 24px', fontSize: 14 }}>Join the competition</p>
 
-        {error && <div style={errorBox}>{error}</div>}
+        {error && (
+          <div style={{ backgroundColor: '#2a0f0f', border: '1px solid #e74c3c', color: '#e74c3c', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
-          <input
-            style={input}
-            type="text"
-            placeholder="Display Name (shown on leaderboard)"
-            value={displayName}
-            onChange={e => setDisplayName(e.target.value)}
-            required
-          />
-          <input
-            style={input}
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <input
-            style={input}
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
+          <input style={inputStyle} type="text" placeholder="Display Name (shown on leaderboard)" value={displayName} onChange={e => setDisplayName(e.target.value)} required />
+          <input style={inputStyle} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input style={inputStyle} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
 
           {regions.length > 0 && (
             <div style={{ marginBottom: 12 }}>
-              <label style={{ color: '#888', fontSize: 13, display: 'block', marginBottom: 6 }}>
-                Your Region
-              </label>
+              <label style={{ color: C.textMuted, fontSize: 12, display: 'block', marginBottom: 8, letterSpacing: '0.5px', textTransform: 'uppercase' }}>Your Region</label>
               {regions.map(r => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setRegionId(r.id)}
-                  style={regionId === r.id ? regionBtnActive : regionBtn}
-                >
+                <button key={r.id} type="button" onClick={() => setRegionId(r.id)} style={{
+                  width: '100%', padding: '10px 14px', marginBottom: 8,
+                  backgroundColor: regionId === r.id ? C.greenMuted : C.bg,
+                  border: `1px solid ${regionId === r.id ? C.green : C.border}`,
+                  borderRadius: 8, color: regionId === r.id ? C.green : C.textSub,
+                  fontSize: 15, cursor: 'pointer', textAlign: 'left',
+                  fontWeight: regionId === r.id ? 600 : 400,
+                }}>
                   {r.name}
                 </button>
               ))}
             </div>
           )}
 
-          <button type="submit" style={btn} disabled={loading}>
+          <button type="submit" style={{ width: '100%', padding: '13px', backgroundColor: C.green, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 8, cursor: 'pointer', marginTop: 4 }} disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
-        <p style={linkRow}>
+        <p style={{ color: C.textMuted, textAlign: 'center', marginTop: 20, fontSize: 14 }}>
           Already have an account?{' '}
-          <Link href="/login" style={linkStyle}>Sign In</Link>
+          <Link href="/login" style={{ color: C.green, textDecoration: 'none', fontWeight: 600 }}>Sign In</Link>
         </p>
-        <p style={{ ...linkRow, marginTop: 4 }}>
-          <Link href="/" style={linkStyle}>← Back to Leaderboard</Link>
+        <p style={{ color: C.textMuted, textAlign: 'center', marginTop: 8, fontSize: 14 }}>
+          <Link href="/" style={{ color: C.textSub, textDecoration: 'none' }}>← Back to Leaderboard</Link>
         </p>
       </div>
     </div>
   );
 }
-
-const page: React.CSSProperties = {
-  minHeight: '100vh', backgroundColor: '#111111',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-};
-const card: React.CSSProperties = {
-  backgroundColor: '#1a1a1a', borderRadius: 12, padding: 36,
-  width: '100%', maxWidth: 400, border: '1px solid #333',
-};
-const title: React.CSSProperties = { color: '#39FF14', textAlign: 'center', margin: '0 0 4px', fontSize: 28, fontWeight: 800 };
-const subtitle: React.CSSProperties = { color: '#666', textAlign: 'center', margin: '0 0 24px', fontSize: 15 };
-const input: React.CSSProperties = {
-  width: '100%', padding: '12px 14px', marginBottom: 12,
-  backgroundColor: '#111', border: '1px solid #333', borderRadius: 8,
-  color: '#fff', fontSize: 16, boxSizing: 'border-box',
-};
-const btn: React.CSSProperties = {
-  width: '100%', padding: '13px', backgroundColor: '#39FF14',
-  color: '#111', fontWeight: 700, fontSize: 16, border: 'none',
-  borderRadius: 8, cursor: 'pointer', marginTop: 4,
-};
-const regionBtn: React.CSSProperties = {
-  width: '100%', padding: '10px 14px', marginBottom: 8,
-  backgroundColor: '#111', border: '1px solid #333', borderRadius: 8,
-  color: '#aaa', fontSize: 15, cursor: 'pointer', textAlign: 'left',
-};
-const regionBtnActive: React.CSSProperties = {
-  ...regionBtn, border: '1px solid #39FF14', color: '#39FF14', backgroundColor: '#1a2a1a',
-};
-const errorBox: React.CSSProperties = {
-  backgroundColor: '#2a0f0f', border: '1px solid #e74c3c',
-  color: '#e74c3c', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14,
-};
-const linkRow: React.CSSProperties = { color: '#666', textAlign: 'center', marginTop: 20, fontSize: 14 };
-const linkStyle: React.CSSProperties = { color: '#39FF14', textDecoration: 'none', fontWeight: 600 };
