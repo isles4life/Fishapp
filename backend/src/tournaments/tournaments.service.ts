@@ -6,6 +6,16 @@ import { CreateTournamentDto } from './dto/create-tournament.dto';
 export class TournamentsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getFirstOpenTournament() {
+    const tournament = await this.prisma.tournament.findFirst({
+      where: { isOpen: true },
+      orderBy: { startsAt: 'desc' },
+      include: { region: { select: { name: true } } },
+    });
+    if (!tournament) throw new NotFoundException('No active tournament');
+    return tournament;
+  }
+
   async getActiveTournament(regionId: string) {
     const tournament = await this.prisma.tournament.findFirst({
       where: { regionId, isOpen: true },
