@@ -67,34 +67,34 @@ function LoginScreen({ login }: { login: AuthCtx['login'] }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
-      <form onSubmit={submit} style={{ background: 'white', padding: 40, borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.1)', width: 360 }}>
-        <h2 style={{ margin: '0 0 24px', color: '#1a3a5c' }}>🎣 FishLeague Admin</h2>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1821' }}>
+      <form onSubmit={submit} style={{ background: '#162032', padding: 40, borderRadius: 12, border: '1px solid #2a3f55', width: 360 }}>
+        <h2 style={{ margin: '0 0 24px', color: '#e8f0fe' }}>🎣 FishLeague Admin</h2>
         <label style={{ display: 'block', marginBottom: 12 }}>
-          <span style={{ fontSize: 13, color: '#555' }}>Email</span>
+          <span style={{ fontSize: 13, color: '#7a9bbf' }}>Email</span>
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            style={{ display: 'block', width: '100%', padding: '8px 10px', marginTop: 4, border: '1px solid #ccc', borderRadius: 6, boxSizing: 'border-box' }}
+            style={{ display: 'block', width: '100%', padding: '8px 10px', marginTop: 4, border: '1px solid #2a3f55', borderRadius: 6, boxSizing: 'border-box', background: '#0d1821', color: '#e8f0fe' }}
           />
         </label>
         <label style={{ display: 'block', marginBottom: 20 }}>
-          <span style={{ fontSize: 13, color: '#555' }}>Password</span>
+          <span style={{ fontSize: 13, color: '#7a9bbf' }}>Password</span>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="any value for MVP"
-            style={{ display: 'block', width: '100%', padding: '8px 10px', marginTop: 4, border: '1px solid #ccc', borderRadius: 6, boxSizing: 'border-box' }}
+            style={{ display: 'block', width: '100%', padding: '8px 10px', marginTop: 4, border: '1px solid #2a3f55', borderRadius: 6, boxSizing: 'border-box', background: '#0d1821', color: '#e8f0fe' }}
           />
         </label>
-        {error && <p style={{ color: 'red', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+        {error && <p style={{ color: '#e74c3c', fontSize: 13, marginBottom: 12 }}>{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          style={{ width: '100%', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: 6, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer' }}
+          style={{ width: '100%', padding: '10px', background: '#2ecc71', color: '#0d1821', border: 'none', borderRadius: 6, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}
         >
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
