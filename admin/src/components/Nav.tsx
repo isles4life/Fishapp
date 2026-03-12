@@ -8,7 +8,9 @@ export default function Nav() {
 
   return (
     <nav style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 24px', display: 'flex', alignItems: 'center', height: 56, gap: 4 }}>
-      <span style={{ color: C.text, fontWeight: 800, fontSize: 16, marginRight: 24 }}>🎣 FishLeague</span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/icon.png" alt="FishLeague" style={{ height: 32, marginRight: 10 }} />
+      <span style={{ color: C.text, fontWeight: 800, fontSize: 16, marginRight: 24 }}>FishLeague</span>
       {[
         { href: '/moderation', label: 'Moderation' },
         { href: '/tournaments', label: 'Tournaments' },

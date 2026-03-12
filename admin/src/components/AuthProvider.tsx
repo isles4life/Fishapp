@@ -69,7 +69,9 @@ function LoginScreen({ login }: { login: AuthCtx['login'] }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d1821' }}>
       <form onSubmit={submit} style={{ background: '#162032', padding: 40, borderRadius: 12, border: '1px solid #2a3f55', width: 360 }}>
-        <h2 style={{ margin: '0 0 24px', color: '#e8f0fe' }}>🎣 FishLeague Admin</h2>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon.png" alt="FishLeague" style={{ width: 72, display: 'block', margin: '0 auto 16px' }} />
+        <h2 style={{ margin: '0 0 24px', color: '#e8f0fe', textAlign: 'center' }}>FishLeague Admin</h2>
         <label style={{ display: 'block', marginBottom: 12 }}>
           <span style={{ fontSize: 13, color: '#7a9bbf' }}>Email</span>
           <input
