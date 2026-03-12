@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "FishLeague",
+    "slug": "fishleague",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a5276"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourcompany.fishleague",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take a photo of your catch and scan the mat QR code",
+        "NSLocationWhenInUseUsageDescription": "Verify you are fishing at an approved location"
+      }
+    },
+    "android": {
+      "package": "com.yourcompany.fishleague",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a5276"
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "extra": {
+      "apiBaseUrl": "https://api.fishleague.app"
+    },
+    "plugins": [
+      "expo-apple-authentication",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Take a photo of your catch and scan the mat QR code"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Verify you are fishing at an approved location"
+        }
+      ]
+    ]
+  }
+}
