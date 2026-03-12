@@ -46,7 +46,7 @@ resource "aws_ecs_task_definition" "backend" {
       { name = "AWS_REGION",      value = var.aws_region },
       { name = "S3_BUCKET",       value = aws_s3_bucket.submissions.bucket },
       { name = "APPLE_BUNDLE_ID", value = var.apple_bundle_id },
-      { name = "ALLOWED_ORIGINS", value = "https://admin.fishleague.app,null" },
+      { name = "ALLOWED_ORIGINS", value = "https://admin.fishleague.app,https://fishleague.app,https://www.fishleague.app,null" },
     ]
 
     secrets = [
