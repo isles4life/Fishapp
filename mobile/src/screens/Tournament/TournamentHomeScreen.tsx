@@ -17,21 +17,24 @@ export default function TournamentHomeScreen({ navigation }: Props) {
   const [submissions, setSubmissions] = useState<MySubmission[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const t = await api.getActiveTournament();
-      setTournament(t);
-      const subs = await api.getMySubmissions(t.id);
-      setSubmissions(subs);
-    } catch {
-      setTournament(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useFocusEffect(load);
+  useFocusEffect(
+    useCallback(() => {
+      async function load() {
+        setLoading(true);
+        try {
+          const t = await api.getActiveTournament();
+          setTournament(t);
+          const subs = await api.getMySubmissions(t.id);
+          setSubmissions(subs);
+        } catch {
+          setTournament(null);
+        } finally {
+          setLoading(false);
+        }
+      }
+      load();
+    }, [])
+  );
 
   async function handleLogout() {
     await storage.deleteToken();
