@@ -6,6 +6,8 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 RUN npm run build
+# Compile seed script to plain JS so it can run without ts-node at runtime
+RUN npx tsc --module commonjs --target es2020 --esModuleInterop true --skipLibCheck true --outDir dist prisma/seed.ts 2>/dev/null || true
 RUN npx prisma generate
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
@@ -29,4 +31,4 @@ COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/clie
 COPY prisma ./prisma
 
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && /app/node_modules/.bin/ts-node --transpile-only /app/prisma/seed.ts || true && node dist/src/main"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/seed.js || true && node dist/src/main"]
