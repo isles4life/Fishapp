@@ -89,7 +89,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
   // ── Permission check ──────────────────────────────────────────────────────
 
-  if (!permission) return <View style={styles.center}><ActivityIndicator /></View>;
+  if (!permission) return <View style={styles.center}><ActivityIndicator color="#2ecc71" /></View>;
   if (!permission.granted) {
     return (
       <View style={styles.center}>
@@ -136,7 +136,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   if (step === 'uploading') {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1a5276" />
+        <ActivityIndicator size="large" color="#2ecc71" />
         <Text style={styles.uploadingText}>Uploading your catch...</Text>
       </View>
     );
@@ -221,44 +221,46 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#0d1821' },
   cameraOverlay: {
     flex: 1, justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 48, backgroundColor: 'transparent',
   },
   stepHint: {
-    color: '#fff', fontSize: 16, fontWeight: '600',
+    color: '#e8f0fe', fontSize: 16, fontWeight: '600',
     textAlign: 'center', paddingHorizontal: 24,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 8, padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: 10,
   },
   qrBadge: {
-    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: 10, marginTop: 8,
+    backgroundColor: 'rgba(46,204,113,0.15)', borderRadius: 8, padding: 10, marginTop: 8,
+    borderWidth: 1, borderColor: 'rgba(46,204,113,0.4)',
   },
-  qrBadgeText: { color: '#fff', fontSize: 14 },
+  qrBadgeText: { color: '#2ecc71', fontSize: 14, fontWeight: '600' },
   captureButton: {
     width: 72, height: 72, borderRadius: 36, borderWidth: 4,
-    borderColor: '#fff', justifyContent: 'center', alignItems: 'center',
+    borderColor: '#2ecc71', justifyContent: 'center', alignItems: 'center',
   },
-  captureInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff' },
-  detailsContainer: { flex: 1, backgroundColor: '#fff', padding: 24 },
-  stepTitle: { fontSize: 22, fontWeight: '700', color: '#1a5276', marginBottom: 16 },
+  captureInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#2ecc71' },
+  detailsContainer: { flex: 1, backgroundColor: '#0d1821', padding: 24 },
+  stepTitle: { fontSize: 22, fontWeight: '700', color: '#e8f0fe', marginBottom: 16 },
   photoRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  thumbnail: { width: 140, height: 105, borderRadius: 8, backgroundColor: '#eee' },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 4 },
-  qrValue: { fontSize: 15, color: '#1a5276', marginBottom: 16 },
+  thumbnail: { width: 140, height: 105, borderRadius: 8, backgroundColor: '#162032' },
+  label: { fontSize: 13, fontWeight: '600', color: '#4a6580', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  qrValue: { fontSize: 15, color: '#2ecc71', marginBottom: 16, fontWeight: '600' },
   missing: { color: '#e74c3c' },
   input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
+    borderWidth: 1, borderColor: '#2a3f55', borderRadius: 8,
     padding: 12, fontSize: 16, marginBottom: 16,
+    backgroundColor: '#162032', color: '#e8f0fe',
   },
-  gpsValue: { fontSize: 14, color: '#555', marginBottom: 24 },
-  button: { backgroundColor: '#1a5276', borderRadius: 8, padding: 16, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  gpsValue: { fontSize: 14, color: '#7a9bbf', marginBottom: 24 },
+  button: { backgroundColor: '#2ecc71', borderRadius: 8, padding: 16, alignItems: 'center' },
+  buttonText: { color: '#0d1821', fontSize: 16, fontWeight: '700' },
   retakeLink: { marginTop: 16, alignItems: 'center' },
-  retakeLinkText: { color: '#1a5276', fontSize: 15 },
+  retakeLinkText: { color: '#7a9bbf', fontSize: 15 },
   bigEmoji: { fontSize: 64, marginBottom: 16 },
-  successTitle: { fontSize: 24, fontWeight: '700', color: '#333', marginBottom: 8 },
-  successText: { fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 24 },
-  uploadingText: { marginTop: 16, fontSize: 16, color: '#555' },
-  permText: { fontSize: 15, color: '#555', textAlign: 'center', marginBottom: 20 },
+  successTitle: { fontSize: 24, fontWeight: '700', color: '#e8f0fe', marginBottom: 8 },
+  successText: { fontSize: 15, color: '#7a9bbf', textAlign: 'center', marginBottom: 24 },
+  uploadingText: { marginTop: 16, fontSize: 16, color: '#7a9bbf' },
+  permText: { fontSize: 15, color: '#7a9bbf', textAlign: 'center', marginBottom: 20 },
 });
