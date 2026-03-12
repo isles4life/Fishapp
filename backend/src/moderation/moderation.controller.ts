@@ -9,14 +9,12 @@ import {
   Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/jwt.guard';
+import { AdminGuard } from '../common/admin.guard';
 import { ModerationService } from './moderation.service';
 import { ModerateSubmissionDto } from './dto/moderate-submission.dto';
 
-// NOTE: In production, add a role guard to restrict to admin users.
-// For MVP, admin users are identified by known email; extend as needed.
-
 @Controller('admin/moderation')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class ModerationController {
   constructor(private readonly moderationService: ModerationService) {}
 

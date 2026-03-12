@@ -26,8 +26,7 @@ export class AuthService {
         displayName: dto.displayName,
         authProvider: 'EMAIL',
         regionId: dto.regionId,
-        // Store hashed password in a real app via a separate credentials table
-        // For MVP simplicity, we attach it to a side field; extend schema if needed
+        passwordHash,
       },
     });
 
@@ -36,11 +35,12 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials');
     if (user.suspended) throw new UnauthorizedException('Account suspended');
 
-    // NOTE: For full MVP add a UserCredentials table with hashed password
-    // Simplified here – swap for real bcrypt.compare against stored hash
+    const valid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!valid) throw new UnauthorizedException('Invalid credentials');
+
     return { token: this.sign(user.id), userId: user.id };
   }
 

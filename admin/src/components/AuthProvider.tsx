@@ -88,7 +88,7 @@ function LoginScreen({ login }: { login: AuthCtx['login'] }) {
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            placeholder="any value for MVP"
+            placeholder="Password"
             style={{ display: 'block', width: '100%', padding: '8px 10px', marginTop: 4, border: '1px solid #2a3f55', borderRadius: 6, boxSizing: 'border-box', background: '#0d1821', color: '#e8f0fe' }}
           />
         </label>

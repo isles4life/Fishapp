@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -40,16 +41,20 @@ async function main() {
   await prisma.matSerial.createMany({ data: serials, skipDuplicates: true });
   console.log('Seeded 200 mat serials');
 
-  // Seed admin user (use Pacific Northwest region)
+  // Seed admin user — password only set on create, not overwritten on re-seed
   const pnw = await prisma.region.findUnique({ where: { name: 'Pacific Northwest' } });
+  const adminPassword = process.env.ADMIN_PASSWORD ?? 'FishAdmin2026!';
+  const adminHash = await bcrypt.hash(adminPassword, 10);
   await prisma.user.upsert({
     where: { email: 'admin@fishleague.com' },
-    update: {},
+    update: { role: 'ADMIN' }, // ensure role is set, never overwrite password
     create: {
       email: 'admin@fishleague.com',
       authProvider: 'EMAIL',
       displayName: 'Admin',
       regionId: (pnw ?? firstRegion!).id,
+      role: 'ADMIN',
+      passwordHash: adminHash,
     },
   });
   console.log('Seeded admin user');

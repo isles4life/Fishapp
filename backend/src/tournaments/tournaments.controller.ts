@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/jwt.guard';
+import { AdminGuard } from '../common/admin.guard';
 import { TournamentsService } from './tournaments.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 
@@ -31,21 +32,21 @@ export class TournamentsController {
     return this.tournamentsService.getById(id);
   }
 
-  // Admin endpoints
+  // Admin-only endpoints
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   create(@Body() dto: CreateTournamentDto) {
     return this.tournamentsService.create(dto);
   }
 
   @Patch(':id/open')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   open(@Param('id') id: string) {
     return this.tournamentsService.setOpen(id, true);
   }
 
   @Patch(':id/close')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   close(@Param('id') id: string) {
     return this.tournamentsService.setOpen(id, false);
   }

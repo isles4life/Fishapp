@@ -28,6 +28,11 @@ enum ModerationActionType {
   FLAG
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id               String    @id @default(uuid())
   email            String?   @unique
@@ -35,6 +40,8 @@ model User {
   authProvider     AuthProvider
   displayName      String
   regionId         String
+  role             UserRole  @default(USER)
+  passwordHash     String?
   suspended        Boolean   @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
