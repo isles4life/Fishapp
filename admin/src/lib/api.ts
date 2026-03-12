@@ -41,4 +41,9 @@ export const api = {
 
   getLeaderboard: (tournamentId: string) =>
     apiFetch<any[]>(`/leaderboard/${tournamentId}`),
+
+  getUsers: () => apiFetch<any[]>('/users'),
+
+  updateUser: (id: string, data: { role?: 'USER' | 'ADMIN'; suspended?: boolean }) =>
+    apiFetch(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
