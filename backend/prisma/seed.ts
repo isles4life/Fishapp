@@ -47,7 +47,7 @@ async function main() {
   const adminHash = await bcrypt.hash(adminPassword, 10);
   await prisma.user.upsert({
     where: { email: 'admin@fishleague.com' },
-    update: { role: 'ADMIN' }, // ensure role is set, never overwrite password
+    update: { role: 'ADMIN', passwordHash: adminHash },
     create: {
       email: 'admin@fishleague.com',
       authProvider: 'EMAIL',
