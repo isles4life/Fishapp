@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api, isLoggedIn } from '../../lib/api';
+import { api, clearToken, isLoggedIn } from '../../lib/api';
 import type { AnglerProfile, UpdateProfilePayload } from '../../lib/api';
 
 const C = {
@@ -44,6 +44,86 @@ function StatCard({ label, value }: { label: string; value: string | number | nu
   );
 }
 
+// ── Avatar upload widget ───────────────────────────────────────────────────────
+
+const AVATAR_RULES = 'JPG · PNG · WebP · Max 5 MB · 400×400 px min · Square (1:1) recommended';
+const ACCEPTED = 'image/jpeg,image/png,image/webp';
+const MAX_BYTES = 5 * 1024 * 1024;
+
+function AvatarUpload({ current, displayName, onUploaded }: {
+  current: string | null;
+  displayName?: string;
+  onUploaded: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState('');
+  const [preview, setPreview] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setErr('');
+    if (file.size > MAX_BYTES) { setErr('File exceeds 5 MB limit.'); return; }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setErr('Only JPG, PNG, or WebP allowed.'); return; }
+
+    const reader = new FileReader();
+    reader.onload = ev => setPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setUploading(true);
+    try {
+      const { avatarUrl } = await api.uploadAvatar(file);
+      onUploaded(avatarUrl);
+      setPreview(null);
+    } catch (e: any) {
+      setErr(e.message);
+      setPreview(null);
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
+
+  const shown = preview ?? current;
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ color: C.textMuted, fontSize: 12, fontWeight: 600, marginBottom: 10 }}>Profile Picture</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ width: 80, height: 80, borderRadius: 40, overflow: 'hidden', border: `2px solid ${C.border}`, backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {shown
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={shown} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontSize: 32, color: C.textMuted }}>🎣</span>}
+          </div>
+          {uploading && (
+            <div style={{ position: 'absolute', inset: 0, borderRadius: 40, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: C.text, fontSize: 12 }}>…</span>
+            </div>
+          )}
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            style={{ backgroundColor: C.surfaceHigh, color: C.textSub, border: `1px solid ${C.border}`, padding: '7px 14px', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'block' }}
+          >
+            {uploading ? 'Uploading…' : current ? 'Change Photo' : 'Upload Photo'}
+          </button>
+          <div style={{ color: C.textMuted, fontSize: 11, lineHeight: 1.6 }}>{AVATAR_RULES}</div>
+          {err && <div style={{ color: '#e74c3c', fontSize: 12, marginTop: 4 }}>{err}</div>}
+        </div>
+      </div>
+      <input ref={inputRef} type="file" accept={ACCEPTED} onChange={handleFile} style={{ display: 'none' }} />
+    </div>
+  );
+}
+
+// ── Main profile page ──────────────────────────────────────────────────────────
+
 export default function MyProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<AnglerProfile | null>(null);
@@ -52,8 +132,9 @@ export default function MyProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [navOpen, setNavOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Form state
   const [form, setForm] = useState<UpdateProfilePayload>({});
 
   useEffect(() => {
@@ -70,11 +151,21 @@ export default function MyProfilePage() {
           favoriteLine: p.favoriteLine ?? '', favoriteBoat: p.favoriteBoat ?? '',
           sponsorTags: p.sponsorTags, allowFollowers: p.allowFollowers, publicProfile: p.publicProfile,
         });
-        if (!p) setEditing(true); // first-time setup
+        if (!p) setEditing(true);
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [router]);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setNavOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  function handleLogout() { clearToken(); router.push('/'); }
 
   function setArr(field: keyof UpdateProfilePayload, raw: string) {
     setForm(f => ({ ...f, [field]: raw.split(',').map(s => s.trim()).filter(Boolean) }));
@@ -93,186 +184,221 @@ export default function MyProfilePage() {
     finally { setSaving(false); }
   }
 
-  if (loading) return <Page><div style={{ textAlign: 'center', color: C.textMuted, padding: 80 }}>Loading...</div></Page>;
+  const nav = (
+    <nav style={{ backgroundColor: C.surface, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center' }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 10 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="FishLeague" style={{ height: 34 }} />
+          <span style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>FishLeague</span>
+        </Link>
+        <div style={{ marginLeft: 'auto' }}>
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
+            <button onClick={() => setNavOpen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 17, overflow: 'hidden', border: `1.5px solid ${C.border}`, backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {profile?.profilePhotoUrl
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={profile.profilePhotoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ fontSize: 13, fontWeight: 700, color: C.textSub }}>{profile?.user?.displayName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? '?'}</span>
+                }
+              </div>
+              <span style={{ color: C.textSub, fontSize: 13, fontWeight: 600 }}>{profile?.username ? `@${profile.username}` : 'My Profile'}</span>
+              <span style={{ color: C.textMuted, fontSize: 10 }}>{navOpen ? '▲' : '▼'}</span>
+            </button>
+            {navOpen && (
+              <div style={{ position: 'absolute', top: 44, right: 0, minWidth: 170, backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 100 }}>
+                <Link href="/profile" onClick={() => setNavOpen(false)} style={{ display: 'block', padding: '12px 16px', color: C.text, textDecoration: 'none', fontSize: 14, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
+                  👤 My Profile
+                </Link>
+                <button onClick={handleLogout} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 16px', color: C.textSub, background: 'none', border: 'none', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>{nav}<div style={{ textAlign: 'center', color: C.textMuted, padding: 80 }}>Loading...</div></div>
+  );
 
   if (editing) return (
-    <Page>
-      <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-          <h2 style={{ color: C.text, margin: 0 }}>{profile ? 'Edit Profile' : 'Set Up Your Angler Profile'}</h2>
-          {profile && <button onClick={() => setEditing(false)} style={ghostBtn}>Cancel</button>}
-        </div>
-
-        {error && <ErrBox msg={error} />}
-
-        <form onSubmit={handleSave}>
-          <Section title="Identity">
-            <label style={labelStyle}>Username (3–20 chars, letters/numbers/_)</label>
-            <input style={inputStyle} value={form.username ?? ''} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="bass_master_99" required minLength={3} maxLength={20} />
-            <label style={labelStyle}>Bio (max 250 chars)</label>
-            <textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={form.bio ?? ''} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} placeholder="Tell the FishLeague community about yourself..." maxLength={250} />
-            <label style={labelStyle}>Profile Photo URL</label>
-            <input style={inputStyle} value={form.profilePhotoUrl ?? ''} onChange={e => setForm(f => ({ ...f, profilePhotoUrl: e.target.value }))} placeholder="https://..." />
-          </Section>
-
-          <Section title="Location">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <div><label style={labelStyle}>State / Province</label><input style={inputStyle} value={form.homeState ?? ''} onChange={e => setForm(f => ({ ...f, homeState: e.target.value }))} placeholder="Texas" /></div>
-              <div><label style={labelStyle}>City</label><input style={inputStyle} value={form.homeCity ?? ''} onChange={e => setForm(f => ({ ...f, homeCity: e.target.value }))} placeholder="Austin" /></div>
-            </div>
-            <label style={labelStyle}>Country</label>
-            <input style={inputStyle} value={form.country ?? ''} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} placeholder="USA" />
-          </Section>
-
-          <Section title="Fishing Preferences">
-            <label style={labelStyle}>Primary Species (comma-separated)</label>
-            <input style={inputStyle} value={(form.primarySpecies ?? []).join(', ')} onChange={e => setArr('primarySpecies', e.target.value)} placeholder="Bass, Trout, Redfish" />
-            <label style={labelStyle}>Favorite Techniques (comma-separated)</label>
-            <input style={inputStyle} value={(form.favoriteTechniques ?? []).join(', ')} onChange={e => setArr('favoriteTechniques', e.target.value)} placeholder="Fly, Spinning, Baitcasting" />
-            <label style={labelStyle}>Favorite Baits (comma-separated)</label>
-            <input style={inputStyle} value={(form.favoriteBaits ?? []).join(', ')} onChange={e => setArr('favoriteBaits', e.target.value)} placeholder="Crankbait, Jig, Live Shrimp" />
-            <label style={labelStyle}>Preferred Water Type</label>
-            <select style={inputStyle} value={form.preferredWaterType ?? ''} onChange={e => setForm(f => ({ ...f, preferredWaterType: e.target.value as any || undefined }))}>
-              <option value="">— Select —</option>
-              <option value="FRESHWATER">Freshwater</option>
-              <option value="SALTWATER">Saltwater</option>
-              <option value="BOTH">Both</option>
-            </select>
-          </Section>
-
-          <Section title="Gear">
-            {(['favoriteRod', 'favoriteReel', 'favoriteLine', 'favoriteBoat'] as const).map(f => (
-              <div key={f}>
-                <label style={labelStyle}>{f.replace('favorite', 'Favorite ').replace(/([A-Z])/g, ' $1').trim()}</label>
-                <input style={inputStyle} value={(form[f] as string) ?? ''} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))} />
-              </div>
-            ))}
-            <label style={labelStyle}>Sponsor Tags (comma-separated)</label>
-            <input style={inputStyle} value={(form.sponsorTags ?? []).join(', ')} onChange={e => setArr('sponsorTags', e.target.value)} placeholder="Shimano, Abu Garcia" />
-          </Section>
-
-          <Section title="Privacy">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSub, fontSize: 14, marginBottom: 10, cursor: 'pointer' }}>
-              <input type="checkbox" checked={form.publicProfile ?? true} onChange={e => setForm(f => ({ ...f, publicProfile: e.target.checked }))} />
-              Public Profile
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSub, fontSize: 14, cursor: 'pointer' }}>
-              <input type="checkbox" checked={form.allowFollowers ?? true} onChange={e => setForm(f => ({ ...f, allowFollowers: e.target.checked }))} />
-              Allow Followers
-            </label>
-          </Section>
-
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
+      {nav}
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+            <h2 style={{ color: C.text, margin: 0 }}>{profile ? 'Edit Profile' : 'Set Up Your Angler Profile'}</h2>
+            {profile && <button onClick={() => setEditing(false)} style={ghostBtn}>Cancel</button>}
+          </div>
           {error && <ErrBox msg={error} />}
-          <button type="submit" disabled={saving} style={{ backgroundColor: C.green, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 8, padding: '13px 32px', cursor: 'pointer', width: '100%' }}>
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
-        </form>
+          <form onSubmit={handleSave}>
+            <Section title="Identity">
+              <AvatarUpload
+                current={profile?.profilePhotoUrl ?? null}
+                displayName={profile?.user?.displayName}
+                onUploaded={url => {
+                  setProfile(p => p ? { ...p, profilePhotoUrl: url } : p);
+                  setForm(f => ({ ...f, profilePhotoUrl: url }));
+                }}
+              />
+              <label style={labelStyle}>Username (3–20 chars, letters/numbers/_)</label>
+              <input style={inputStyle} value={form.username ?? ''} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="bass_master_99" required minLength={3} maxLength={20} />
+              <label style={labelStyle}>Bio (max 250 chars)</label>
+              <textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={form.bio ?? ''} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} placeholder="Tell the FishLeague community about yourself..." maxLength={250} />
+            </Section>
+
+            <Section title="Location">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div><label style={labelStyle}>State / Province</label><input style={inputStyle} value={form.homeState ?? ''} onChange={e => setForm(f => ({ ...f, homeState: e.target.value }))} placeholder="Texas" /></div>
+                <div><label style={labelStyle}>City</label><input style={inputStyle} value={form.homeCity ?? ''} onChange={e => setForm(f => ({ ...f, homeCity: e.target.value }))} placeholder="Austin" /></div>
+              </div>
+              <label style={labelStyle}>Country</label>
+              <input style={inputStyle} value={form.country ?? ''} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} placeholder="USA" />
+            </Section>
+
+            <Section title="Fishing Preferences">
+              <label style={labelStyle}>Primary Species (comma-separated)</label>
+              <input style={inputStyle} value={(form.primarySpecies ?? []).join(', ')} onChange={e => setArr('primarySpecies', e.target.value)} placeholder="Bass, Trout, Redfish" />
+              <label style={labelStyle}>Favorite Techniques (comma-separated)</label>
+              <input style={inputStyle} value={(form.favoriteTechniques ?? []).join(', ')} onChange={e => setArr('favoriteTechniques', e.target.value)} placeholder="Fly, Spinning, Baitcasting" />
+              <label style={labelStyle}>Favorite Baits (comma-separated)</label>
+              <input style={inputStyle} value={(form.favoriteBaits ?? []).join(', ')} onChange={e => setArr('favoriteBaits', e.target.value)} placeholder="Crankbait, Jig, Live Shrimp" />
+              <label style={labelStyle}>Preferred Water Type</label>
+              <select style={inputStyle} value={form.preferredWaterType ?? ''} onChange={e => setForm(f => ({ ...f, preferredWaterType: e.target.value as any || undefined }))}>
+                <option value="">— Select —</option>
+                <option value="FRESHWATER">Freshwater</option>
+                <option value="SALTWATER">Saltwater</option>
+                <option value="BOTH">Both</option>
+              </select>
+            </Section>
+
+            <Section title="Gear">
+              {(['favoriteRod', 'favoriteReel', 'favoriteLine', 'favoriteBoat'] as const).map(f => (
+                <div key={f}>
+                  <label style={labelStyle}>{f.replace('favorite', 'Favorite ').replace(/([A-Z])/g, ' $1').trim()}</label>
+                  <input style={inputStyle} value={(form[f] as string) ?? ''} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))} />
+                </div>
+              ))}
+              <label style={labelStyle}>Sponsor Tags (comma-separated)</label>
+              <input style={inputStyle} value={(form.sponsorTags ?? []).join(', ')} onChange={e => setArr('sponsorTags', e.target.value)} placeholder="Shimano, Abu Garcia" />
+            </Section>
+
+            <Section title="Privacy">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSub, fontSize: 14, marginBottom: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.publicProfile ?? true} onChange={e => setForm(f => ({ ...f, publicProfile: e.target.checked }))} />
+                Public Profile
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSub, fontSize: 14, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.allowFollowers ?? true} onChange={e => setForm(f => ({ ...f, allowFollowers: e.target.checked }))} />
+                Allow Followers
+              </label>
+            </Section>
+
+            {error && <ErrBox msg={error} />}
+            <button type="submit" disabled={saving} style={{ backgroundColor: C.green, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 8, padding: '13px 32px', cursor: 'pointer', width: '100%' }}>
+              {saving ? 'Saving...' : 'Save Profile'}
+            </button>
+          </form>
+        </div>
       </div>
-    </Page>
+    </div>
   );
 
   if (!profile) return (
-    <Page>
-      <div style={{ textAlign: 'center', padding: 60 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
+      {nav}
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px', textAlign: 'center', paddingTop: 60 }}>
         <p style={{ color: C.textSub, fontSize: 18, marginBottom: 20 }}>You haven&apos;t set up your angler profile yet.</p>
         <button onClick={() => setEditing(true)} style={{ backgroundColor: C.green, color: C.bg, fontWeight: 700, padding: '12px 28px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 15 }}>Set Up Profile</button>
       </div>
-    </Page>
+    </div>
   );
 
   const { stats } = profile;
 
   return (
-    <Page>
-      {success && <div style={{ backgroundColor: C.greenMuted, border: `1px solid ${C.green}50`, color: C.green, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{success}</div>}
-      <div style={{ maxWidth: 700, margin: '0 auto' }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 28 }}>
-          <div style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: C.surfaceHigh, border: `2px solid ${C.border}`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
-            {profile.profilePhotoUrl
-              ? <img src={profile.profilePhotoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : '🎣'}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <h2 style={{ color: C.text, margin: 0, fontSize: 24, fontWeight: 800 }}>{profile.user.displayName}</h2>
-              {profile.verifiedAngler && <span style={{ fontSize: 11, fontWeight: 700, color: C.blue, backgroundColor: C.blue + '20', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.blue}40` }}>✓ VERIFIED</span>}
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
+      {nav}
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>
+        {success && <div style={{ backgroundColor: C.greenMuted, border: `1px solid ${C.green}50`, color: C.green, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{success}</div>}
+        <div style={{ maxWidth: 700, margin: '0 auto' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 28 }}>
+            <button onClick={() => setEditing(true)} title="Change profile picture" style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0 }}>
+              <div style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: C.surfaceHigh, border: `2px solid ${C.border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+                {profile.profilePhotoUrl
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={profile.profilePhotoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : '🎣'}
+              </div>
+              <div style={{ position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.green, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>✏️</div>
+            </button>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <h2 style={{ color: C.text, margin: 0, fontSize: 24, fontWeight: 800 }}>{profile.user.displayName}</h2>
+                {profile.verifiedAngler && <span style={{ fontSize: 11, fontWeight: 700, color: C.blue, backgroundColor: C.blue + '20', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.blue}40` }}>✓ VERIFIED</span>}
+              </div>
+              <div style={{ color: C.textMuted, fontSize: 14, marginTop: 2 }}>@{profile.username}</div>
+              {profile.bio && <p style={{ color: C.textSub, fontSize: 14, marginTop: 8, marginBottom: 0 }}>{profile.bio}</p>}
+              <div style={{ display: 'flex', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
+                <span style={{ color: C.textMuted, fontSize: 13 }}><strong style={{ color: C.textSub }}>{profile.followersCount}</strong> followers</span>
+                <span style={{ color: C.textMuted, fontSize: 13 }}><strong style={{ color: C.textSub }}>{profile.followingCount}</strong> following</span>
+                {(profile.homeCity || profile.homeState) && <span style={{ color: C.textMuted, fontSize: 13 }}>📍 {[profile.homeCity, profile.homeState].filter(Boolean).join(', ')}</span>}
+                <span style={{ color: C.textMuted, fontSize: 13 }}>Member since {new Date(profile.user.createdAt).getFullYear()}</span>
+              </div>
             </div>
-            <div style={{ color: C.textMuted, fontSize: 14, marginTop: 2 }}>@{profile.username}</div>
-            {profile.bio && <p style={{ color: C.textSub, fontSize: 14, marginTop: 8, marginBottom: 0 }}>{profile.bio}</p>}
-            <div style={{ display: 'flex', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
-              <span style={{ color: C.textMuted, fontSize: 13 }}><strong style={{ color: C.textSub }}>{profile.followersCount}</strong> followers</span>
-              <span style={{ color: C.textMuted, fontSize: 13 }}><strong style={{ color: C.textSub }}>{profile.followingCount}</strong> following</span>
-              {(profile.homeCity || profile.homeState) && <span style={{ color: C.textMuted, fontSize: 13 }}>📍 {[profile.homeCity, profile.homeState].filter(Boolean).join(', ')}</span>}
-              <span style={{ color: C.textMuted, fontSize: 13 }}>Member since {new Date(profile.user.createdAt).getFullYear()}</span>
-            </div>
+            <button onClick={() => setEditing(true)} style={ghostBtn}>Edit Profile</button>
           </div>
-          <button onClick={() => setEditing(true)} style={ghostBtn}>Edit Profile</button>
-        </div>
 
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
-          <StatCard label="Catches" value={stats.totalCatches} />
-          <StatCard label="Tournaments" value={stats.totalTournamentsEntered} />
-          <StatCard label="Wins" value={stats.tournamentsWon} />
-          <StatCard label="Best Catch" value={stats.largestCatchCm ? `${stats.largestCatchCm} cm` : null} />
-          <StatCard label="Avg Catch" value={stats.averageCatchCm ? `${stats.averageCatchCm} cm` : null} />
-          <StatCard label="Sportsmanship" value={`${profile.sportsmanshipScore.toFixed(1)} ★`} />
-        </div>
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
+            <StatCard label="Catches" value={stats.totalCatches} />
+            <StatCard label="Tournaments" value={stats.totalTournamentsEntered} />
+            <StatCard label="Wins" value={stats.tournamentsWon} />
+            <StatCard label="Best Catch" value={stats.largestCatchCm ? `${stats.largestCatchCm} cm` : null} />
+            <StatCard label="Avg Catch" value={stats.averageCatchCm ? `${stats.averageCatchCm} cm` : null} />
+            <StatCard label="Sportsmanship" value={`${profile.sportsmanshipScore.toFixed(1)} ★`} />
+          </div>
 
-        {/* Badges */}
-        {profile.badges.length > 0 && (
+          {/* Badges */}
+          {profile.badges.length > 0 && (
+            <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 18, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+              <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 12px' }}>Badges</h4>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {profile.badges.map(b => (
+                  <span key={b} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, backgroundColor: C.gold + '20', color: C.gold, border: `1px solid ${C.gold}40` }}>🏆 {b}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Fishing preferences */}
           <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 18, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-            <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 12px' }}>Badges</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {profile.badges.map(b => (
-                <span key={b} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, backgroundColor: C.gold + '20', color: C.gold, border: `1px solid ${C.gold}40` }}>🏆 {b}</span>
-              ))}
-            </div>
+            <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 14px' }}>Fishing Preferences</h4>
+            <TagList label="Species" tags={profile.primarySpecies} />
+            <TagList label="Techniques" tags={profile.favoriteTechniques} />
+            <TagList label="Baits" tags={profile.favoriteBaits} />
+            {profile.preferredWaterType && (
+              <div><span style={{ color: C.textMuted, fontSize: 12 }}>Water: </span><span style={{ color: C.textSub, fontSize: 14 }}>{WATER_LABELS[profile.preferredWaterType]}</span></div>
+            )}
           </div>
-        )}
 
-        {/* Fishing preferences */}
-        <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 18, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-          <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 14px' }}>Fishing Preferences</h4>
-          <TagList label="Species" tags={profile.primarySpecies} />
-          <TagList label="Techniques" tags={profile.favoriteTechniques} />
-          <TagList label="Baits" tags={profile.favoriteBaits} />
-          {profile.preferredWaterType && (
-            <div><span style={{ color: C.textMuted, fontSize: 12 }}>Water: </span><span style={{ color: C.textSub, fontSize: 14 }}>{WATER_LABELS[profile.preferredWaterType]}</span></div>
+          {/* Gear */}
+          {(profile.favoriteRod || profile.favoriteReel || profile.favoriteLine || profile.favoriteBoat || profile.sponsorTags.length > 0) && (
+            <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 18, border: `1px solid ${C.border}` }}>
+              <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 14px' }}>Gear</h4>
+              {([['Rod', profile.favoriteRod], ['Reel', profile.favoriteReel], ['Line', profile.favoriteLine], ['Boat', profile.favoriteBoat]] as [string, string | null][]).map(([label, val]) =>
+                val ? <div key={label} style={{ marginBottom: 6 }}><span style={{ color: C.textMuted, fontSize: 12 }}>{label}: </span><span style={{ color: C.textSub, fontSize: 14 }}>{val}</span></div> : null
+              )}
+              <TagList label="Sponsors" tags={profile.sponsorTags} />
+            </div>
           )}
         </div>
-
-        {/* Gear */}
-        {(profile.favoriteRod || profile.favoriteReel || profile.favoriteLine || profile.favoriteBoat || profile.sponsorTags.length > 0) && (
-          <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 18, border: `1px solid ${C.border}` }}>
-            <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 14px' }}>Gear</h4>
-            {([['Rod', profile.favoriteRod], ['Reel', profile.favoriteReel], ['Line', profile.favoriteLine], ['Boat', profile.favoriteBoat]] as [string, string | null][]).map(([label, val]) =>
-              val ? <div key={label} style={{ marginBottom: 6 }}><span style={{ color: C.textMuted, fontSize: 12 }}>{label}: </span><span style={{ color: C.textSub, fontSize: 14 }}>{val}</span></div> : null
-            )}
-            <TagList label="Sponsors" tags={profile.sponsorTags} />
-          </div>
-        )}
       </div>
-    </Page>
-  );
-}
-
-function Page({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
-      <nav style={{ backgroundColor: C.surface, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 10 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.png" alt="FishLeague" style={{ height: 34 }} />
-            <span style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>FishLeague</span>
-          </Link>
-          <span style={{ marginLeft: 'auto', color: C.textMuted, fontSize: 14 }}>My Profile</span>
-        </div>
-      </nav>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>{children}</div>
     </div>
   );
 }

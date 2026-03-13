@@ -54,7 +54,14 @@ export class LeaderboardService {
       where: { tournamentId },
       orderBy: { fishLengthCm: 'desc' },
       take: TOP_N,
-      include: { user: { select: { displayName: true } } },
+      include: {
+        user: {
+          select: {
+            displayName: true,
+            profile: { select: { profilePhotoUrl: true, username: true } },
+          },
+        },
+      },
     });
 
     return entries.map((e, idx) => ({
@@ -62,6 +69,8 @@ export class LeaderboardService {
       userId: e.userId,
       displayName: e.user.displayName,
       fishLengthCm: e.fishLengthCm,
+      profilePhotoUrl: e.user.profile?.profilePhotoUrl ?? null,
+      username: e.user.profile?.username ?? null,
     }));
   }
 

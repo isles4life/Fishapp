@@ -97,8 +97,18 @@ export default function LeaderboardScreen({ navigation, route }: Props) {
                   {item.rank <= 3 ? medalFor(item.rank) : `#${item.rank}`}
                 </Text>
               </View>
+              {/* Avatar */}
+              <View style={styles.avatarWrap}>
+                {item.profilePhotoUrl
+                  ? <Image source={{ uri: item.profilePhotoUrl }} style={styles.avatar} />
+                  : <Text style={styles.avatarInitials}>
+                      {item.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </Text>
+                }
+              </View>
               <View style={styles.info}>
                 <Text style={styles.name}>{item.displayName}</Text>
+                {item.username && <Text style={styles.username}>@{item.username}</Text>}
               </View>
               <Text style={styles.length}>{item.fishLengthCm} cm</Text>
             </View>
@@ -143,8 +153,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
   rankText: { fontSize: 16, fontWeight: '800' },
+  avatarWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceHigh, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginRight: 10, flexShrink: 0 },
+  avatar: { width: 36, height: 36 },
+  avatarInitials: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   info: { flex: 1 },
   name: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  username: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
   length: { fontSize: 18, fontWeight: '800', color: colors.green },
   emptyText: { color: colors.textMuted, fontSize: 16 },
 });

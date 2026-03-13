@@ -162,3 +162,20 @@ export function followAngler(username: string): Promise<{ following: boolean }> 
 export function unfollowAngler(username: string): Promise<{ following: boolean }> {
   return request(`/profile/${username}/follow`, { method: 'DELETE' });
 }
+
+export async function uploadAvatar(uri: string, mimeType: string): Promise<{ avatarUrl: string }> {
+  const token = await storage.getToken();
+  const ext = mimeType.split('/')[1] ?? 'jpg';
+  const form = new FormData();
+  form.append('avatar', { uri, name: `avatar.${ext}`, type: mimeType } as any);
+  const res = await fetch(`${BASE_URL}/profile/me/avatar`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}

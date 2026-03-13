@@ -44,6 +44,8 @@ export interface LeaderboardEntry {
   userId: string;
   displayName: string;
   fishLengthCm: number;
+  profilePhotoUrl?: string | null;
+  username?: string | null;
 }
 
 export interface UserRank {

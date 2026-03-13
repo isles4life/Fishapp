@@ -3,8 +3,9 @@ import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, Switch, Alert, Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../../theme/colors';
-import { getMyProfile, updateProfile } from '../../services/api';
+import { getMyProfile, updateProfile, uploadAvatar } from '../../services/api';
 import type { AnglerProfile, UpdateProfilePayload, WaterType } from '../../models';
 
 const WATER_OPTIONS: { label: string; value: WaterType }[] = [
@@ -76,25 +77,70 @@ export function ProfileView({
   onEdit,
   onFollowToggle,
   followLoading,
+  onAvatarUpdated,
 }: {
   profile: AnglerProfile;
   isOwn: boolean;
   onEdit?: () => void;
   onFollowToggle?: () => void;
   followLoading?: boolean;
+  onAvatarUpdated?: (url: string) => void;
 }) {
   const { stats } = profile;
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.profilePhotoUrl);
+
+  async function handleAvatarPress() {
+    if (!isOwn) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Allow photo library access to upload a profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+      // Guidelines: JPG/PNG/WebP · max 5 MB · min 400×400 px · square (1:1)
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    const mimeType = asset.mimeType ?? 'image/jpeg';
+    setAvatarLoading(true);
+    try {
+      const { avatarUrl: url } = await uploadAvatar(asset.uri, mimeType);
+      setAvatarUrl(url);
+      onAvatarUpdated?.(url);
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message);
+    } finally {
+      setAvatarLoading(false);
+    }
+  }
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Header */}
       <View style={s.header}>
-        <View style={s.avatarWrap}>
-          {profile.profilePhotoUrl
-            ? <Image source={{ uri: profile.profilePhotoUrl }} style={s.avatar} />
-            : <Text style={s.avatarEmoji}>🎣</Text>
-          }
-        </View>
+        <TouchableOpacity onPress={handleAvatarPress} disabled={!isOwn} style={{ position: 'relative' }}>
+          <View style={s.avatarWrap}>
+            {avatarUrl
+              ? <Image source={{ uri: avatarUrl }} style={s.avatar} />
+              : <Text style={s.avatarEmoji}>🎣</Text>
+            }
+            {avatarLoading && (
+              <View style={s.avatarOverlay}>
+                <ActivityIndicator color={colors.green} size="small" />
+              </View>
+            )}
+          </View>
+          {isOwn && !avatarLoading && (
+            <View style={s.avatarEditBadge}>
+              <Text style={{ fontSize: 10, color: colors.bg }}>✏️</Text>
+            </View>
+          )}
+        </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
             <Text style={s.displayName}>{profile.user.displayName}</Text>
@@ -386,6 +432,8 @@ const s = StyleSheet.create({
   avatarWrap: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surfaceHigh, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatar: { width: 72, height: 72 },
   avatarEmoji: { fontSize: 30 },
+  avatarOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 36, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  avatarEditBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
   displayName: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
   username: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   bio: { fontSize: 13, color: colors.textSecondary, marginTop: 6, lineHeight: 18 },

@@ -1,7 +1,9 @@
 import {
   Controller, Get, Put, Post, Delete, Body, Param,
-  Request, UseGuards, HttpCode,
+  Request, UseGuards, HttpCode, UseInterceptors, UploadedFile,
+  ParseFilePipe, MaxFileSizeValidator, FileTypeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { ProfileService } from './profile.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -24,10 +26,32 @@ export class ProfileController {
     return this.profileService.upsert(req.user.id, dto);
   }
 
+  /**
+   * POST /profile/me/avatar — upload profile picture (auth required)
+   * Guidelines: JPG · PNG · WebP · Max 5 MB · Min 400×400 px recommended
+   */
+  @Post('me/avatar')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('avatar', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  @HttpCode(200)
+  uploadAvatar(
+    @Request() req: any,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.profileService.uploadAvatar(req.user.id, file);
+  }
+
   /** GET /profile/:username — public profile (anonymous-accessible) */
   @Get(':username')
   getPublic(@Param('username') username: string, @Request() req: any) {
-    // req.user is undefined if no JWT; that's fine
     return this.profileService.getByUsername(username, req.user?.id);
   }
 

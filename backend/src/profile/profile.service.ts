@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { S3Service } from '../submissions/s3.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3: S3Service,
+  ) {}
 
   // ── Compute stats from existing submission/leaderboard data ──────────────
 
@@ -155,6 +159,23 @@ export class ProfileService {
     }
 
     return { following: false };
+  }
+
+  // ── Avatar upload ─────────────────────────────────────────────────────────
+
+  async uploadAvatar(userId: string, file: Express.Multer.File) {
+    const ext = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
+    const key = `avatars/${userId}.${ext}`;
+    await this.s3.uploadBuffer(key, file.buffer, file.mimetype);
+    const avatarUrl = this.s3.getPublicUrl(key);
+
+    await this.prisma.anglerProfile.upsert({
+      where: { userId },
+      create: { userId, username: `angler_${userId.slice(0, 8)}`, profilePhotoUrl: avatarUrl },
+      update: { profilePhotoUrl: avatarUrl },
+    });
+
+    return { avatarUrl };
   }
 
   // ── Grant badge (called by other services) ────────────────────────────────

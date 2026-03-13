@@ -1,14 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, ActivityIndicator, Image,
+  FlatList, ActivityIndicator, Image, Modal, Pressable,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../../navigation';
 import * as api from '../../services/api';
 import { storage } from '../../services/storage';
-import type { Tournament, MySubmission } from '../../models';
+import type { Tournament, MySubmission, AnglerProfile } from '../../models';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TournamentHome'>;
@@ -17,14 +17,20 @@ export default function TournamentHomeScreen({ navigation }: Props) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [submissions, setSubmissions] = useState<MySubmission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<AnglerProfile | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       async function load() {
         setLoading(true);
         try {
-          const t = await api.getActiveTournament();
+          const [t, p] = await Promise.all([
+            api.getActiveTournament(),
+            api.getMyProfile().catch(() => null),
+          ]);
           setTournament(t);
+          setProfile(p);
           const subs = await api.getMySubmissions(t.id);
           setSubmissions(subs);
         } catch {
@@ -82,10 +88,50 @@ export default function TournamentHomeScreen({ navigation }: Props) {
             <Text style={styles.regionName}>{tournament.region?.name}</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutPill}>
-          <Text style={styles.logoutText}>Sign Out</Text>
+        {/* Avatar menu trigger */}
+        <TouchableOpacity onPress={() => setMenuOpen(true)} style={styles.avatarBtn}>
+          {profile?.profilePhotoUrl
+            ? <Image source={{ uri: profile.profilePhotoUrl }} style={styles.avatarImg} />
+            : <View style={styles.avatarInitialsWrap}>
+                <Text style={styles.avatarInitialsText}>
+                  {(profile?.user?.displayName ?? '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                </Text>
+              </View>
+          }
         </TouchableOpacity>
       </View>
+
+      {/* Profile dropdown modal */}
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setMenuOpen(false)}>
+          <View style={styles.menuCard}>
+            {profile && (
+              <View style={styles.menuHeader}>
+                {profile.profilePhotoUrl
+                  ? <Image source={{ uri: profile.profilePhotoUrl }} style={styles.menuAvatar} />
+                  : <View style={[styles.menuAvatar, styles.menuAvatarFallback]}>
+                      <Text style={styles.menuAvatarText}>{(profile.user?.displayName ?? '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}</Text>
+                    </View>
+                }
+                <View>
+                  <Text style={styles.menuName}>{profile.user?.displayName}</Text>
+                  <Text style={styles.menuUsername}>@{profile.username}</Text>
+                </View>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => { setMenuOpen(false); (navigation as any).navigate('Profile'); }}
+            >
+              <Text style={styles.menuItemText}>👤  My Profile</Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
+            <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+              <Text style={[styles.menuItemText, { color: colors.red }]}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Action Buttons */}
       <View style={styles.actions}>
@@ -156,10 +202,21 @@ const styles = StyleSheet.create({
   headerLogo: { width: 38, height: 38 },
   tournamentName: { color: colors.textPrimary, fontSize: 17, fontWeight: '700' },
   regionName: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
-  logoutPill: {
-    borderWidth: 1, borderColor: colors.border,
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
-  },
+  avatarBtn: { padding: 2 },
+  avatarImg: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: colors.border },
+  avatarInitialsWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceHigh, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  avatarInitialsText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 80, paddingRight: 16 },
+  menuCard: { backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, minWidth: 220, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  menuHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  menuAvatar: { width: 44, height: 44, borderRadius: 22 },
+  menuAvatarFallback: { backgroundColor: colors.surfaceHigh, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  menuAvatarText: { color: colors.textSecondary, fontSize: 16, fontWeight: '700' },
+  menuName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  menuUsername: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  menuItem: { padding: 14, paddingHorizontal: 16 },
+  menuItemText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  menuDivider: { height: 1, backgroundColor: colors.border },
   logoutText: { color: colors.textSecondary, fontSize: 13 },
   actions: { padding: 16, gap: 10 },
   primaryButton: {

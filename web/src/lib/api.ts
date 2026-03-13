@@ -40,6 +40,7 @@ export interface Tournament {
 }
 export interface LeaderboardEntry {
   rank: number; userId: string; displayName: string; fishLengthCm: number;
+  profilePhotoUrl?: string | null; username?: string | null;
 }
 export interface AuthResponse { token: string; userId: string; }
 
@@ -103,6 +104,17 @@ export interface UpdateProfilePayload {
   publicProfile?: boolean;
 }
 
+async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}${path}`, { method: 'POST', headers, body: formData });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error(data?.message ?? `HTTP ${res.status}`);
+  return data;
+}
+
 export const api = {
   getRegions: () => apiFetch<Region[]>('/users/regions'),
   getActiveTournament: () => apiFetch<Tournament>('/tournaments/open'),
@@ -129,4 +141,9 @@ export const api = {
     apiFetch<{ following: boolean }>(`/profile/${username}/follow`, { method: 'POST' }, true),
   unfollowAngler: (username: string) =>
     apiFetch<{ following: boolean }>(`/profile/${username}/follow`, { method: 'DELETE' }, true),
+  uploadAvatar: (file: File) => {
+    const form = new FormData();
+    form.append('avatar', file);
+    return apiUpload<{ avatarUrl: string }>('/profile/me/avatar', form);
+  },
 };
