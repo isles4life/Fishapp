@@ -1,164 +1,355 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
-  ActivityIndicator, TouchableOpacity, Image,
+  ActivityIndicator, TouchableOpacity, Image, SafeAreaView,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation';
 import * as api from '../../services/api';
 import { wsService } from '../../services/websocket';
 import type { LeaderboardEntry, UserRank } from '../../models';
 import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
+import { TournamentContext } from '../../navigation';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Leaderboard'>;
+type Tab = 'largest' | 'season';
 
-export default function LeaderboardScreen({ navigation, route }: Props) {
-  const { tournamentId } = route.params;
+function rankColor(rank: number): string {
+  if (rank === 1) return '#FFD700';
+  if (rank === 2) return '#C0C0C0';
+  if (rank === 3) return '#CD7F32';
+  return colors.textMuted;
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function LeaderboardRow({ item }: { item: LeaderboardEntry }) {
+  const isTop = item.rank <= 3;
+  const rc = rankColor(item.rank);
+  const isFirst = item.rank === 1;
+
+  return (
+    <View style={[styles.row, isFirst && styles.firstRow, isTop && !isFirst && styles.topRow]}>
+      {/* Rank number */}
+      <View style={[styles.rankBox, { borderColor: rc + '60' }]}>
+        <Text style={[styles.rankNum, { color: rc }]}>
+          {item.rank <= 3 ? ['🥇', '🥈', '🥉'][item.rank - 1] : `#${item.rank}`}
+        </Text>
+      </View>
+
+      {/* Avatar */}
+      <View style={styles.avatarWrap}>
+        {item.profilePhotoUrl ? (
+          <Image source={{ uri: item.profilePhotoUrl }} style={styles.avatar} />
+        ) : (
+          <Text style={styles.avatarInitials}>{getInitials(item.displayName)}</Text>
+        )}
+      </View>
+
+      {/* Info */}
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={1}>{item.displayName}</Text>
+        {item.username && <Text style={styles.username}>@{item.username}</Text>}
+      </View>
+
+      {/* Measurement */}
+      <View style={styles.measureWrap}>
+        <Text style={[styles.measurement, isFirst && { color: colors.accent }]}>
+          {item.fishLengthCm}
+        </Text>
+        <Text style={styles.measureUnit}>CM</Text>
+      </View>
+    </View>
+  );
+}
+
+export default function LeaderboardScreen() {
+  const { tournamentId } = useContext(TournamentContext);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [myRank, setMyRank] = useState<UserRank | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>('largest');
 
   useEffect(() => {
+    if (!tournamentId) {
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
     async function load() {
+      setLoading(true);
       try {
         const [board, rank] = await Promise.all([
-          api.getLeaderboard(tournamentId),
-          api.getMyRank(tournamentId),
+          api.getLeaderboard(tournamentId!),
+          api.getMyRank(tournamentId!),
         ]);
+        if (!active) return;
         setEntries(board);
         setMyRank(rank);
       } catch {
         // silently handle
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
 
     load();
     wsService.connect(tournamentId);
     const unsubscribe = wsService.onUpdate(update => setEntries(update.entries));
-    return () => { unsubscribe(); wsService.disconnect(); };
+    return () => {
+      active = false;
+      unsubscribe();
+      wsService.disconnect();
+    };
   }, [tournamentId]);
 
-  if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={colors.green} /></View>;
-  }
-
-  const rankColor = (rank: number) => {
-    if (rank === 1) return '#FFD700';
-    if (rank === 2) return '#C0C0C0';
-    if (rank === 3) return '#CD7F32';
-    return colors.textMuted;
-  };
-
-  const medalFor = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
-  };
-
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.back}>← Back</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Image source={require('../../../assets/icon.png')} style={styles.headerLogo} resizeMode="contain" />
-          <Text style={styles.title}>Leaderboard</Text>
-        </View>
-        <View style={{ width: 70 }} />
+        <Text style={styles.headerTitle}>LEADERBOARD</Text>
       </View>
 
-      {/* My rank banner */}
-      {myRank?.rank && (
-        <View style={styles.myRankBanner}>
-          <Text style={styles.myRankLabel}>YOUR RANK</Text>
-          <Text style={styles.myRankValue}>#{myRank.rank}</Text>
-          <Text style={styles.myRankLength}>{myRank.fishLengthCm} cm</Text>
+      {/* Tab row */}
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'largest' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('largest')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.tabBtnText, activeTab === 'largest' && styles.tabBtnTextActive]}>
+            LARGEST FISH
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'season' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('season')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.tabBtnText, activeTab === 'season' && styles.tabBtnTextActive]}>
+            SEASON STANDINGS
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* No tournament */}
+      {!tournamentId && !loading && (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyTitle}>NO ACTIVE TOURNAMENT</Text>
+          <Text style={styles.emptySub}>Visit the Compete tab to join a tournament.</Text>
         </View>
       )}
 
-      {entries.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>No entries yet — be the first!</Text>
+      {/* Loading */}
+      {loading && tournamentId && (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={colors.accent} />
         </View>
-      ) : (
+      )}
+
+      {/* List */}
+      {!loading && tournamentId && entries.length === 0 && (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyTitle}>NO ENTRIES YET</Text>
+          <Text style={styles.emptySub}>Submit a catch to be the first on the board!</Text>
+        </View>
+      )}
+
+      {!loading && tournamentId && entries.length > 0 && (
         <FlatList
           data={entries}
           keyExtractor={item => item.userId}
-          contentContainerStyle={{ padding: 16 }}
-          renderItem={({ item }) => (
-            <View style={[styles.row, item.rank <= 3 && styles.topRow]}>
-              <View style={[styles.rankBadge, { borderColor: rankColor(item.rank) + '60' }]}>
-                <Text style={[styles.rankText, { color: rankColor(item.rank) }]}>
-                  {item.rank <= 3 ? medalFor(item.rank) : `#${item.rank}`}
-                </Text>
-              </View>
-              {/* Avatar */}
-              <View style={styles.avatarWrap}>
-                {item.profilePhotoUrl
-                  ? <Image source={{ uri: item.profilePhotoUrl }} style={styles.avatar} />
-                  : <Text style={styles.avatarInitials}>
-                      {item.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-                    </Text>
-                }
-              </View>
-              <View style={styles.info}>
-                <Text style={styles.name}>{item.displayName}</Text>
-                {item.username && <Text style={styles.username}>@{item.username}</Text>}
-              </View>
-              <Text style={styles.length}>{item.fishLengthCm} cm</Text>
-            </View>
-          )}
+          contentContainerStyle={{ padding: 16, paddingBottom: myRank?.rank ? 80 : 24 }}
+          renderItem={({ item }) => <LeaderboardRow item={item} />}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          showsVerticalScrollIndicator={false}
         />
       )}
-    </View>
+
+      {/* My rank banner */}
+      {myRank?.rank && tournamentId && (
+        <View style={styles.myRankBanner}>
+          <Text style={styles.myRankLabel}>YOUR RANK</Text>
+          <Text style={styles.myRankValue}>#{myRank.rank}</Text>
+          {myRank.fishLengthCm != null && (
+            <Text style={styles.myRankLength}>{myRank.fishLengthCm} cm</Text>
+          )}
+        </View>
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
   header: {
+    paddingTop: 52,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     backgroundColor: colors.surface,
-    paddingTop: 56, paddingBottom: 16, paddingHorizontal: 16,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderBottomWidth: 1, borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  backBtn: { width: 70 },
-  headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerLogo: { width: 26, height: 26 },
-  back: { color: colors.green, fontSize: 15, fontWeight: '600' },
-  title: { color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
-  myRankBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16,
-    backgroundColor: colors.greenMuted, padding: 14,
-    borderBottomWidth: 1, borderBottomColor: colors.green + '40',
+  headerTitle: {
+    ...typography.displayMd,
+    color: colors.text,
   },
-  myRankLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-  myRankValue: { color: colors.green, fontSize: 22, fontWeight: '800' },
-  myRankLength: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
+  tabRow: {
+    flexDirection: 'row',
+    margin: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  tabBtnActive: {
+    backgroundColor: colors.surfaceHigh,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.accent,
+  },
+  tabBtnText: {
+    ...typography.label,
+    color: colors.textMuted,
+  },
+  tabBtnTextActive: {
+    color: colors.accent,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  emptyTitle: {
+    ...typography.displaySm,
+    color: colors.textMuted,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySub: {
+    ...typography.bodyMd,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
   row: {
-    backgroundColor: colors.surface, borderRadius: 12, padding: 14,
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: colors.borderLight,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  topRow: { borderColor: colors.green + '40', backgroundColor: colors.surfaceHigh },
-  rankBadge: {
-    width: 44, height: 44, borderRadius: 22, borderWidth: 1.5,
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  firstRow: {
+    borderColor: colors.accent + '60',
+    backgroundColor: colors.surfaceCard,
   },
-  rankText: { fontSize: 16, fontWeight: '800' },
-  avatarWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceHigh, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginRight: 10, flexShrink: 0 },
-  avatar: { width: 36, height: 36 },
-  avatarInitials: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
-  info: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
-  username: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
-  length: { fontSize: 18, fontWeight: '800', color: colors.green },
-  emptyText: { color: colors.textMuted, fontSize: 16 },
+  topRow: {
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceHigh,
+  },
+  rankBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    flexShrink: 0,
+  },
+  rankNum: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  avatarWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.surfaceHigh,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginRight: 10,
+    flexShrink: 0,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+  },
+  avatarInitials: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSub,
+  },
+  info: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  username: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  measureWrap: {
+    alignItems: 'flex-end',
+  },
+  measurement: {
+    ...typography.numMd,
+    color: colors.text,
+  },
+  measureUnit: {
+    ...typography.labelSm,
+    color: colors.textMuted,
+    marginTop: -2,
+  },
+  myRankBanner: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+    backgroundColor: colors.verifiedBg,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.verified + '40',
+  },
+  myRankLabel: {
+    ...typography.label,
+    color: colors.textMuted,
+  },
+  myRankValue: {
+    ...typography.numMd,
+    color: colors.verified,
+  },
+  myRankLength: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+    fontWeight: '600',
+  },
 });

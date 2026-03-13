@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
 import { getProfile, followAngler, unfollowAngler } from '../../services/api';
 import type { AnglerProfile } from '../../models';
 import { ProfileView } from './ProfileScreen';
@@ -44,18 +45,22 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={s.center}>
-        <ActivityIndicator color={colors.green} size="large" />
-      </View>
+      <SafeAreaView style={s.safeArea}>
+        <View style={s.center}>
+          <ActivityIndicator color={colors.accent} size="large" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error || !profile) {
     return (
-      <View style={s.center}>
-        <Text style={s.errorIcon}>🎣</Text>
-        <Text style={s.errorText}>{error || 'Profile not found'}</Text>
-      </View>
+      <SafeAreaView style={s.safeArea}>
+        <View style={s.center}>
+          <Text style={s.errorIcon}>🎣</Text>
+          <Text style={s.errorText}>{error || 'Profile not found'}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -70,7 +75,8 @@ export default function PublicProfileScreen({ route, navigation }: Props) {
 }
 
 const s = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: 32 },
   errorIcon: { fontSize: 48, marginBottom: 12 },
-  errorText: { color: colors.textSecondary, fontSize: 16, textAlign: 'center' },
+  errorText: { ...typography.bodyMd, color: colors.textSub, textAlign: 'center' },
 });

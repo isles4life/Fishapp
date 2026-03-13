@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert, ScrollView, Image,
+  StyleSheet, ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
@@ -9,6 +9,8 @@ import * as api from '../../services/api';
 import { storage } from '../../services/storage';
 import type { Region } from '../../models';
 import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
+import { FishLeagueLogo } from '../../components/icons/Logo';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -19,6 +21,7 @@ export default function RegisterScreen({ navigation }: Props) {
   const [regions, setRegions] = useState<Region[]>([]);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   useEffect(() => {
     api.getRegions().then(r => {
@@ -35,7 +38,7 @@ export default function RegisterScreen({ navigation }: Props) {
     try {
       const { token } = await api.register(email, password, displayName, selectedRegion);
       await storage.setToken(token);
-      navigation.replace('TournamentHome');
+      navigation.replace('MainTabs');
     } catch (e: any) {
       Alert.alert('Registration failed', e.message);
     } finally {
@@ -43,63 +46,98 @@ export default function RegisterScreen({ navigation }: Props) {
     }
   }
 
-  return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Image source={require('../../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
-      <Text style={styles.title}>Create Account</Text>
-      <Text style={styles.subtitle}>Join the competition</Text>
+  const inputStyle = (field: string) => [
+    styles.input,
+    focusedField === field && styles.inputFocused,
+  ];
 
+  return (
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      {/* Logo */}
+      <View style={styles.logoWrap}>
+        <FishLeagueLogo size={80} />
+        <Text style={styles.title}>CREATE ACCOUNT</Text>
+        <Text style={styles.subtitle}>Join the competition</Text>
+      </View>
+
+      {/* Display Name */}
+      <Text style={styles.fieldLabel}>DISPLAY NAME</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Display Name"
+        style={inputStyle('name')}
+        placeholder="Your angler name"
         placeholderTextColor={colors.textMuted}
         value={displayName}
         onChangeText={setDisplayName}
+        onFocus={() => setFocusedField('name')}
+        onBlur={() => setFocusedField(null)}
       />
+
+      {/* Email */}
+      <Text style={styles.fieldLabel}>EMAIL</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Email"
+        style={inputStyle('email')}
+        placeholder="your@email.com"
         placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
+        onFocus={() => setFocusedField('email')}
+        onBlur={() => setFocusedField(null)}
       />
+
+      {/* Password */}
+      <Text style={styles.fieldLabel}>PASSWORD</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Password"
+        style={inputStyle('password')}
+        placeholder="Choose a strong password"
         placeholderTextColor={colors.textMuted}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+        onFocus={() => setFocusedField('password')}
+        onBlur={() => setFocusedField(null)}
       />
 
+      {/* Region */}
       {regions.length > 0 && (
         <>
-          <Text style={styles.label}>Select your region</Text>
-          {regions.map(r => (
-            <TouchableOpacity
-              key={r.id}
-              style={[styles.regionButton, selectedRegion === r.id && styles.regionSelected]}
-              onPress={() => setSelectedRegion(r.id)}
-            >
-              <Text style={selectedRegion === r.id ? styles.regionTextSelected : styles.regionText}>
-                {r.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.fieldLabel}>SELECT REGION</Text>
+          <View style={styles.regionGrid}>
+            {regions.map(r => (
+              <TouchableOpacity
+                key={r.id}
+                style={[styles.regionBtn, selectedRegion === r.id && styles.regionBtnActive]}
+                onPress={() => setSelectedRegion(r.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.regionBtnText, selectedRegion === r.id && styles.regionBtnTextActive]}>
+                  {r.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </>
       )}
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
-        {loading
-          ? <ActivityIndicator color={colors.bg} />
-          : <Text style={styles.buttonText}>Create Account</Text>}
+      {/* Submit */}
+      <TouchableOpacity style={styles.goldBtn} onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
+        {loading ? (
+          <ActivityIndicator color={colors.bg} />
+        ) : (
+          <Text style={styles.goldBtnText}>JOIN THE LEAGUE</Text>
+        )}
       </TouchableOpacity>
 
+      {/* Back to login */}
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.link}>
         <Text style={styles.linkText}>
-          Already have an account? <Text style={styles.linkAccent}>Sign In</Text>
+          Already have an account?{' '}
+          <Text style={styles.linkAccent}>Sign In</Text>
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -107,29 +145,96 @@ export default function RegisterScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 28, backgroundColor: colors.bg, justifyContent: 'center' },
-  logo: { width: 100, height: 100, alignSelf: 'center', marginBottom: 10 },
-  title: { fontSize: 28, fontWeight: '800', color: colors.textPrimary, textAlign: 'center', marginBottom: 4 },
-  subtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginBottom: 28 },
+  scroll: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  container: {
+    flexGrow: 1,
+    padding: 28,
+    paddingTop: 60,
+  },
+  logoWrap: {
+    alignItems: 'center',
+    marginBottom: 36,
+  },
+  title: {
+    ...typography.displayMd,
+    color: colors.text,
+    marginTop: 12,
+  },
+  subtitle: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+    marginTop: 6,
+  },
+  fieldLabel: {
+    ...typography.labelSm,
+    color: colors.textMuted,
+    marginBottom: 6,
+    marginTop: 4,
+  },
   input: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-    padding: 14, marginBottom: 12, fontSize: 16,
-    color: colors.textPrimary, backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 14,
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
-  label: { fontSize: 13, color: colors.textSecondary, marginBottom: 8 },
-  regionButton: {
-    borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-    padding: 12, marginBottom: 8, backgroundColor: colors.surface,
+  inputFocused: {
+    borderColor: colors.accent,
   },
-  regionSelected: { borderColor: colors.green, backgroundColor: colors.greenMuted },
-  regionText: { color: colors.textSecondary },
-  regionTextSelected: { color: colors.green, fontWeight: '600' },
-  button: {
-    backgroundColor: colors.green, borderRadius: 10,
-    padding: 16, alignItems: 'center', marginTop: 8,
+  regionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
   },
-  buttonText: { color: colors.bg, fontSize: 16, fontWeight: '700' },
-  link: { marginTop: 24, alignItems: 'center' },
-  linkText: { color: colors.textMuted, fontSize: 15 },
-  linkAccent: { color: colors.green, fontWeight: '600' },
+  regionBtn: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+  },
+  regionBtnActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.greenMuted,
+  },
+  regionBtnText: {
+    ...typography.caption,
+    color: colors.textSub,
+  },
+  regionBtnTextActive: {
+    color: colors.accent,
+    fontWeight: '700',
+  },
+  goldBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  goldBtnText: {
+    ...typography.button,
+    color: colors.bg,
+  },
+  link: {
+    marginTop: 20,
+    alignItems: 'center',
+    paddingBottom: 20,
+  },
+  linkText: {
+    ...typography.bodyMd,
+    color: colors.textMuted,
+  },
+  linkAccent: {
+    color: colors.accent,
+    fontWeight: '700',
+  },
 });

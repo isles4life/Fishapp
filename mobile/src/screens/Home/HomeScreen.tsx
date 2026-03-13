@@ -1,0 +1,480 @@
+import React, { useCallback, useContext, useState } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, SafeAreaView,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import * as api from '../../services/api';
+import type { Tournament, LeaderboardEntry } from '../../models';
+import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
+import { FishLeagueLogoFull } from '../../components/icons/Logo';
+import { TournamentContext } from '../../navigation';
+
+function getInitials(name: string): string {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function countdownTo(dateStr: string): string {
+  const diff = new Date(dateStr).getTime() - Date.now();
+  if (diff <= 0) return 'Ended';
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  if (days > 0) return `${days}d ${hours}h remaining`;
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  return `${hours}h ${minutes}m remaining`;
+}
+
+function TournamentBanner({ tournament }: { tournament: Tournament }) {
+  const prizePool = '$500'; // placeholder — not in model yet
+  return (
+    <View style={styles.tournamentBanner}>
+      <View style={styles.tournamentBannerTop}>
+        <View style={styles.activeBadge}>
+          <Text style={styles.activeBadgeText}>ACTIVE</Text>
+        </View>
+        <Text style={styles.tournamentCountdown}>{countdownTo(tournament.endsAt)}</Text>
+      </View>
+      <Text style={styles.tournamentName}>{tournament.name}</Text>
+      <View style={styles.tournamentMeta}>
+        <Text style={styles.tournamentMetaText}>Week {tournament.weekNumber} · {tournament.region?.name ?? 'All Regions'}</Text>
+      </View>
+    </View>
+  );
+}
+
+function FeedCard({ entry, region }: { entry: LeaderboardEntry; region: string }) {
+  const lengthIn = (entry.fishLengthCm / 2.54).toFixed(1);
+  const initials = getInitials(entry.displayName);
+  const firstName = entry.displayName.split(' ')[0].toUpperCase();
+
+  return (
+    <View style={styles.feedCard}>
+      {/* Card header */}
+      <View style={styles.feedCardHeader}>
+        <View style={styles.feedAvatar}>
+          <Text style={styles.feedAvatarText}>{initials}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.feedAnglerName}>{entry.displayName}</Text>
+          {entry.username && <Text style={styles.feedUsername}>@{entry.username}</Text>}
+        </View>
+        {entry.rank <= 3 && (
+          <View style={styles.verifiedBadge}>
+            <Text style={styles.verifiedBadgeText}>✓ VERIFIED</Text>
+          </View>
+        )}
+        <Text style={styles.feedDots}>···</Text>
+      </View>
+
+      {/* Fish photo placeholder */}
+      <View style={styles.feedPhotoPlaceholder}>
+        <View style={styles.feedFishInfo}>
+          <Text style={styles.feedFishLengthLabel}>CATCH LENGTH</Text>
+          <Text style={styles.feedFishLength}>{entry.fishLengthCm}</Text>
+          <Text style={styles.feedFishUnit}>CM</Text>
+          <Text style={styles.feedFishLengthIn}>{lengthIn}"</Text>
+        </View>
+        {entry.rank === 1 && (
+          <View style={styles.feedRankBadge}>
+            <Text style={styles.feedRankBadgeText}>#1</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Caption */}
+      <View style={styles.feedCaption}>
+        <Text style={styles.feedCaptionText}>
+          <Text style={{ color: colors.text, fontWeight: '700' }}>{firstName} </Text>
+          <Text>CAUGHT A </Text>
+          <Text style={{ color: colors.accent, fontWeight: '800' }}>{entry.fishLengthCm} CM</Text>
+          <Text> FISH.</Text>
+        </Text>
+        <View style={styles.feedMeta}>
+          <Text style={styles.feedMetaText}>📍 {region}</Text>
+          <Text style={styles.feedMetaDot}>·</Text>
+          <Text style={styles.feedMetaText}>🕐 Recently</Text>
+        </View>
+      </View>
+
+      {/* Action row */}
+      <View style={styles.feedActions}>
+        <TouchableOpacity style={styles.feedActionBtn}>
+          <Text style={styles.feedActionIcon}>✓</Text>
+          <Text style={styles.feedActionText}>VERIFIED</Text>
+        </TouchableOpacity>
+        <View style={styles.feedActionDivider} />
+        <TouchableOpacity style={styles.feedActionBtn}>
+          <Text style={styles.feedActionIcon}>👍</Text>
+          <Text style={styles.feedActionText}>PROPS</Text>
+        </TouchableOpacity>
+        <View style={styles.feedActionDivider} />
+        <TouchableOpacity style={styles.feedActionBtn}>
+          <Text style={styles.feedActionIcon}>💬</Text>
+          <Text style={styles.feedActionText}>COMMENT</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+export default function HomeScreen() {
+  const { setTournamentId } = useContext(TournamentContext);
+  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      async function load() {
+        setLoading(true);
+        try {
+          const t = await api.getActiveTournament();
+          if (!active) return;
+          setTournament(t);
+          setTournamentId(t.id);
+          const board = await api.getLeaderboard(t.id);
+          if (!active) return;
+          setEntries(board);
+        } catch {
+          // no active tournament or network issue
+        } finally {
+          if (active) setLoading(false);
+        }
+      }
+      load();
+      return () => { active = false; };
+    }, [])
+  );
+
+  const region = tournament?.region?.name ?? 'Pacific Northwest';
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <FishLeagueLogoFull width={180} />
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={colors.accent} />
+          </View>
+        ) : (
+          <>
+            {/* Tournament Banner */}
+            {tournament && <TournamentBanner tournament={tournament} />}
+            {!tournament && (
+              <View style={styles.noTournamentCard}>
+                <Text style={styles.noTournamentTitle}>NO ACTIVE TOURNAMENT</Text>
+                <Text style={styles.noTournamentSub}>Check back when a new week opens.</Text>
+              </View>
+            )}
+
+            {/* Recent Catches Section */}
+            {entries.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionLabel}>RECENT CATCHES</Text>
+                  <View style={styles.sectionLine} />
+                </View>
+                {entries.slice(0, 10).map(entry => (
+                  <FeedCard key={entry.userId} entry={entry} region={region} />
+                ))}
+              </>
+            )}
+
+            {entries.length === 0 && tournament && (
+              <View style={styles.emptyFeed}>
+                <Text style={styles.emptyFeedText}>No catches yet — be the first!</Text>
+                <Text style={styles.emptyFeedSub}>Submit a catch to appear on the leaderboard.</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        <View style={{ height: 32 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  scroll: {
+    flex: 1,
+  },
+  header: {
+    alignItems: 'center',
+    paddingTop: 52,
+    paddingBottom: 16,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  loadingWrap: {
+    paddingTop: 60,
+    alignItems: 'center',
+  },
+  tournamentBanner: {
+    margin: 16,
+    backgroundColor: colors.surfaceCard,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    padding: 16,
+  },
+  tournamentBannerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  activeBadge: {
+    backgroundColor: colors.accent,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  activeBadgeText: {
+    ...typography.labelSm,
+    color: colors.bg,
+  },
+  tournamentCountdown: {
+    ...typography.caption,
+    color: colors.textSub,
+  },
+  tournamentName: {
+    ...typography.displaySm,
+    color: colors.text,
+    marginBottom: 6,
+  },
+  tournamentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tournamentMetaText: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 12,
+    gap: 10,
+  },
+  sectionLabel: {
+    ...typography.label,
+    color: colors.textMuted,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  feedCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  feedCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  feedAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.surfaceHigh,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedAvatarText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSub,
+  },
+  feedAnglerName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  feedUsername: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  verifiedBadge: {
+    backgroundColor: colors.verifiedBg,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: colors.verified + '50',
+  },
+  verifiedBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.verified,
+    letterSpacing: 0.5,
+  },
+  feedDots: {
+    color: colors.textMuted,
+    fontSize: 16,
+    paddingLeft: 4,
+  },
+  feedPhotoPlaceholder: {
+    height: 200,
+    backgroundColor: colors.surfaceCard,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  feedFishInfo: {
+    alignItems: 'center',
+  },
+  feedFishLengthLabel: {
+    ...typography.labelSm,
+    color: colors.textMuted,
+    marginBottom: 4,
+  },
+  feedFishLength: {
+    ...typography.numLg,
+    color: colors.accent,
+  },
+  feedFishUnit: {
+    ...typography.label,
+    color: colors.textMuted,
+    marginTop: -4,
+  },
+  feedFishLengthIn: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+    marginTop: 4,
+  },
+  feedRankBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: colors.accent,
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedRankBadgeText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: colors.bg,
+  },
+  feedCaption: {
+    padding: 12,
+    paddingBottom: 8,
+  },
+  feedCaptionText: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+    letterSpacing: 0.3,
+  },
+  feedMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  feedMetaText: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  feedMetaDot: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  feedActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  feedActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 5,
+  },
+  feedActionIcon: {
+    fontSize: 13,
+  },
+  feedActionText: {
+    ...typography.labelSm,
+    color: colors.textMuted,
+  },
+  feedActionDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+    marginVertical: 8,
+  },
+  noTournamentCard: {
+    margin: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 24,
+    alignItems: 'center',
+  },
+  noTournamentTitle: {
+    ...typography.displaySm,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  noTournamentSub: {
+    ...typography.bodyMd,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  emptyFeed: {
+    margin: 16,
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyFeedText: {
+    ...typography.displaySm,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  emptyFeedSub: {
+    ...typography.bodyMd,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+});

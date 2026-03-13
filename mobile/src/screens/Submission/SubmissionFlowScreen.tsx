@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, Image, TextInput,
+  ActivityIndicator, Alert, Image, TextInput, SafeAreaView,
 } from 'react-native';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import * as Location from 'expo-location';
@@ -9,9 +9,11 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import { validateQR } from '../../utils/qrValidator';
 import { uploadSubmission } from '../../services/api';
+import { colors } from '../../theme/colors';
+import { typography } from '../../theme/typography';
+import { FishOnMatIcon, MouthClosedIcon, TailPinchedIcon } from '../../components/icons/VerificationIcons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Submission'>;
-
 type Step = 'photo1' | 'photo2' | 'details' | 'uploading' | 'success' | 'error';
 
 export default function SubmissionFlowScreen({ navigation, route }: Props) {
@@ -40,7 +42,6 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   async function takePicture() {
     const photo = await cameraRef.current?.takePictureAsync({ quality: 0.85 });
     if (!photo) return;
-
     if (step === 'photo1') {
       setPhoto1Uri(photo.uri);
       setStep('photo2');
@@ -67,7 +68,6 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
     if (!fishLength || isNaN(Number(fishLength))) {
       return Alert.alert('Missing data', 'Enter a valid fish length in cm.');
     }
-
     setStep('uploading');
     try {
       await uploadSubmission({
@@ -89,15 +89,25 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
   // ── Permission check ──────────────────────────────────────────────────────
 
-  if (!permission) return <View style={styles.center}><ActivityIndicator color="#2ecc71" /></View>;
-  if (!permission.granted) {
+  if (!permission) {
     return (
       <View style={styles.center}>
-        <Text style={styles.permText}>Camera access is required to submit a catch.</Text>
-        <TouchableOpacity style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>Grant Permission</Text>
-        </TouchableOpacity>
+        <ActivityIndicator color={colors.accent} size="large" />
       </View>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <Text style={styles.permTitle}>CAMERA ACCESS REQUIRED</Text>
+          <Text style={styles.permText}>Camera access is required to submit a catch.</Text>
+          <TouchableOpacity style={styles.goldBtn} onPress={requestPermission}>
+            <Text style={styles.goldBtnText}>GRANT PERMISSION</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -105,14 +115,18 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
   if (step === 'success') {
     return (
-      <View style={styles.center}>
-        <Text style={styles.bigEmoji}>🎣</Text>
-        <Text style={styles.successTitle}>Catch Submitted!</Text>
-        <Text style={styles.successText}>Your submission is pending review.</Text>
-        <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
-          <Text style={styles.buttonText}>Back to Home</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <View style={styles.successCheckWrap}>
+            <Text style={{ fontSize: 48, color: colors.verified }}>✓</Text>
+          </View>
+          <Text style={styles.successTitle}>CATCH SUBMITTED</Text>
+          <Text style={styles.successSub}>Pending verification by league officials.</Text>
+          <TouchableOpacity style={styles.goldBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.goldBtnText}>BACK TO HOME</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -120,14 +134,16 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
   if (step === 'error') {
     return (
-      <View style={styles.center}>
-        <Text style={styles.bigEmoji}>❌</Text>
-        <Text style={styles.successTitle}>Submission Failed</Text>
-        <Text style={styles.successText}>{errorMessage}</Text>
-        <TouchableOpacity style={styles.button} onPress={() => setStep('photo1')}>
-          <Text style={styles.buttonText}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <Text style={styles.errorIcon}>✕</Text>
+          <Text style={styles.errorTitle}>SUBMISSION FAILED</Text>
+          <Text style={styles.errorSub}>{errorMessage}</Text>
+          <TouchableOpacity style={styles.goldBtn} onPress={() => setStep('photo1')}>
+            <Text style={styles.goldBtnText}>TRY AGAIN</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -135,10 +151,13 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
   if (step === 'uploading') {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2ecc71" />
-        <Text style={styles.uploadingText}>Uploading your catch...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={styles.uploadingText}>SUBMITTING...</Text>
+          <Text style={styles.uploadingSub}>Uploading your catch to the league</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -146,41 +165,76 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
   if (step === 'details') {
     return (
-      <View style={styles.detailsContainer}>
-        <Text style={styles.stepTitle}>Review & Submit</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.detailsContainer}>
+          {/* Header */}
+          <View style={styles.detailsHeader}>
+            <TouchableOpacity onPress={() => setStep('photo1')} style={styles.backBtn}>
+              <Text style={styles.backArrow}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.detailsTitle}>REVIEW CATCH</Text>
+            <View style={{ width: 44 }} />
+          </View>
 
-        <View style={styles.photoRow}>
-          {photo1Uri && <Image source={{ uri: photo1Uri }} style={styles.thumbnail} />}
-          {photo2Uri && <Image source={{ uri: photo2Uri }} style={styles.thumbnail} />}
+          {/* Photo thumbnails */}
+          <View style={styles.photoRow}>
+            {photo1Uri && (
+              <View style={styles.thumbWrap}>
+                <Image source={{ uri: photo1Uri }} style={styles.thumbnail} />
+                <Text style={styles.thumbLabel}>MAT PHOTO</Text>
+              </View>
+            )}
+            {photo2Uri && (
+              <View style={styles.thumbWrap}>
+                <Image source={{ uri: photo2Uri }} style={styles.thumbnail} />
+                <Text style={styles.thumbLabel}>FISH PHOTO</Text>
+              </View>
+            )}
+          </View>
+
+          {/* QR Code */}
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailsFieldLabel}>MAT QR CODE</Text>
+            <Text style={[styles.detailsFieldValue, !qrCode && { color: colors.error }]}>
+              {qrCode ?? 'Not detected — retake photo 1'}
+            </Text>
+          </View>
+
+          {/* Fish Length */}
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailsFieldLabel}>FISH LENGTH (CM)</Text>
+            <TextInput
+              style={styles.lengthInput}
+              placeholder="e.g. 42.5"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="decimal-pad"
+              value={fishLength}
+              onChangeText={setFishLength}
+            />
+            {fishLength !== '' && !isNaN(Number(fishLength)) && (
+              <Text style={styles.lengthPreview}>{fishLength} CM</Text>
+            )}
+          </View>
+
+          {/* GPS */}
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailsFieldLabel}>GPS LOCATION</Text>
+            <Text style={styles.gpsValue}>
+              {location
+                ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
+                : 'Acquiring location...'}
+            </Text>
+          </View>
+
+          <TouchableOpacity style={styles.goldBtn} onPress={handleSubmit}>
+            <Text style={styles.goldBtnText}>SUBMIT CATCH</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setStep('photo1')} style={styles.retakeLink}>
+            <Text style={styles.retakeLinkText}>Retake photos</Text>
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.label}>Mat QR Code</Text>
-        <Text style={[styles.qrValue, !qrCode && styles.missing]}>
-          {qrCode ?? 'Not detected — retake photo 1'}
-        </Text>
-
-        <Text style={styles.label}>Fish Length (cm)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. 42.5"
-          keyboardType="decimal-pad"
-          value={fishLength}
-          onChangeText={setFishLength}
-        />
-
-        <Text style={styles.label}>GPS</Text>
-        <Text style={styles.gpsValue}>
-          {location ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : 'Acquiring...'}
-        </Text>
-
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>Submit Catch</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => setStep('photo1')} style={styles.retakeLink}>
-          <Text style={styles.retakeLinkText}>Retake photos</Text>
-        </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -195,23 +249,60 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={step === 'photo1' ? handleBarcode : undefined}
       >
+        {/* Dark overlay with camera UI */}
         <View style={styles.cameraOverlay}>
-          <Text style={styles.stepHint}>
-            {step === 'photo1'
-              ? 'Photo 1: Fish on mat with QR code visible'
-              : 'Photo 2: Full fish with ruler/measuring tape'}
-          </Text>
+          {/* Camera header */}
+          <View style={styles.cameraHeader}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cameraBackBtn}>
+              <Text style={styles.cameraBackText}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.cameraTitle}>
+              {step === 'photo1' ? 'SUBMIT CATCH' : 'FISH PHOTO'}
+            </Text>
+            <View style={{ width: 44 }} />
+          </View>
 
+          {/* Fish guide rectangle */}
+          <View style={styles.guideContainer}>
+            <View style={styles.guideDashed}>
+              <Text style={styles.guideLabel}>
+                {step === 'photo1' ? 'FISH ON MAT + QR CODE' : 'FULL FISH VISIBLE'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Verification checklist (photo1 only) */}
           {step === 'photo1' && (
-            <View style={styles.qrBadge}>
-              <Text style={styles.qrBadgeText}>
+            <View style={styles.checklistSide}>
+              <View style={styles.checklistItem}>
+                <FishOnMatIcon size={28} color={qrCode ? colors.verified : colors.accent} />
+                <Text style={[styles.checklistText, qrCode && { color: colors.verified }]}>
+                  Fish on mat
+                </Text>
+              </View>
+              <View style={styles.checklistItem}>
+                <MouthClosedIcon size={28} color={colors.accent} />
+                <Text style={styles.checklistText}>Mouth closed</Text>
+              </View>
+              <View style={styles.checklistItem}>
+                <TailPinchedIcon size={28} color={colors.accent} />
+                <Text style={styles.checklistText}>Tail pinched</Text>
+              </View>
+            </View>
+          )}
+
+          {/* QR status badge */}
+          {step === 'photo1' && (
+            <View style={[styles.qrBadge, qrCode && styles.qrBadgeDetected]}>
+              <Text style={[styles.qrBadgeText, qrCode && { color: colors.verified }]}>
                 {qrCode ? `✓ QR: ${qrCode}` : 'Point camera at mat QR code'}
               </Text>
             </View>
           )}
 
-          <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-            <View style={styles.captureInner} />
+          {/* Gold shutter button */}
+          <TouchableOpacity style={styles.shutterBtn} onPress={takePicture} activeOpacity={0.8}>
+            <View style={styles.shutterInner} />
           </TouchableOpacity>
         </View>
       </CameraView>
@@ -221,46 +312,306 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#0d1821' },
-  cameraOverlay: {
-    flex: 1, justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 48, backgroundColor: 'transparent',
+  safeArea: { flex: 1, backgroundColor: colors.bg },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: colors.bg,
   },
-  stepHint: {
-    color: '#e8f0fe', fontSize: 16, fontWeight: '600',
-    textAlign: 'center', paddingHorizontal: 24,
-    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: 10,
+
+  // Permission
+  permTitle: {
+    ...typography.displaySm,
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  permText: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+    textAlign: 'center',
+    marginBottom: 28,
+  },
+
+  // Buttons
+  goldBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    marginTop: 8,
+    alignSelf: 'stretch',
+  },
+  goldBtnText: {
+    ...typography.button,
+    color: colors.bg,
+  },
+
+  // Success
+  successCheckWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.verifiedBg,
+    borderWidth: 2,
+    borderColor: colors.verified,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    ...typography.displayMd,
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successSub: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+    textAlign: 'center',
+    marginBottom: 28,
+  },
+
+  // Error
+  errorIcon: {
+    fontSize: 48,
+    color: colors.error,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    ...typography.displayMd,
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorSub: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+    textAlign: 'center',
+    marginBottom: 28,
+  },
+
+  // Uploading
+  uploadingText: {
+    ...typography.displaySm,
+    color: colors.text,
+    marginTop: 20,
+  },
+  uploadingSub: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+    marginTop: 8,
+  },
+
+  // Details
+  detailsContainer: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    paddingBottom: 24,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 52,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backArrow: {
+    fontSize: 22,
+    color: colors.accent,
+    fontWeight: '600',
+  },
+  detailsTitle: {
+    ...typography.displaySm,
+    color: colors.text,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+  },
+  thumbWrap: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  thumbnail: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+  },
+  thumbLabel: {
+    ...typography.labelSm,
+    color: colors.textMuted,
+  },
+  detailsCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+  },
+  detailsFieldLabel: {
+    ...typography.label,
+    color: colors.textMuted,
+    marginBottom: 6,
+  },
+  detailsFieldValue: {
+    ...typography.bodyMd,
+    color: colors.verified,
+    fontWeight: '600',
+  },
+  lengthInput: {
+    ...typography.numMd,
+    color: colors.accent,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderGold,
+    paddingVertical: 4,
+  },
+  lengthPreview: {
+    ...typography.numLg,
+    color: colors.accent,
+    marginTop: 8,
+  },
+  gpsValue: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+  },
+  retakeLink: {
+    marginTop: 12,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  retakeLinkText: {
+    ...typography.bodyMd,
+    color: colors.textSub,
+  },
+
+  // Camera overlay
+  cameraOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  cameraHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 52,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(13,26,13,0.8)',
+  },
+  cameraBackBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraBackText: {
+    fontSize: 22,
+    color: colors.accent,
+    fontWeight: '600',
+  },
+  cameraTitle: {
+    ...typography.displaySm,
+    color: colors.text,
+  },
+  guideContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  guideDashed: {
+    width: '100%',
+    height: 180,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 10,
+  },
+  guideLabel: {
+    ...typography.labelSm,
+    color: colors.accent,
+    backgroundColor: 'rgba(13,26,13,0.7)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  checklistSide: {
+    position: 'absolute',
+    left: 16,
+    top: 130,
+    gap: 16,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(13,26,13,0.75)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(201,164,80,0.3)',
+  },
+  checklistText: {
+    ...typography.caption,
+    color: colors.accent,
   },
   qrBadge: {
-    backgroundColor: 'rgba(46,204,113,0.15)', borderRadius: 8, padding: 10, marginTop: 8,
-    borderWidth: 1, borderColor: 'rgba(46,204,113,0.4)',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: 'rgba(201,164,80,0.15)',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(201,164,80,0.4)',
+    alignItems: 'center',
   },
-  qrBadgeText: { color: '#2ecc71', fontSize: 14, fontWeight: '600' },
-  captureButton: {
-    width: 72, height: 72, borderRadius: 36, borderWidth: 4,
-    borderColor: '#2ecc71', justifyContent: 'center', alignItems: 'center',
+  qrBadgeDetected: {
+    backgroundColor: colors.verifiedBg,
+    borderColor: colors.verified + '60',
   },
-  captureInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#2ecc71' },
-  detailsContainer: { flex: 1, backgroundColor: '#0d1821', padding: 24 },
-  stepTitle: { fontSize: 22, fontWeight: '700', color: '#e8f0fe', marginBottom: 16 },
-  photoRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  thumbnail: { width: 140, height: 105, borderRadius: 8, backgroundColor: '#162032' },
-  label: { fontSize: 13, fontWeight: '600', color: '#4a6580', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  qrValue: { fontSize: 15, color: '#2ecc71', marginBottom: 16, fontWeight: '600' },
-  missing: { color: '#e74c3c' },
-  input: {
-    borderWidth: 1, borderColor: '#2a3f55', borderRadius: 8,
-    padding: 12, fontSize: 16, marginBottom: 16,
-    backgroundColor: '#162032', color: '#e8f0fe',
+  qrBadgeText: {
+    ...typography.caption,
+    color: colors.accent,
   },
-  gpsValue: { fontSize: 14, color: '#7a9bbf', marginBottom: 24 },
-  button: { backgroundColor: '#2ecc71', borderRadius: 8, padding: 16, alignItems: 'center' },
-  buttonText: { color: '#0d1821', fontSize: 16, fontWeight: '700' },
-  retakeLink: { marginTop: 16, alignItems: 'center' },
-  retakeLinkText: { color: '#7a9bbf', fontSize: 15 },
-  bigEmoji: { fontSize: 64, marginBottom: 16 },
-  successTitle: { fontSize: 24, fontWeight: '700', color: '#e8f0fe', marginBottom: 8 },
-  successText: { fontSize: 15, color: '#7a9bbf', textAlign: 'center', marginBottom: 24 },
-  uploadingText: { marginTop: 16, fontSize: 16, color: '#7a9bbf' },
-  permText: { fontSize: 15, color: '#7a9bbf', textAlign: 'center', marginBottom: 20 },
+  shutterBtn: {
+    alignSelf: 'center',
+    marginBottom: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(201,164,80,0.15)',
+  },
+  shutterInner: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: colors.accent,
+  },
 });

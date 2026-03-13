@@ -1,88 +1,186 @@
-import React from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
-
 import LoginScreen from '../screens/Auth/LoginScreen';
 import RegisterScreen from '../screens/Auth/RegisterScreen';
-import TournamentHomeScreen from '../screens/Tournament/TournamentHomeScreen';
-import SubmissionFlowScreen from '../screens/Submission/SubmissionFlowScreen';
+import HomeScreen from '../screens/Home/HomeScreen';
+import TournamentScreen from '../screens/Tournament/TournamentScreen';
 import LeaderboardScreen from '../screens/Leaderboard/LeaderboardScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import PublicProfileScreen from '../screens/Profile/PublicProfileScreen';
+import SubmissionFlowScreen from '../screens/Submission/SubmissionFlowScreen';
+import { HomeIcon, LeaderboardIcon, TrophyIcon, ProfileIcon } from '../components/icons/TabIcons';
 import { colors } from '../theme/colors';
 
-// ── Route type definitions ────────────────────────────────────────────────────
+// Tournament context — lets leaderboard/submission know the active tournamentId
+export const TournamentContext = createContext<{ tournamentId: string | null; setTournamentId: (id: string | null) => void }>({
+  tournamentId: null,
+  setTournamentId: () => {},
+});
 
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   MainTabs: undefined;
   Submission: { tournamentId: string };
-  Leaderboard: { tournamentId: string };
   PublicProfile: { username: string };
 };
 
 export type TabParamList = {
-  Tournament: undefined;
+  Home: undefined;
+  Leaderboard: undefined;
+  Submit: undefined;
+  Tournaments: undefined;
   Profile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// ── Tab navigator (authenticated) ─────────────────────────────────────────────
+// Placeholder screen for Submit tab — immediately opens Submission modal
+function SubmitPlaceholder() {
+  return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+}
+
+function CustomTabBar({ state, descriptors, navigation }: any) {
+  return (
+    <View style={tabStyles.container}>
+      {state.routes.map((route: any, index: number) => {
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
+        const isSubmit = route.name === 'Submit';
+
+        const onPress = () => {
+          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        if (isSubmit) {
+          return (
+            <TouchableOpacity key={route.key} onPress={onPress} style={tabStyles.submitBtn} activeOpacity={0.8}>
+              <View style={tabStyles.submitCircle}>
+                <Text style={{ fontSize: 22 }}>📷</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }
+
+        const iconColor = isFocused ? colors.accent : colors.textMuted;
+        let Icon: React.FC<{ color: string; size?: number }>;
+        if (route.name === 'Home') Icon = HomeIcon;
+        else if (route.name === 'Leaderboard') Icon = LeaderboardIcon;
+        else if (route.name === 'Tournaments') Icon = TrophyIcon;
+        else Icon = ProfileIcon;
+
+        const label = route.name === 'Tournaments' ? 'Compete' : route.name;
+
+        return (
+          <TouchableOpacity key={route.key} onPress={onPress} style={tabStyles.tab} activeOpacity={0.7}>
+            <Icon color={iconColor} size={22} />
+            <Text style={[tabStyles.label, { color: iconColor }]}>{label}</Text>
+            {isFocused && <View style={tabStyles.dot} />}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const tabStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    backgroundColor: colors.navBg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingBottom: 20,
+    paddingTop: 8,
+    height: 80,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  dot: {
+    position: 'absolute',
+    bottom: -4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+  },
+  submitBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -20,
+  },
+  submitCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.navBg,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+});
 
 function MainTabs() {
+  const { tournamentId } = useContext(TournamentContext);
+
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarActiveTintColor: colors.green,
-        tabBarInactiveTintColor: colors.textMuted,
-      }}
-    >
+    <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />
       <Tab.Screen
-        name="Tournament"
-        component={TournamentHomeScreen}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>🎣</Text> }}
+        name="Submit"
+        component={SubmitPlaceholder}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            if (tournamentId) navigation.navigate('Submission', { tournamentId });
+          },
+        })}
       />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>👤</Text> }}
-      />
+      <Tab.Screen name="Tournaments" component={TournamentScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
 
-// ── Root stack ────────────────────────────────────────────────────────────────
-
 export default function Navigation({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const [tournamentId, setTournamentId] = useState<string | null>(null);
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.surface },
-          headerTintColor: colors.textPrimary,
-          headerBackTitleVisible: false,
-        }}
-      >
-        {/* Auth screens — no header */}
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
-
-        {/* Main app with tabs */}
-        <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-
-        {/* Full-screen stack screens */}
-        <Stack.Screen name="Submission" component={SubmissionFlowScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ title: 'Leaderboard' }} />
-        <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ title: '' }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <TournamentContext.Provider value={{ tournamentId, setTournamentId }}>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="Submission" component={SubmissionFlowScreen} />
+          <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </TournamentContext.Provider>
   );
 }
