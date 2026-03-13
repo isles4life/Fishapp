@@ -5,16 +5,30 @@ import { api, clearToken, isLoggedIn } from '../lib/api';
 import type { Tournament, LeaderboardEntry, AnglerProfile } from '../lib/api';
 
 const C = {
-  bg: '#0d1821', surface: '#162032', surfaceHigh: '#1e2d40',
-  border: '#2a3f55', green: '#2ecc71',
-  gold: '#FFD700', silver: '#C0C0C0', bronze: '#CD7F32',
-  text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
+  bg:          '#0D1A0D',
+  surface:     '#152515',
+  surfaceHigh: '#1D331D',
+  border:      '#2A4A2A',
+  borderGold:  '#C9A450',
+  accent:      '#C9A450',
+  accentDark:  '#9E7A30',
+  verified:    '#3DAF5A',
+  verifiedBg:  '#0F3A1E',
+  error:       '#C0392B',
+  errorBg:     '#3A1414',
+  text:        '#F0EDE4',
+  textSub:     '#8BA88B',
+  textMuted:   '#4A6A4A',
+  gold:        '#C9A450',
+  silver:      '#A0A8A0',
+  bronze:      '#8B6F4A',
 };
 
-const greenBtn: React.CSSProperties = {
-  backgroundColor: C.green, color: C.bg, fontWeight: 700,
+const accentBtn: React.CSSProperties = {
+  backgroundColor: C.accent, color: C.bg, fontWeight: 700,
   padding: '9px 20px', borderRadius: 8, textDecoration: 'none',
   fontSize: 14, border: 'none', cursor: 'pointer', display: 'inline-block',
+  letterSpacing: 1, textTransform: 'uppercase',
 };
 const ghostBtn: React.CSSProperties = {
   backgroundColor: 'transparent', color: C.textSub, fontWeight: 600,
@@ -99,7 +113,9 @@ export default function HomePage() {
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="FishLeague" style={{ height: 34, marginRight: 10 }} />
-          <span style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>FishLeague</span>
+          <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 1 }}>
+            <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
+          </span>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
             {loggedIn ? (
               <div ref={dropdownRef} style={{ position: 'relative' }}>
@@ -132,7 +148,7 @@ export default function HomePage() {
             ) : (
               <>
                 <Link href="/login" style={ghostBtn}>Sign In</Link>
-                <Link href="/register" style={greenBtn}>Join Now</Link>
+                <Link href="/register" style={accentBtn}>Join Now</Link>
               </>
             )}
           </div>
@@ -142,13 +158,13 @@ export default function HomePage() {
       {/* ── Content ─────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 20px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <h1 style={{ fontSize: 38, fontWeight: 900, color: C.text, margin: '0 0 8px' }}>Live Leaderboard</h1>
+          <h1 style={{ fontSize: 42, fontWeight: 900, color: C.text, margin: '0 0 8px', letterSpacing: -1, textTransform: 'uppercase' }}>Live Leaderboard</h1>
           {tournament && (
             <p style={{ color: C.textSub, fontSize: 15, margin: 0 }}>
               {tournament.name} · {tournament.region.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
             </p>
           )}
-          <p style={{ color: C.textMuted, fontSize: 12, marginTop: 6, letterSpacing: '0.5px' }}>AUTO-REFRESHES EVERY 30 SECONDS</p>
+          <p style={{ color: C.textMuted, fontSize: 11, marginTop: 6, letterSpacing: 1.5, textTransform: 'uppercase' }}>AUTO-REFRESHES EVERY 30 SECONDS</p>
         </div>
 
         {loading && <div style={{ textAlign: 'center', color: C.textMuted, padding: 60 }}>Loading...</div>}
@@ -171,9 +187,9 @@ export default function HomePage() {
             {entries.map((entry) => (
               <div key={entry.userId} style={{
                 display: 'flex', alignItems: 'center',
-                backgroundColor: entry.rank <= 3 ? C.surfaceHigh : C.surface,
-                borderRadius: 12, padding: '14px 18px',
-                border: `1px solid ${entry.rank <= 3 ? rankColor(entry.rank) + '50' : C.border}`,
+                backgroundColor: entry.rank === 1 ? C.surfaceHigh : C.surface,
+                borderRadius: 14, padding: '14px 18px',
+                border: `1px solid ${entry.rank === 1 ? C.accent + '60' : C.border}`,
               }}>
                 {/* Rank */}
                 <div style={{
@@ -191,10 +207,10 @@ export default function HomePage() {
                 </div>
                 {/* Name */}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 16, color: C.text }}>{entry.displayName}</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{entry.displayName}</div>
                   {entry.username && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>@{entry.username}</div>}
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: C.green }}>{entry.fishLengthCm} cm</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: C.accent }}>{entry.fishLengthCm} cm</div>
               </div>
             ))}
           </div>
@@ -207,7 +223,7 @@ export default function HomePage() {
               Download the FishLeague app, create an account, and start submitting catches.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/register" style={greenBtn}>Create Account</Link>
+              <Link href="/register" style={accentBtn}>Create Account</Link>
               <Link href="/login" style={ghostBtn}>Sign In</Link>
             </div>
           </div>

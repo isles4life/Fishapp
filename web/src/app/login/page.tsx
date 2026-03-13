@@ -5,8 +5,23 @@ import { useRouter } from 'next/navigation';
 import { api, setToken } from '../../lib/api';
 
 const C = {
-  bg: '#0d1821', surface: '#162032', border: '#2a3f55',
-  green: '#2ecc71', text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
+  bg:          '#0D1A0D',
+  surface:     '#152515',
+  surfaceHigh: '#1D331D',
+  border:      '#2A4A2A',
+  borderGold:  '#C9A450',
+  accent:      '#C9A450',
+  accentDark:  '#9E7A30',
+  verified:    '#3DAF5A',
+  verifiedBg:  '#0F3A1E',
+  error:       '#C0392B',
+  errorBg:     '#3A1414',
+  text:        '#F0EDE4',
+  textSub:     '#8BA88B',
+  textMuted:   '#4A6A4A',
+  gold:        '#C9A450',
+  silver:      '#A0A8A0',
+  bronze:      '#8B6F4A',
 };
 
 export default function LoginPage() {
@@ -15,6 +30,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailFocus, setEmailFocus] = useState(false);
+  const [passwordFocus, setPasswordFocus] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,31 +48,55 @@ export default function LoginPage() {
     }
   }
 
+  const inputStyle = (focused: boolean): React.CSSProperties => ({
+    width: '100%', padding: '14px', marginBottom: 12,
+    backgroundColor: C.bg, border: `1px solid ${focused ? C.accent : C.border}`, borderRadius: 10,
+    color: C.text, fontSize: 16, boxSizing: 'border-box', outline: 'none',
+  });
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ backgroundColor: C.surface, borderRadius: 14, padding: 36, width: '100%', maxWidth: 400, border: `1px solid ${C.border}` }}>
+      <div style={{ backgroundColor: C.surface, borderRadius: 16, padding: 40, width: '100%', maxWidth: 400, border: `1px solid ${C.border}` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icon.png" alt="FishLeague" style={{ width: 80, display: 'block', margin: '0 auto 12px' }} />
-        <h1 style={{ color: C.text, textAlign: 'center', margin: '0 0 4px', fontSize: 26, fontWeight: 800 }}>Sign In</h1>
-        <p style={{ color: C.textMuted, textAlign: 'center', margin: '0 0 24px', fontSize: 14 }}>Welcome back, angler</p>
+        <h1 style={{ color: C.text, textAlign: 'center', margin: '0 0 4px', fontSize: 26, fontWeight: 900, letterSpacing: -0.5, textTransform: 'uppercase' }}>Sign In</h1>
+        <p style={{ color: C.textSub, textAlign: 'center', margin: '0 0 24px', fontSize: 14 }}>Welcome back, angler</p>
 
         {error && (
-          <div style={{ backgroundColor: '#2a0f0f', border: '1px solid #e74c3c', color: '#e74c3c', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
+          <div style={{ backgroundColor: C.errorBg, border: `1px solid ${C.error}`, color: C.error, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          <input style={inputStyle} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-          <input style={inputStyle} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
-          <button type="submit" style={{ width: '100%', padding: '13px', backgroundColor: C.green, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 8, cursor: 'pointer', marginTop: 4 }} disabled={loading}>
+          <input
+            style={inputStyle(emailFocus)}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onFocus={() => setEmailFocus(true)}
+            onBlur={() => setEmailFocus(false)}
+            required
+          />
+          <input
+            style={inputStyle(passwordFocus)}
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onFocus={() => setPasswordFocus(true)}
+            onBlur={() => setPasswordFocus(false)}
+            required
+          />
+          <button type="submit" style={{ width: '100%', padding: '13px', backgroundColor: C.accent, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 10, cursor: 'pointer', marginTop: 4, letterSpacing: 1, textTransform: 'uppercase' }} disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
         <p style={{ color: C.textMuted, textAlign: 'center', marginTop: 20, fontSize: 14 }}>
           Don&apos;t have an account?{' '}
-          <Link href="/register" style={{ color: C.green, textDecoration: 'none', fontWeight: 600 }}>Register</Link>
+          <Link href="/register" style={{ color: C.accent, textDecoration: 'none', fontWeight: 600 }}>Register</Link>
         </p>
         <p style={{ color: C.textMuted, textAlign: 'center', marginTop: 8, fontSize: 14 }}>
           <Link href="/" style={{ color: C.textSub, textDecoration: 'none' }}>← Back to Leaderboard</Link>
@@ -64,9 +105,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 14px', marginBottom: 12,
-  backgroundColor: '#0d1821', border: '1px solid #2a3f55', borderRadius: 8,
-  color: '#e8f0fe', fontSize: 16, boxSizing: 'border-box',
-};

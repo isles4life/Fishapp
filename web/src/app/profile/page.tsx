@@ -6,9 +6,23 @@ import { api, clearToken, isLoggedIn } from '../../lib/api';
 import type { AnglerProfile, UpdateProfilePayload } from '../../lib/api';
 
 const C = {
-  bg: '#0d1821', surface: '#162032', surfaceHigh: '#1e2d40', border: '#2a3f55',
-  green: '#2ecc71', greenMuted: '#1a3a2a', gold: '#f0b429', blue: '#3498db',
-  text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
+  bg:          '#0D1A0D',
+  surface:     '#152515',
+  surfaceHigh: '#1D331D',
+  border:      '#2A4A2A',
+  borderGold:  '#C9A450',
+  accent:      '#C9A450',
+  accentDark:  '#9E7A30',
+  verified:    '#3DAF5A',
+  verifiedBg:  '#0F3A1E',
+  error:       '#C0392B',
+  errorBg:     '#3A1414',
+  text:        '#F0EDE4',
+  textSub:     '#8BA88B',
+  textMuted:   '#4A6A4A',
+  gold:        '#C9A450',
+  silver:      '#A0A8A0',
+  bronze:      '#8B6F4A',
 };
 
 // ── Species list (sourced from Take Me Fishing / FishBase / Bass Pro Shops) ───
@@ -74,8 +88,8 @@ function SpeciesPicker({ selected, onChange }: { selected: string[]; onChange: (
         onClick={() => setOpen(o => !o)}
         style={{
           minHeight: 42, padding: '6px 10px', boxSizing: 'border-box',
-          backgroundColor: C.bg, border: `1px solid ${open ? C.green : C.border}`,
-          borderRadius: 8, cursor: 'pointer', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center',
+          backgroundColor: C.bg, border: `1px solid ${open ? C.accent : C.border}`,
+          borderRadius: 10, cursor: 'pointer', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center',
         }}
       >
         {selected.length === 0 && <span style={{ color: C.textMuted, fontSize: 14 }}>Select species…</span>}
@@ -98,7 +112,7 @@ function SpeciesPicker({ selected, onChange }: { selected: string[]; onChange: (
       {open && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
-          backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+          backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
           marginTop: 4, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', maxHeight: 320, display: 'flex', flexDirection: 'column',
         }}>
           <div style={{ padding: '8px 10px', borderBottom: `1px solid ${C.border}` }}>
@@ -107,13 +121,13 @@ function SpeciesPicker({ selected, onChange }: { selected: string[]; onChange: (
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search species…"
-              style={{ width: '100%', boxSizing: 'border-box', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, padding: '6px 10px', color: C.text, fontSize: 13 }}
+              style={{ width: '100%', boxSizing: 'border-box', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, padding: '6px 10px', color: C.text, fontSize: 13, outline: 'none' }}
             />
           </div>
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {filtered.map(group => (
               <div key={group.label}>
-                <div style={{ padding: '6px 12px 2px', fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{group.label}</div>
+                <div style={{ padding: '6px 12px 2px', fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' }}>{group.label}</div>
                 {group.items.map(species => {
                   const checked = selected.includes(species);
                   return (
@@ -122,13 +136,13 @@ function SpeciesPicker({ selected, onChange }: { selected: string[]; onChange: (
                       onClick={() => toggle(species)}
                       style={{
                         padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                        backgroundColor: checked ? C.greenMuted : 'transparent',
-                        fontSize: 14, color: checked ? C.green : C.text,
+                        backgroundColor: checked ? C.accentDark : 'transparent',
+                        fontSize: 14, color: checked ? C.accent : C.text,
                       }}
                       onMouseEnter={e => { if (!checked) (e.currentTarget as HTMLDivElement).style.backgroundColor = C.surfaceHigh; }}
                       onMouseLeave={e => { if (!checked) (e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent'; }}
                     >
-                      <span style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? C.green : C.border}`, backgroundColor: checked ? C.green : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, color: C.bg, fontWeight: 800 }}>
+                      <span style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? C.accent : C.border}`, backgroundColor: checked ? C.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, color: C.bg, fontWeight: 800 }}>
                         {checked ? '✓' : ''}
                       </span>
                       {species}
@@ -157,15 +171,15 @@ const WATER_LABELS: Record<string, string> = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 12px', marginBottom: 12, boxSizing: 'border-box',
-  backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
-  color: C.text, fontSize: 14,
+  backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 10,
+  color: C.text, fontSize: 14, outline: 'none',
 };
 
 function TagList({ label, tags }: { label: string; tags: string[] }) {
   if (!tags.length) return null;
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+      <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {tags.map(t => (
           <span key={t} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 13, backgroundColor: C.surfaceHigh, color: C.textSub, border: `1px solid ${C.border}` }}>{t}</span>
@@ -177,9 +191,9 @@ function TagList({ label, tags }: { label: string; tags: string[] }) {
 
 function StatCard({ label, value }: { label: string; value: string | number | null }) {
   return (
-    <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 10, padding: '14px 16px', border: `1px solid ${C.border}`, textAlign: 'center' }}>
-      <div style={{ fontSize: 22, fontWeight: 800, color: C.green }}>{value ?? '—'}</div>
-      <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+    <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.border}`, textAlign: 'center' }}>
+      <div style={{ fontSize: 24, fontWeight: 900, color: C.accent }}>{value ?? '—'}</div>
+      <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
     </div>
   );
 }
@@ -229,10 +243,10 @@ function AvatarUpload({ current, displayName, onUploaded }: {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ color: C.textMuted, fontSize: 12, fontWeight: 600, marginBottom: 10 }}>Profile Picture</div>
+      <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>Profile Picture</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ position: 'relative', flexShrink: 0 }}>
-          <div style={{ width: 80, height: 80, borderRadius: 40, overflow: 'hidden', border: `2px solid ${C.border}`, backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 80, height: 80, borderRadius: 40, overflow: 'hidden', border: `2px solid ${C.borderGold}`, backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {shown
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={shown} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -254,7 +268,7 @@ function AvatarUpload({ current, displayName, onUploaded }: {
             {uploading ? 'Uploading…' : current ? 'Change Photo' : 'Upload Photo'}
           </button>
           <div style={{ color: C.textMuted, fontSize: 11, lineHeight: 1.6 }}>{AVATAR_RULES}</div>
-          {err && <div style={{ color: '#e74c3c', fontSize: 12, marginTop: 4 }}>{err}</div>}
+          {err && <div style={{ color: C.error, fontSize: 12, marginTop: 4 }}>{err}</div>}
         </div>
       </div>
       <input ref={inputRef} type="file" accept={ACCEPTED} onChange={handleFile} style={{ display: 'none' }} />
@@ -331,7 +345,9 @@ export default function MyProfilePage() {
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 10 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="FishLeague" style={{ height: 34 }} />
-          <span style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>FishLeague</span>
+          <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 1 }}>
+            <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
+          </span>
         </Link>
         <div style={{ marginLeft: 'auto' }}>
           <div ref={dropdownRef} style={{ position: 'relative' }}>
@@ -372,7 +388,7 @@ export default function MyProfilePage() {
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <h2 style={{ color: C.text, margin: 0 }}>{profile ? 'Edit Profile' : 'Set Up Your Angler Profile'}</h2>
+            <h2 style={{ color: C.text, margin: 0, fontWeight: 900, letterSpacing: -0.5, textTransform: 'uppercase' }}>{profile ? 'Edit Profile' : 'Set Up Your Angler Profile'}</h2>
             {profile && <button onClick={() => setEditing(false)} style={ghostBtn}>Cancel</button>}
           </div>
           {error && <ErrBox msg={error} />}
@@ -446,17 +462,17 @@ export default function MyProfilePage() {
 
             <Section title="Privacy">
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSub, fontSize: 14, marginBottom: 10, cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.publicProfile ?? true} onChange={e => setForm(f => ({ ...f, publicProfile: e.target.checked }))} />
+                <input type="checkbox" checked={form.publicProfile ?? true} onChange={e => setForm(f => ({ ...f, publicProfile: e.target.checked }))} style={{ accentColor: C.accent }} />
                 Public Profile
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSub, fontSize: 14, cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.allowFollowers ?? true} onChange={e => setForm(f => ({ ...f, allowFollowers: e.target.checked }))} />
+                <input type="checkbox" checked={form.allowFollowers ?? true} onChange={e => setForm(f => ({ ...f, allowFollowers: e.target.checked }))} style={{ accentColor: C.accent }} />
                 Allow Followers
               </label>
             </Section>
 
             {error && <ErrBox msg={error} />}
-            <button type="submit" disabled={saving} style={{ backgroundColor: C.green, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 8, padding: '13px 32px', cursor: 'pointer', width: '100%' }}>
+            <button type="submit" disabled={saving} style={{ backgroundColor: C.accent, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 10, padding: '13px 32px', cursor: 'pointer', width: '100%', letterSpacing: 1, textTransform: 'uppercase' }}>
               {saving ? 'Saving...' : 'Save Profile'}
             </button>
           </form>
@@ -470,7 +486,7 @@ export default function MyProfilePage() {
       {nav}
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px', textAlign: 'center', paddingTop: 60 }}>
         <p style={{ color: C.textSub, fontSize: 18, marginBottom: 20 }}>You haven&apos;t set up your angler profile yet.</p>
-        <button onClick={() => setEditing(true)} style={{ backgroundColor: C.green, color: C.bg, fontWeight: 700, padding: '12px 28px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 15 }}>Set Up Profile</button>
+        <button onClick={() => setEditing(true)} style={{ backgroundColor: C.accent, color: C.bg, fontWeight: 700, padding: '12px 28px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' }}>Set Up Profile</button>
       </div>
     </div>
   );
@@ -481,23 +497,23 @@ export default function MyProfilePage() {
     <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
       {nav}
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>
-        {success && <div style={{ backgroundColor: C.greenMuted, border: `1px solid ${C.green}50`, color: C.green, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{success}</div>}
+        {success && <div style={{ backgroundColor: C.verifiedBg, border: `1px solid ${C.accent}50`, color: C.accent, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{success}</div>}
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
           {/* Header */}
           <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 28 }}>
             <button onClick={() => setEditing(true)} title="Change profile picture" style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0 }}>
-              <div style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: C.surfaceHigh, border: `2px solid ${C.border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+              <div style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: C.surfaceHigh, border: `3px solid ${C.borderGold}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
                 {profile.profilePhotoUrl
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={profile.profilePhotoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : '🎣'}
               </div>
-              <div style={{ position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.green, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>✏️</div>
+              <div style={{ position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>✏️</div>
             </button>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <h2 style={{ color: C.text, margin: 0, fontSize: 24, fontWeight: 800 }}>{profile.user.displayName}</h2>
-                {profile.verifiedAngler && <span style={{ fontSize: 11, fontWeight: 700, color: C.blue, backgroundColor: C.blue + '20', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.blue}40` }}>✓ VERIFIED</span>}
+                <h2 style={{ color: C.text, margin: 0, fontSize: 26, fontWeight: 900 }}>{profile.user.displayName}</h2>
+                {profile.verifiedAngler && <span style={{ fontSize: 11, fontWeight: 700, color: C.verified, backgroundColor: C.verifiedBg, padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.verified}50` }}>✓ VERIFIED</span>}
               </div>
               <div style={{ color: C.textMuted, fontSize: 14, marginTop: 2 }}>@{profile.username}</div>
               {profile.bio && <p style={{ color: C.textSub, fontSize: 14, marginTop: 8, marginBottom: 0 }}>{profile.bio}</p>}
@@ -524,19 +540,19 @@ export default function MyProfilePage() {
 
           {/* Badges */}
           {profile.badges.length > 0 && (
-            <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 18, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-              <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 12px' }}>Badges</h4>
+            <div style={{ backgroundColor: C.surface, borderRadius: 14, padding: 20, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+              <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 12px' }}>Badges</h4>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {profile.badges.map(b => (
-                  <span key={b} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, backgroundColor: C.gold + '20', color: C.gold, border: `1px solid ${C.gold}40` }}>🏆 {b}</span>
+                  <span key={b} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, backgroundColor: C.accent + '20', color: C.accent, border: `1px solid ${C.accent}50` }}>🏆 {b}</span>
                 ))}
               </div>
             </div>
           )}
 
           {/* Fishing preferences */}
-          <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 18, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-            <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 14px' }}>Fishing Preferences</h4>
+          <div style={{ backgroundColor: C.surface, borderRadius: 14, padding: 20, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+            <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>Fishing Preferences</h4>
             <TagList label="Species" tags={profile.primarySpecies} />
             <TagList label="Techniques" tags={profile.favoriteTechniques} />
             <TagList label="Baits" tags={profile.favoriteBaits} />
@@ -547,8 +563,8 @@ export default function MyProfilePage() {
 
           {/* Gear */}
           {(profile.favoriteRod || profile.favoriteReel || profile.favoriteLine || profile.favoriteBoat || profile.sponsorTags.length > 0) && (
-            <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 18, border: `1px solid ${C.border}` }}>
-              <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 14px' }}>Gear</h4>
+            <div style={{ backgroundColor: C.surface, borderRadius: 14, padding: 20, border: `1px solid ${C.border}` }}>
+              <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>Gear</h4>
               {([['Rod', profile.favoriteRod], ['Reel', profile.favoriteReel], ['Line', profile.favoriteLine], ['Boat', profile.favoriteBoat]] as [string, string | null][]).map(([label, val]) =>
                 val ? <div key={label} style={{ marginBottom: 6 }}><span style={{ color: C.textMuted, fontSize: 12 }}>{label}: </span><span style={{ color: C.textSub, fontSize: 14 }}>{val}</span></div> : null
               )}
@@ -563,16 +579,16 @@ export default function MyProfilePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ backgroundColor: C.surface, borderRadius: 12, padding: 20, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-      <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 14px' }}>{title}</h4>
+    <div style={{ backgroundColor: C.surface, borderRadius: 14, padding: 20, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+      <h4 style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>{title}</h4>
       {children}
     </div>
   );
 }
 
 function ErrBox({ msg }: { msg: string }) {
-  return <div style={{ color: '#e74c3c', background: '#2a0f0f', border: '1px solid #e74c3c', padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 14 }}>{msg}</div>;
+  return <div style={{ color: C.error, background: C.errorBg, border: `1px solid ${C.error}`, padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 14 }}>{msg}</div>;
 }
 
-const labelStyle: React.CSSProperties = { display: 'block', color: C.textMuted, fontSize: 12, fontWeight: 600, marginBottom: 4 };
+const labelStyle: React.CSSProperties = { display: 'block', color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 };
 const ghostBtn: React.CSSProperties = { backgroundColor: 'transparent', color: C.textSub, fontWeight: 600, padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 13 };
