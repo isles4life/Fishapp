@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../common/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 
 const mockPrisma = {
@@ -12,6 +13,7 @@ const mockPrisma = {
 };
 
 const mockJwt = { sign: jest.fn().mockReturnValue('mock-token') };
+const mockAudit = { log: jest.fn().mockResolvedValue(undefined) };
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -22,6 +24,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
+        { provide: AuditService, useValue: mockAudit },
       ],
     }).compile();
 
@@ -62,7 +65,7 @@ describe('AuthService', () => {
     });
 
     it('throws UnauthorizedException for suspended user', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u1', suspended: true });
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u1', suspended: true, passwordHash: 'hash' });
       await expect(service.login({ email: 'x@x.com', password: 'pass' })).rejects.toThrow(
         UnauthorizedException,
       );
