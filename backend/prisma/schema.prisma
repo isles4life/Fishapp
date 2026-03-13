@@ -195,6 +195,7 @@ model AnglerProfile {
   bio                String?    @db.VarChar(250)
   profilePhotoUrl    String?
   verifiedAngler     Boolean    @default(false)
+  birthday           DateTime?
 
   // Location
   homeState          String?

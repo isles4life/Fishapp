@@ -283,7 +283,7 @@ export default function MyProfilePage() {
       .then(p => {
         setProfile(p);
         if (p) setForm({
-          username: p.username, bio: p.bio ?? '', profilePhotoUrl: p.profilePhotoUrl ?? '',
+          username: p.username, bio: p.bio ?? '', birthday: p.birthday ? p.birthday.slice(0, 10) : '', profilePhotoUrl: p.profilePhotoUrl ?? '',
           homeState: p.homeState ?? '', homeCity: p.homeCity ?? '', country: p.country ?? '',
           zipCode: p.zipCode ?? '',
           primarySpecies: p.primarySpecies, favoriteTechniques: p.favoriteTechniques,
@@ -390,6 +390,14 @@ export default function MyProfilePage() {
               <input style={inputStyle} value={form.username ?? ''} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="bass_master_99" required minLength={3} maxLength={20} />
               <label style={labelStyle}>Bio (max 250 chars)</label>
               <textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={form.bio ?? ''} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} placeholder="Tell the FishLeague community about yourself..." maxLength={250} />
+              <label style={labelStyle}>Birthday</label>
+              <input
+                type="date"
+                style={{ ...inputStyle, colorScheme: 'dark' }}
+                value={form.birthday ?? ''}
+                onChange={e => setForm(f => ({ ...f, birthday: e.target.value || undefined }))}
+                max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().slice(0, 10)}
+              />
             </Section>
 
             <Section title="Location">
@@ -497,6 +505,7 @@ export default function MyProfilePage() {
                 <span style={{ color: C.textMuted, fontSize: 13 }}><strong style={{ color: C.textSub }}>{profile.followersCount}</strong> followers</span>
                 <span style={{ color: C.textMuted, fontSize: 13 }}><strong style={{ color: C.textSub }}>{profile.followingCount}</strong> following</span>
                 {(profile.homeCity || profile.homeState || profile.zipCode) && <span style={{ color: C.textMuted, fontSize: 13 }}>📍 {[profile.homeCity, profile.homeState, profile.zipCode].filter(Boolean).join(', ')}</span>}
+                {profile.birthday && (() => { const bd = new Date(profile.birthday); const age = Math.floor((Date.now() - bd.getTime()) / (365.25 * 24 * 3600 * 1000)); return <span style={{ color: C.textMuted, fontSize: 13 }}>🎂 {bd.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · Age {age}</span>; })()}
                 <span style={{ color: C.textMuted, fontSize: 13 }}>Member since {new Date(profile.user.createdAt).getFullYear()}</span>
               </div>
             </div>

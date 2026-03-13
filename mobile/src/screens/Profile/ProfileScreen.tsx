@@ -189,6 +189,11 @@ export function ProfileView({
             {(profile.homeCity || profile.homeState || profile.zipCode) && (
               <Text style={s.metaText}>📍 {[profile.homeCity, profile.homeState, profile.zipCode].filter(Boolean).join(', ')}</Text>
             )}
+            {profile.birthday && (() => {
+              const bd = new Date(profile.birthday);
+              const age = Math.floor((Date.now() - bd.getTime()) / (365.25 * 24 * 3600 * 1000));
+              return <Text style={s.metaText}>🎂 {bd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · Age {age}</Text>;
+            })()}
           </View>
         </View>
       </View>
@@ -270,6 +275,135 @@ export function ProfileView({
     </ScrollView>
   );
 }
+
+// ── Birthday Picker ───────────────────────────────────────────────────────────
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: currentYear - 1919 }, (_, i) => currentYear - 13 - i);
+
+function BirthdayPicker({ value, onChange }: { value?: string; onChange: (iso: string | undefined) => void }) {
+  const [open, setOpen] = useState(false);
+  const parsed = value ? new Date(value) : null;
+  const [selMonth, setSelMonth] = useState(parsed ? parsed.getMonth() : 0);
+  const [selDay, setSelDay]     = useState(parsed ? parsed.getDate() : 1);
+  const [selYear, setSelYear]   = useState(parsed ? parsed.getFullYear() : currentYear - 25);
+  const [tab, setTab]           = useState<'month' | 'day' | 'year'>('month');
+
+  const daysInMonth = new Date(selYear, selMonth + 1, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  function confirm() {
+    const safeDay = Math.min(selDay, daysInMonth);
+    const d = new Date(selYear, selMonth, safeDay);
+    onChange(d.toISOString());
+    setOpen(false);
+  }
+
+  function clear() { onChange(undefined); setOpen(false); }
+
+  const display = parsed
+    ? parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : 'Select birthday';
+
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <TouchableOpacity
+        style={[bp.trigger, !!value && { borderColor: colors.green + '60' }]}
+        onPress={() => setOpen(true)}
+      >
+        <Text style={[bp.triggerText, !value && { color: colors.textMuted }]}>🎂  {display}</Text>
+        <Text style={bp.arrow}>›</Text>
+      </TouchableOpacity>
+
+      <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
+        <View style={bp.modal}>
+          <View style={bp.header}>
+            <TouchableOpacity onPress={clear}><Text style={bp.clearBtn}>Clear</Text></TouchableOpacity>
+            <Text style={bp.title}>Birthday</Text>
+            <TouchableOpacity onPress={confirm}><Text style={bp.doneBtn}>Done</Text></TouchableOpacity>
+          </View>
+
+          {/* Preview */}
+          <View style={bp.preview}>
+            <Text style={bp.previewText}>
+              {MONTHS[selMonth]} {Math.min(selDay, daysInMonth)}, {selYear}
+            </Text>
+          </View>
+
+          {/* Tabs */}
+          <View style={bp.tabs}>
+            {(['month', 'day', 'year'] as const).map(t => (
+              <TouchableOpacity key={t} style={[bp.tab, tab === t && bp.tabActive]} onPress={() => setTab(t)}>
+                <Text style={[bp.tabText, tab === t && { color: colors.green }]}>
+                  {t === 'month' ? MONTHS[selMonth] : t === 'day' ? String(Math.min(selDay, daysInMonth)) : String(selYear)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* List */}
+          {tab === 'month' && (
+            <FlatList
+              data={MONTHS}
+              keyExtractor={m => m}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity style={[bp.listRow, index === selMonth && bp.listRowActive]} onPress={() => { setSelMonth(index); setTab('day'); }}>
+                  <Text style={[bp.listText, index === selMonth && { color: colors.green, fontWeight: '700' }]}>{item}</Text>
+                  {index === selMonth && <Text style={{ color: colors.green }}>✓</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          )}
+          {tab === 'day' && (
+            <FlatList
+              data={days}
+              keyExtractor={d => String(d)}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={[bp.listRow, item === selDay && bp.listRowActive]} onPress={() => { setSelDay(item); setTab('year'); }}>
+                  <Text style={[bp.listText, item === selDay && { color: colors.green, fontWeight: '700' }]}>{item}</Text>
+                  {item === selDay && <Text style={{ color: colors.green }}>✓</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          )}
+          {tab === 'year' && (
+            <FlatList
+              data={YEARS}
+              keyExtractor={y => String(y)}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={[bp.listRow, item === selYear && bp.listRowActive]} onPress={() => { setSelYear(item); confirm(); }}>
+                  <Text style={[bp.listText, item === selYear && { color: colors.green, fontWeight: '700' }]}>{item}</Text>
+                  {item === selYear && <Text style={{ color: colors.green }}>✓</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const bp = StyleSheet.create({
+  trigger: { backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, flexDirection: 'row', alignItems: 'center', minHeight: 42 },
+  triggerText: { flex: 1, color: colors.textPrimary, fontSize: 14 },
+  arrow: { color: colors.textMuted, fontSize: 18 },
+  modal: { flex: 1, backgroundColor: colors.bg },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  title: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  clearBtn: { color: colors.red, fontSize: 15, fontWeight: '600' },
+  doneBtn: { color: colors.green, fontSize: 15, fontWeight: '700' },
+  preview: { padding: 16, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
+  previewText: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
+  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
+  tab: { flex: 1, padding: 12, alignItems: 'center' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: colors.green },
+  tabText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
+  listRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border + '50' },
+  listRowActive: { backgroundColor: colors.greenMuted },
+  listText: { fontSize: 16, color: colors.textPrimary },
+});
 
 // ── Species Picker Modal ──────────────────────────────────────────────────────
 
@@ -404,6 +538,7 @@ function EditProfileForm({
   const [form, setForm] = useState<UpdateProfilePayload>({
     username: existing?.username ?? '',
     bio: existing?.bio ?? '',
+    birthday: existing?.birthday ?? undefined,
     profilePhotoUrl: existing?.profilePhotoUrl ?? '',
     homeState: existing?.homeState ?? '',
     homeCity: existing?.homeCity ?? '',
@@ -456,6 +591,8 @@ function EditProfileForm({
       <FormSection title="Identity">
         <FLInput label="Username (3–20 chars)" value={form.username ?? ''} onChangeText={v => setForm(f => ({ ...f, username: v }))} placeholder="bass_master_99" />
         <FLInput label="Bio (max 250 chars)" value={form.bio ?? ''} onChangeText={v => setForm(f => ({ ...f, bio: v }))} placeholder="Tell the community about yourself..." multiline />
+        <Text style={s.fieldLabel}>Birthday</Text>
+        <BirthdayPicker value={form.birthday} onChange={v => setForm(f => ({ ...f, birthday: v }))} />
         <FLInput label="Profile Photo URL" value={form.profilePhotoUrl ?? ''} onChangeText={v => setForm(f => ({ ...f, profilePhotoUrl: v }))} placeholder="https://..." />
       </FormSection>
 

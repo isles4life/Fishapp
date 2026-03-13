@@ -83,6 +83,7 @@ export interface AnglerProfile {
   userId: string;
   username: string;
   bio: string | null;
+  birthday: string | null;
   profilePhotoUrl: string | null;
   verifiedAngler: boolean;
   homeState: string | null;
@@ -115,6 +116,7 @@ export interface AnglerProfile {
 export interface UpdateProfilePayload {
   username?: string;
   bio?: string;
+  birthday?: string;
   profilePhotoUrl?: string;
   homeState?: string;
   homeCity?: string;

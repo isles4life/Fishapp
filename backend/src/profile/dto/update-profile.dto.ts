@@ -1,6 +1,6 @@
 import {
   IsString, IsOptional, IsBoolean, IsArray, IsEnum,
-  IsUrl, MaxLength, MinLength, Matches,
+  IsUrl, MaxLength, MinLength, Matches, IsDateString,
 } from 'class-validator';
 
 export enum WaterTypeDto {
@@ -25,6 +25,10 @@ export class UpdateProfileDto {
   @IsUrl()
   @IsOptional()
   profilePhotoUrl?: string;
+
+  @IsDateString()
+  @IsOptional()
+  birthday?: string;
 
   // Location
   @IsString() @IsOptional() homeState?: string;
