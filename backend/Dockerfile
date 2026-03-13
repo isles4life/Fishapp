@@ -31,4 +31,4 @@ COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/clie
 COPY prisma ./prisma
 
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/seed.js || true && node dist/src/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/seed.js || true && node dist/src/main"]
