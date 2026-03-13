@@ -16,6 +16,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       admin: ${{ steps.filter.outputs.admin }}
+      web: ${{ steps.filter.outputs.web }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -26,6 +27,8 @@ jobs:
               - 'backend/**'
             admin:
               - 'admin/**'
+            web:
+              - 'web/**'
 
   # ─── Backend: test → build → deploy ─────────────────────────────────────────
   backend:
@@ -149,3 +152,32 @@ jobs:
           service: fishleague-admin
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+
+  # ─── Web: deploy to Vercel AFTER backend is stable ──────────────────────────
+  web:
+    needs: [changes, backend]
+    # Runs if web files changed and backend either succeeded or was skipped (no backend changes)
+    if: |
+      always() &&
+      needs.changes.outputs.web == 'true' &&
+      (needs.backend.result == 'success' || needs.backend.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package.json
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy web to Vercel (production)
+        working-directory: web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel --prod --token $VERCEL_TOKEN
