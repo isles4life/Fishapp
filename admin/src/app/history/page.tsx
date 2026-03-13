@@ -26,6 +26,7 @@ const ACTION_META: Record<string, { label: string; color: string; icon: string }
   USER_DEMOTED_TO_USER:    { label: 'Demoted to User',         color: C.textSub,'icon': '↓' },
   USER_SUSPENDED:          { label: 'User Suspended',          color: C.red,    icon: '⊘' },
   USER_UNSUSPENDED:        { label: 'User Unsuspended',        color: C.green,  icon: '✓' },
+  USER_LOGIN:              { label: 'Login',                   color: C.textSub, icon: '→' },
 };
 
 function getDetails(entry: AuditEntry): string {
@@ -33,6 +34,11 @@ function getDetails(entry: AuditEntry): string {
   if (!d) return '';
   if (entry.action.startsWith('TOURNAMENT')) {
     if (d.name) return d.name + (d.weekNumber ? ` · Week ${d.weekNumber}, ${d.year}` : '');
+  }
+  if (entry.action === 'USER_LOGIN') {
+    const platform = d.platform ? d.platform.charAt(0).toUpperCase() + d.platform.slice(1) : '';
+    const provider = d.authProvider === 'APPLE' ? 'Apple' : 'Email';
+    return [platform, provider, d.email].filter(Boolean).join(' · ');
   }
   if (entry.action.startsWith('USER')) {
     if (d.targetName) return d.targetName + (d.targetEmail ? ` (${d.targetEmail})` : '');
@@ -59,12 +65,16 @@ export default function HistoryPage() {
   const categories = [
     { key: 'ALL', label: 'All' },
     { key: 'TOURNAMENT', label: 'Tournaments' },
+    { key: 'USER_LOGIN', label: 'Logins' },
     { key: 'USER', label: 'Users' },
   ];
 
-  const filtered = entries.filter(e =>
-    filter === 'ALL' || e.action.startsWith(filter)
-  );
+  const filtered = entries.filter(e => {
+    if (filter === 'ALL') return true;
+    if (filter === 'USER_LOGIN') return e.action === 'USER_LOGIN';
+    if (filter === 'USER') return e.action.startsWith('USER') && e.action !== 'USER_LOGIN';
+    return e.action.startsWith(filter);
+  });
 
   return (
     <div>

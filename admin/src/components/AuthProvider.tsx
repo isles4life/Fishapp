@@ -26,7 +26,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const res = await fetch(`${BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, platform: 'admin' }),
     });
     if (!res.ok) return 'Invalid credentials';
     const data = await res.json();

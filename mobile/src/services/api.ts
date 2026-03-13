@@ -45,7 +45,7 @@ export function getRegions(): Promise<Region[]> {
 }
 
 export function login(email: string, password: string): Promise<AuthResponse> {
-  return request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }, false);
+  return request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, platform: 'mobile' }) }, false);
 }
 
 export function register(
@@ -68,7 +68,7 @@ export function appleLogin(
 ): Promise<AuthResponse> {
   return request(
     '/auth/apple',
-    { method: 'POST', body: JSON.stringify({ identityToken, displayName, regionId }) },
+    { method: 'POST', body: JSON.stringify({ identityToken, displayName, regionId, platform: 'mobile' }) },
     false
   );
 }

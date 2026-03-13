@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as appleSignin from 'apple-signin-auth';
 import { PrismaService } from '../common/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AppleLoginDto } from './dto/apple-login.dto';
@@ -12,6 +13,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly auditService: AuditService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -41,6 +43,12 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
+    await this.auditService.log('USER_LOGIN', user.id, user.displayName, user.id, {
+      authProvider: 'EMAIL',
+      platform: dto.platform ?? 'unknown',
+      email: user.email,
+    });
+
     return { token: this.sign(user.id), userId: user.id };
   }
 
@@ -67,6 +75,11 @@ export class AuthService {
     }
 
     if (user.suspended) throw new UnauthorizedException('Your account has been suspended. Please contact admin@fishleague.app for assistance.');
+
+    await this.auditService.log('USER_LOGIN', user.id, user.displayName, user.id, {
+      authProvider: 'APPLE',
+      platform: dto.platform ?? 'mobile',
+    });
 
     return { token: this.sign(user.id), userId: user.id };
   }
