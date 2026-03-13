@@ -2,11 +2,15 @@ import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request } 
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { AdminGuard } from '../common/admin.guard';
 import { TournamentsService } from './tournaments.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 
 @Controller('tournaments')
 export class TournamentsController {
-  constructor(private readonly tournamentsService: TournamentsService) {}
+  constructor(
+    private readonly tournamentsService: TournamentsService,
+    private readonly auditService: AuditService,
+  ) {}
 
   // Public — web leaderboard uses this
   @Get('open')
@@ -35,19 +39,25 @@ export class TournamentsController {
   // Admin-only endpoints
   @Post()
   @UseGuards(JwtAuthGuard, AdminGuard)
-  create(@Body() dto: CreateTournamentDto) {
-    return this.tournamentsService.create(dto);
+  async create(@Body() dto: CreateTournamentDto, @Request() req: any) {
+    const tournament = await this.tournamentsService.create(dto);
+    this.auditService.log('TOURNAMENT_CREATED', req.user.id, req.user.displayName, tournament.id, { name: tournament.name, weekNumber: tournament.weekNumber, year: tournament.year });
+    return tournament;
   }
 
   @Patch(':id/open')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  open(@Param('id') id: string) {
-    return this.tournamentsService.setOpen(id, true);
+  async open(@Param('id') id: string, @Request() req: any) {
+    const tournament = await this.tournamentsService.setOpen(id, true);
+    this.auditService.log('TOURNAMENT_OPENED', req.user.id, req.user.displayName, id, { name: tournament.name });
+    return tournament;
   }
 
   @Patch(':id/close')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  close(@Param('id') id: string) {
-    return this.tournamentsService.setOpen(id, false);
+  async close(@Param('id') id: string, @Request() req: any) {
+    const tournament = await this.tournamentsService.setOpen(id, false);
+    this.auditService.log('TOURNAMENT_CLOSED', req.user.id, req.user.displayName, id, { name: tournament.name });
+    return tournament;
   }
 }

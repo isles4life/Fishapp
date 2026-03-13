@@ -16,6 +16,7 @@ export default function Nav() {
         { href: '/tournaments', label: 'Tournaments' },
         { href: '/leaderboard', label: 'Leaderboard' },
         { href: '/users', label: 'Users' },
+        { href: '/history', label: 'History' },
       ].map(link => (
         <a key={link.href} href={link.href} style={{
           color: C.textSub, textDecoration: 'none', padding: '6px 14px',

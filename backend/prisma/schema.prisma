@@ -150,6 +150,18 @@ model LeaderboardEntry {
   @@index([tournamentId, fishLengthCm(sort: Desc)])
 }
 
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  actorId   String?
+  actorName String?
+  targetId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+}
+
 model ModerationAction {
   id           String               @id @default(uuid())
   submissionId String
