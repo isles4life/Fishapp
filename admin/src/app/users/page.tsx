@@ -3,10 +3,13 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 
 const C = {
-  bg: '#0d1821', surface: '#162032', surfaceHigh: '#1e2d40', border: '#2a3f55',
-  green: '#2ecc71', greenMuted: '#1a3a2a', red: '#e74c3c', orange: '#e67e22',
-  gold: '#f0b429', text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
-  blue: '#3498db',
+  bg: '#0D1A0D', surface: '#152515', surfaceHigh: '#1D331D',
+  border: '#2A4A2A', accent: '#C9A450',
+  green: '#3DAF5A', greenBg: '#0F3A1E',
+  red: '#C0392B', redBg: '#3A1414',
+  orange: '#D4820A', orangeBg: '#3A2800',
+  blue: '#3A7ABF', blueBg: '#0E2236',
+  text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
 };
 
 interface User {
@@ -112,10 +115,10 @@ export default function UsersPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h2 style={{ color: C.text, margin: '0 0 6px', fontSize: 22, fontWeight: 700 }}>Users</h2>
+          <h2 style={{ color: C.text, margin: '0 0 6px', fontSize: 22, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Users</h2>
           <div style={{ display: 'flex', gap: 16 }}>
             <span style={{ color: C.textMuted, fontSize: 13 }}><span style={{ color: C.textSub, fontWeight: 600 }}>{users.length}</span> total</span>
-            <span style={{ color: C.textMuted, fontSize: 13 }}><span style={{ color: C.gold, fontWeight: 600 }}>{adminCount}</span> admin</span>
+            <span style={{ color: C.textMuted, fontSize: 13 }}><span style={{ color: C.accent, fontWeight: 600 }}>{adminCount}</span> admin</span>
             <span style={{ color: C.textMuted, fontSize: 13 }}><span style={{ color: C.red, fontWeight: 600 }}>{suspendedCount}</span> suspended</span>
           </div>
         </div>
@@ -132,7 +135,7 @@ export default function UsersPage() {
       </div>
 
       {error && (
-        <div style={{ color: C.red, background: C.red + '15', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
+        <div style={{ color: C.red, background: C.redBg, border: `1px solid ${C.red}50`, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
           {error}
         </div>
       )}
@@ -181,9 +184,7 @@ export default function UsersPage() {
                         )}
                       </div>
                       {u.email && (
-                        <div style={{ color: C.textMuted, fontSize: 11, marginTop: 3 }}>
-                          ✉ Email
-                        </div>
+                        <div style={{ color: C.textMuted, fontSize: 11, marginTop: 3 }}>✉ Email</div>
                       )}
                     </div>
                   </div>
@@ -197,16 +198,16 @@ export default function UsersPage() {
                 {/* Role */}
                 <td style={{ padding: '14px 20px' }}>
                   {u.role === 'ADMIN'
-                    ? <Badge label="★ Admin" color={C.gold} bg={C.gold + '20'} border={C.gold + '50'} />
-                    : <Badge label="User" color={C.textMuted} bg={C.bg} border={C.border} />
+                    ? <Badge label="★ Admin" color={C.accent} bg={C.accent + '20'} border={C.accent + '50'} />
+                    : <Badge label="User" color={C.textMuted} bg={C.surfaceHigh} border={C.border} />
                   }
                 </td>
 
                 {/* Status */}
                 <td style={{ padding: '14px 20px' }}>
                   {u.suspended
-                    ? <Badge label="⊘ Suspended" color={C.red} bg={C.red + '18'} border={C.red + '50'} />
-                    : <Badge label="● Active" color={C.green} bg={C.greenMuted} border={C.green + '50'} />
+                    ? <Badge label="⊘ Suspended" color={C.red} bg={C.redBg} border={C.red + '50'} />
+                    : <Badge label="● Active" color={C.green} bg={C.greenBg} border={C.green + '50'} />
                   }
                 </td>
 
@@ -220,19 +221,19 @@ export default function UsersPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {u.role === 'USER'
-                        ? <ActionBtn onClick={() => setRole(u, 'ADMIN')} disabled={!!loading} color={C.gold} bg="#7c5c00">Make Admin</ActionBtn>
-                        : <ActionBtn onClick={() => setRole(u, 'USER')} disabled={!!loading} color={C.orange} bg="#3a1a00">Revoke Admin</ActionBtn>
+                        ? <ActionBtn onClick={() => setRole(u, 'ADMIN')} disabled={!!loading} color={C.accent} bg={C.accent + '18'}>Make Admin</ActionBtn>
+                        : <ActionBtn onClick={() => setRole(u, 'USER')} disabled={!!loading} color={C.orange} bg={C.orangeBg}>Revoke Admin</ActionBtn>
                       }
                       <ActionBtn
                         onClick={() => toggleSuspend(u)}
                         disabled={!!loading}
                         color={u.suspended ? C.green : C.red}
-                        bg={u.suspended ? '#1a3a2a' : '#3a0f0f'}
+                        bg={u.suspended ? C.greenBg : C.redBg}
                       >
                         {u.suspended ? 'Unsuspend' : 'Suspend'}
                       </ActionBtn>
                       {u.authProvider !== 'APPLE' && (
-                        <ActionBtn onClick={() => togglePwInput(u.id)} color={C.blue} bg="#0e2236">
+                        <ActionBtn onClick={() => togglePwInput(u.id)} color={C.blue} bg={C.blueBg}>
                           {pwVisible[u.id] ? 'Cancel' : 'Reset PW'}
                         </ActionBtn>
                       )}
@@ -252,7 +253,7 @@ export default function UsersPage() {
                             borderRadius: 6, color: C.text, width: 160,
                           }}
                         />
-                        <ActionBtn onClick={() => resetPassword(u)} disabled={pwLoading === u.id} color={C.blue} bg="#0e2236">
+                        <ActionBtn onClick={() => resetPassword(u)} disabled={pwLoading === u.id} color={C.blue} bg={C.blueBg}>
                           {pwLoading === u.id ? '…' : 'Set'}
                         </ActionBtn>
                       </div>
@@ -279,7 +280,7 @@ export default function UsersPage() {
 const thStyle: React.CSSProperties = {
   padding: '11px 20px',
   textAlign: 'left',
-  color: C.textMuted,
+  color: '#4A6A4A',
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: '0.8px',

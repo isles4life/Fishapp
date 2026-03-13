@@ -1,7 +1,10 @@
 'use client';
 import { useAuth } from './AuthProvider';
 
-const C = { surface: '#162032', border: '#2a3f55', text: '#e8f0fe', textSub: '#7a9bbf', green: '#2ecc71' };
+const C = {
+  surface: '#152515', border: '#2A4A2A', borderGold: '#C9A450',
+  accent: '#C9A450', text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
+};
 
 export default function Nav() {
   const { logout } = useAuth();
@@ -9,8 +12,11 @@ export default function Nav() {
   return (
     <nav style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 24px', display: 'flex', alignItems: 'center', height: 56, gap: 4 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icon.png" alt="FishLeague" style={{ height: 32, marginRight: 10 }} />
-      <span style={{ color: C.text, fontWeight: 800, fontSize: 16, marginRight: 24 }}>FishLeague</span>
+      <img src="/icon.png" alt="FishLeague" style={{ height: 32, marginRight: 8 }} />
+      <span style={{ fontWeight: 900, fontSize: 16, marginRight: 28, letterSpacing: 1 }}>
+        <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
+        <span style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, marginLeft: 8, letterSpacing: 1.5 }}>ADMIN</span>
+      </span>
       {[
         { href: '/moderation', label: 'Moderation' },
         { href: '/tournaments', label: 'Tournaments' },
@@ -20,7 +26,8 @@ export default function Nav() {
       ].map(link => (
         <a key={link.href} href={link.href} style={{
           color: C.textSub, textDecoration: 'none', padding: '6px 14px',
-          borderRadius: 6, fontSize: 14, fontWeight: 500,
+          borderRadius: 6, fontSize: 13, fontWeight: 600, letterSpacing: 0.3,
+          textTransform: 'uppercase',
         }}>
           {link.label}
         </a>
@@ -28,7 +35,7 @@ export default function Nav() {
       <span style={{ marginLeft: 'auto' }}>
         <button onClick={logout} style={{
           background: 'transparent', border: `1px solid ${C.border}`,
-          color: C.textSub, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13,
+          color: C.textSub, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600,
         }}>
           Sign Out
         </button>

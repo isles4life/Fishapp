@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 
 const C = {
-  surface: '#162032', surfaceHigh: '#1e2d40', border: '#2a3f55',
-  green: '#2ecc71', gold: '#FFD700', silver: '#C0C0C0', bronze: '#CD7F32',
-  text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580', red: '#e74c3c',
+  surface: '#152515', surfaceHigh: '#1D331D', border: '#2A4A2A', accent: '#C9A450',
+  green: '#3DAF5A', gold: '#C9A450', silver: '#A0A8A0', bronze: '#8B6F4A',
+  red: '#C0392B', text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
 };
 
 interface Entry { rank: number; displayName: string; fishLengthCm: number; userId: string; }
@@ -31,8 +31,8 @@ export default function LeaderboardPage() {
 
   return (
     <div>
-      <h2 style={{ color: C.text, marginBottom: 20 }}>Leaderboard</h2>
-      {error && <div style={{ color: C.red, background: C.red + '15', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{error}</div>}
+      <h2 style={{ color: C.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Leaderboard</h2>
+      {error && <div style={{ color: C.red, background: C.red + '15', border: `1px solid ${C.red}50`, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
       <select value={tournamentId} onChange={e => setTournamentId(e.target.value)} style={{
         padding: '10px 14px', marginBottom: 24, minWidth: 300, borderRadius: 8,
@@ -66,7 +66,7 @@ export default function LeaderboardPage() {
                 {medal(e.rank)}
               </div>
               <div style={{ flex: 1, color: C.text, fontWeight: 600 }}>{e.displayName}</div>
-              <div style={{ color: C.green, fontWeight: 800, fontSize: 18 }}>{e.fishLengthCm.toFixed(1)} cm</div>
+              <div style={{ color: C.accent, fontWeight: 800, fontSize: 18 }}>{e.fishLengthCm.toFixed(1)} cm</div>
             </div>
           ))}
         </div>

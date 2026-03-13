@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 
 const C = {
-  bg: '#0d1821', surface: '#162032', border: '#2a3f55',
-  green: '#2ecc71', greenMuted: '#1a3a2a', red: '#c62828',
-  text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
+  bg: '#0D1A0D', surface: '#152515', surfaceHigh: '#1D331D',
+  border: '#2A4A2A', accent: '#C9A450',
+  green: '#3DAF5A', greenBg: '#0F3A1E',
+  red: '#C0392B', redBg: '#3A1414',
+  text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
 };
 
 const inputStyle: React.CSSProperties = {
@@ -48,40 +50,40 @@ export default function TournamentsPage() {
 
   return (
     <div>
-      <h2 style={{ color: C.text, marginBottom: 20 }}>Tournaments</h2>
-      {error && <div style={{ color: '#e74c3c', background: '#e74c3c15', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{error}</div>}
+      <h2 style={{ color: C.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tournaments</h2>
+      {error && <div style={{ color: C.red, background: C.redBg, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14, border: `1px solid ${C.red}50` }}>{error}</div>}
 
       {/* Create form */}
-      <form onSubmit={create} style={{ backgroundColor: C.surface, padding: 24, borderRadius: 12, marginBottom: 28, border: `1px solid ${C.border}`, maxWidth: 560 }}>
-        <h3 style={{ color: C.text, marginTop: 0, marginBottom: 16 }}>Create Tournament</h3>
+      <form onSubmit={create} style={{ backgroundColor: C.surface, padding: 24, borderRadius: 12, marginBottom: 28, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.accent}`, maxWidth: 560 }}>
+        <h3 style={{ color: C.text, marginTop: 0, marginBottom: 16, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>Create Tournament</h3>
 
-        <label style={{ color: C.textMuted, fontSize: 12, display: 'block', marginBottom: 4 }}>REGION</label>
+        <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Region</label>
         <select value={form.regionId} onChange={e => setForm(f => ({ ...f, regionId: e.target.value }))} required style={inputStyle}>
           <option value="">Select region...</option>
           {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
 
-        <label style={{ color: C.textMuted, fontSize: 12, display: 'block', marginBottom: 4 }}>NAME</label>
+        <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Name</label>
         <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required placeholder="Week 1 – Pacific NW" style={inputStyle} />
 
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <label style={{ color: C.textMuted, fontSize: 12, display: 'block', marginBottom: 4 }}>WEEK #</label>
+            <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Week #</label>
             <input type="number" value={form.weekNumber} onChange={e => setForm(f => ({ ...f, weekNumber: e.target.value }))} required style={inputStyle} />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={{ color: C.textMuted, fontSize: 12, display: 'block', marginBottom: 4 }}>YEAR</label>
+            <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Year</label>
             <input type="number" value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))} required style={inputStyle} />
           </div>
         </div>
 
-        <label style={{ color: C.textMuted, fontSize: 12, display: 'block', marginBottom: 4 }}>START</label>
+        <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Start</label>
         <input type="datetime-local" value={form.startsAt} onChange={e => setForm(f => ({ ...f, startsAt: e.target.value }))} required style={inputStyle} />
 
-        <label style={{ color: C.textMuted, fontSize: 12, display: 'block', marginBottom: 4 }}>END</label>
+        <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>End</label>
         <input type="datetime-local" value={form.endsAt} onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))} required style={inputStyle} />
 
-        <button type="submit" style={{ marginTop: 8, backgroundColor: C.green, color: C.bg, padding: '10px 24px', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>
+        <button type="submit" style={{ marginTop: 8, backgroundColor: C.accent, color: C.bg, padding: '10px 24px', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.8 }}>
           Create Tournament
         </button>
       </form>
@@ -92,7 +94,7 @@ export default function TournamentsPage() {
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
               {['Name', 'Region', 'Week', 'Start', 'End', 'Status', 'Actions'].map(h => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: C.textMuted, fontSize: 12, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{h}</th>
+                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -110,7 +112,7 @@ export default function TournamentsPage() {
                 <td style={{ padding: '12px 16px' }}>
                   <span style={{
                     color: t.isOpen ? C.green : C.textMuted,
-                    backgroundColor: t.isOpen ? C.greenMuted : C.bg,
+                    backgroundColor: t.isOpen ? C.greenBg : C.surfaceHigh,
                     border: `1px solid ${t.isOpen ? C.green + '50' : C.border}`,
                     borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700,
                   }}>
@@ -119,8 +121,8 @@ export default function TournamentsPage() {
                 </td>
                 <td style={{ padding: '12px 16px' }}>
                   {t.isOpen
-                    ? <button onClick={() => api.closeTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.red, color: 'white', border: 'none', padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Close</button>
-                    : <button onClick={() => api.openTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: '#2e7d32', color: 'white', border: 'none', padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Open</button>
+                    ? <button onClick={() => api.closeTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.redBg, color: C.red, border: `1px solid ${C.red}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Close</button>
+                    : <button onClick={() => api.openTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.green}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Open</button>
                   }
                 </td>
               </tr>

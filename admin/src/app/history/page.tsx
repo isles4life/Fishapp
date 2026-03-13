@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 
 const C = {
-  bg: '#0d1821', surface: '#162032', surfaceHigh: '#1e2d40', border: '#2a3f55',
-  green: '#2ecc71', red: '#e74c3c', orange: '#e67e22', gold: '#f0b429',
-  blue: '#3498db', purple: '#9b59b6',
-  text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
+  bg: '#0D1A0D', surface: '#152515', surfaceHigh: '#1D331D',
+  border: '#2A4A2A', accent: '#C9A450',
+  green: '#3DAF5A', red: '#C0392B', orange: '#D4820A',
+  blue: '#3A7ABF', purple: '#9b59b6',
+  text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
 };
 
 interface AuditEntry {
@@ -19,14 +20,14 @@ interface AuditEntry {
 }
 
 const ACTION_META: Record<string, { label: string; color: string; icon: string }> = {
-  TOURNAMENT_CREATED:      { label: 'Tournament Created',      color: C.blue,   icon: '🏆' },
-  TOURNAMENT_OPENED:       { label: 'Tournament Opened',       color: C.green,  icon: '▶' },
-  TOURNAMENT_CLOSED:       { label: 'Tournament Closed',       color: C.orange, icon: '■' },
-  USER_PROMOTED_TO_ADMIN:  { label: 'Promoted to Admin',       color: C.gold,   icon: '★' },
-  USER_DEMOTED_TO_USER:    { label: 'Demoted to User',         color: C.textSub,'icon': '↓' },
-  USER_SUSPENDED:          { label: 'User Suspended',          color: C.red,    icon: '⊘' },
-  USER_UNSUSPENDED:        { label: 'User Unsuspended',        color: C.green,  icon: '✓' },
-  USER_LOGIN:              { label: 'Login',                   color: C.textSub, icon: '→' },
+  TOURNAMENT_CREATED:      { label: 'Tournament Created',  color: C.blue,   icon: '🏆' },
+  TOURNAMENT_OPENED:       { label: 'Tournament Opened',   color: C.green,  icon: '▶' },
+  TOURNAMENT_CLOSED:       { label: 'Tournament Closed',   color: C.orange, icon: '■' },
+  USER_PROMOTED_TO_ADMIN:  { label: 'Promoted to Admin',   color: C.accent, icon: '★' },
+  USER_DEMOTED_TO_USER:    { label: 'Demoted to User',     color: C.textSub, icon: '↓' },
+  USER_SUSPENDED:          { label: 'User Suspended',      color: C.red,    icon: '⊘' },
+  USER_UNSUSPENDED:        { label: 'User Unsuspended',    color: C.green,  icon: '✓' },
+  USER_LOGIN:              { label: 'Login',               color: C.textSub, icon: '→' },
 };
 
 function getDetails(entry: AuditEntry): string {
@@ -79,7 +80,7 @@ export default function HistoryPage() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-        <h2 style={{ color: C.text, margin: 0 }}>History</h2>
+        <h2 style={{ color: C.text, margin: 0, textTransform: 'uppercase', letterSpacing: 0.5 }}>History</h2>
         <span style={{ color: C.textMuted, fontSize: 14 }}>{entries.length} events</span>
         <button onClick={load} disabled={loading} style={{ marginLeft: 'auto', background: C.surfaceHigh, color: C.textSub, border: `1px solid ${C.border}`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
           {loading ? 'Loading…' : '↻ Refresh'}
@@ -87,7 +88,7 @@ export default function HistoryPage() {
       </div>
 
       {error && (
-        <div style={{ color: C.red, background: C.red + '15', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
+        <div style={{ color: C.red, background: C.red + '15', border: `1px solid ${C.red}50`, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
           {error}
         </div>
       )}
@@ -114,7 +115,7 @@ export default function HistoryPage() {
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
               {['Event', 'Details', 'Actor', 'Time'].map(h => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: C.textMuted, fontSize: 12, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{h}</th>
+                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
           </thead>

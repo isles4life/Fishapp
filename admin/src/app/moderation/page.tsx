@@ -3,9 +3,12 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 
 const C = {
-  bg: '#0d1821', surface: '#162032', surfaceHigh: '#1e2d40',
-  border: '#2a3f55', green: '#2ecc71', red: '#e74c3c', orange: '#e67e22',
-  text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
+  bg: '#0D1A0D', surface: '#152515', surfaceHigh: '#1D331D',
+  border: '#2A4A2A', accent: '#C9A450',
+  green: '#3DAF5A', greenBg: '#0F3A1E',
+  red: '#C0392B', redBg: '#3A1414',
+  orange: '#D4820A', orangeBg: '#3A2800',
+  text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
 };
 
 interface Submission {
@@ -47,9 +50,9 @@ export default function ModerationPage() {
 
   return (
     <div>
-      <h2 style={{ color: C.text, marginBottom: 20 }}>
+      <h2 style={{ color: C.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>
         Moderation Queue
-        <span style={{ marginLeft: 10, fontSize: 16, color: C.textMuted, fontWeight: 400 }}>
+        <span style={{ marginLeft: 10, fontSize: 16, color: C.textMuted, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
           {submissions.length} pending
         </span>
       </h2>
@@ -63,15 +66,15 @@ export default function ModerationPage() {
           {submissions.map((s) => (
             <div key={s.id} onClick={() => setSelected(s)} style={{
               padding: 14, backgroundColor: selected?.id === s.id ? C.surfaceHigh : C.surface,
-              border: `1px solid ${selected?.id === s.id ? C.green + '60' : C.border}`,
+              border: `1px solid ${selected?.id === s.id ? C.accent + '60' : C.border}`,
               borderRadius: 10, cursor: 'pointer',
             }}>
               <div style={{ color: C.text, fontWeight: 600, fontSize: 15 }}>{s.user.displayName}</div>
               <div style={{ color: C.textMuted, fontSize: 12, marginTop: 2 }}>{s.tournament.name}</div>
-              <div style={{ color: C.green, fontWeight: 700, fontSize: 14, marginTop: 4 }}>{s.fishLengthCm} cm</div>
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 14, marginTop: 4 }}>{s.fishLengthCm} cm</div>
               <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
-                {s.flagDuplicateHash && <span style={{ fontSize: 11, color: C.red, background: C.red + '20', padding: '2px 8px', borderRadius: 4 }}>⚠ Dup Hash</span>}
-                {s.flagDuplicateGps && <span style={{ fontSize: 11, color: C.orange, background: C.orange + '20', padding: '2px 8px', borderRadius: 4 }}>⚠ Dup GPS</span>}
+                {s.flagDuplicateHash && <span style={{ fontSize: 11, color: C.red, background: C.redBg, padding: '2px 8px', borderRadius: 4 }}>⚠ Dup Hash</span>}
+                {s.flagDuplicateGps && <span style={{ fontSize: 11, color: C.orange, background: C.orangeBg, padding: '2px 8px', borderRadius: 4 }}>⚠ Dup GPS</span>}
               </div>
             </div>
           ))}
@@ -98,7 +101,7 @@ export default function ModerationPage() {
             </div>
 
             {(selected.flagDuplicateHash || selected.flagDuplicateGps) && (
-              <div style={{ backgroundColor: '#2a1500', border: `1px solid ${C.orange}40`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+              <div style={{ backgroundColor: C.orangeBg, border: `1px solid ${C.orange}40`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
                 {selected.flagDuplicateHash && <div style={{ color: C.red, fontSize: 13 }}>⚠ Duplicate image hash detected</div>}
                 {selected.flagDuplicateGps && <div style={{ color: C.orange, fontSize: 13 }}>⚠ Duplicate GPS location</div>}
               </div>
@@ -131,14 +134,14 @@ export default function ModerationPage() {
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {[
-                { action: 'APPROVE', label: '✓ Approve', color: '#2e7d32' },
-                { action: 'REJECT', label: '✗ Reject', color: '#c62828' },
-                { action: 'FLAG', label: '⚑ Flag', color: '#e65100' },
-                { action: 'SUSPEND_USER', label: '🚫 Suspend', color: '#4a148c' },
-              ].map(({ action, label, color }) => (
+                { action: 'APPROVE', label: '✓ Approve', color: '#1a4a1a', text: C.green },
+                { action: 'REJECT', label: '✗ Reject', color: C.redBg, text: C.red },
+                { action: 'FLAG', label: '⚑ Flag', color: C.orangeBg, text: C.orange },
+                { action: 'SUSPEND_USER', label: '🚫 Suspend', color: '#2a1040', text: '#9b59b6' },
+              ].map(({ action, label, color, text }) => (
                 <button key={action} onClick={() => act(action)} disabled={loading} style={{
-                  background: color, color: 'white', padding: '9px 20px',
-                  border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14,
+                  background: color, color: text, padding: '9px 20px',
+                  border: `1px solid ${text}50`, borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14,
                 }}>
                   {label}
                 </button>
