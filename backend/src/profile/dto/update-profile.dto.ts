@@ -30,6 +30,7 @@ export class UpdateProfileDto {
   @IsString() @IsOptional() homeState?: string;
   @IsString() @IsOptional() homeCity?: string;
   @IsString() @IsOptional() country?: string;
+  @IsString() @IsOptional() zipCode?: string;
 
   // Preferences
   @IsArray() @IsString({ each: true }) @IsOptional() primarySpecies?: string[];

@@ -13,13 +13,14 @@ export class S3Service {
   });
   private readonly bucket = process.env.S3_BUCKET ?? 'fishleague-submissions';
 
-  async uploadBuffer(key: string, buffer: Buffer, contentType: string): Promise<string> {
+  async uploadBuffer(key: string, buffer: Buffer, contentType: string, isPublic = false): Promise<string> {
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: buffer,
         ContentType: contentType,
+        ...(isPublic ? { ACL: 'public-read' } : {}),
       }),
     );
     return key;

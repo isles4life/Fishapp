@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Switch, Alert, Image,
+  StyleSheet, ActivityIndicator, Switch, Alert, Image, Modal, FlatList,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../../theme/colors';
@@ -12,6 +12,39 @@ const WATER_OPTIONS: { label: string; value: WaterType }[] = [
   { label: 'Freshwater', value: 'FRESHWATER' },
   { label: 'Saltwater', value: 'SALTWATER' },
   { label: 'Both', value: 'BOTH' },
+];
+
+// ── Species list (sourced from Take Me Fishing / FishBase / Bass Pro Shops) ───
+
+const SPECIES_GROUPED: { label: string; items: string[] }[] = [
+  {
+    label: 'Freshwater',
+    items: [
+      'Alligator Gar', 'Atlantic Salmon', 'Bigmouth Buffalo', 'Black Crappie', 'Bluegill', 'Bowfin',
+      'Brook Trout', 'Brown Trout', 'Blue Catfish', 'Bullhead Catfish', 'Channel Catfish',
+      'Chinook Salmon', 'Coho Salmon', 'Common Carp', 'Flathead Catfish', 'Freshwater Drum',
+      'Green Sunfish', 'Lake Trout', 'Largemouth Bass', 'Longnose Gar', 'Muskellunge (Muskie)',
+      'Northern Pike', 'Paddlefish', 'Pumpkinseed', 'Rainbow Trout', 'Redear Sunfish',
+      'Rock Bass', 'Sauger', 'Smallmouth Bass', 'Sockeye Salmon', 'Spotted Bass', 'Steelhead',
+      'Striped Bass', 'Tiger Muskie', 'Walleye', 'Warmouth', 'White Bass',
+      'White Crappie', 'White Perch', 'Yellow Perch',
+    ],
+  },
+  {
+    label: 'Saltwater',
+    items: [
+      'Almaco Jack', 'Bigeye Tuna', 'Black Drum', 'Black Grouper', 'Black Sea Bass',
+      'Blue Marlin', 'Bluefin Tuna', 'Bluefish', 'Bonefish', 'Cobia',
+      'Gag Grouper', 'Goliath Grouper', 'Greater Amberjack', 'Jack Crevalle',
+      'King Mackerel', 'Ladyfish', 'Lane Snapper', 'Lingcod', 'Mahi-Mahi',
+      'Mangrove Snapper', 'Pacific Halibut', 'Permit', 'Pompano', 'Red Drum (Redfish)',
+      'Red Grouper', 'Red Snapper', 'Rockfish (Pacific)', 'Sailfish', 'Sheepshead',
+      'Skipjack Tuna', 'Snook', 'Southern Flounder', 'Spanish Mackerel',
+      'Spotted Seatrout', 'Striped Bass', 'Striped Mullet', 'Summer Flounder',
+      'Swordfish', 'Tarpon', 'Tripletail', 'Vermilion Snapper', 'Wahoo',
+      'Weakfish', 'White Marlin', 'Yellowfin Tuna', 'Yellowtail Snapper',
+    ],
+  },
 ];
 
 // ── My Profile Screen ─────────────────────────────────────────────────────────
@@ -153,8 +186,8 @@ export function ProfileView({
           <View style={s.metaRow}>
             <Text style={s.metaText}><Text style={s.metaVal}>{profile.followersCount}</Text> followers</Text>
             <Text style={s.metaText}><Text style={s.metaVal}>{profile.followingCount}</Text> following</Text>
-            {(profile.homeCity || profile.homeState) && (
-              <Text style={s.metaText}>📍 {[profile.homeCity, profile.homeState].filter(Boolean).join(', ')}</Text>
+            {(profile.homeCity || profile.homeState || profile.zipCode) && (
+              <Text style={s.metaText}>📍 {[profile.homeCity, profile.homeState, profile.zipCode].filter(Boolean).join(', ')}</Text>
             )}
           </View>
         </View>
@@ -238,6 +271,125 @@ export function ProfileView({
   );
 }
 
+// ── Species Picker Modal ──────────────────────────────────────────────────────
+
+function SpeciesPicker({ selected, onChange }: { selected: string[]; onChange: (v: string[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  function toggle(species: string) {
+    onChange(selected.includes(species) ? selected.filter(x => x !== species) : [...selected, species]);
+  }
+
+  const q = search.toLowerCase();
+  const filtered = SPECIES_GROUPED
+    .map(g => ({ ...g, items: g.items.filter(s => s.toLowerCase().includes(q)) }))
+    .filter(g => g.items.length > 0);
+
+  const flatData: ({ type: 'header'; label: string } | { type: 'item'; species: string })[] = [];
+  filtered.forEach(g => {
+    flatData.push({ type: 'header', label: g.label });
+    g.items.forEach(s => flatData.push({ type: 'item', species: s }));
+  });
+
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <TouchableOpacity
+        onPress={() => setOpen(true)}
+        style={[sp.trigger, selected.length > 0 && { borderColor: colors.green + '60' }]}
+      >
+        {selected.length === 0
+          ? <Text style={sp.placeholder}>Select species…</Text>
+          : (
+            <View style={sp.chipWrap}>
+              {selected.map(s => (
+                <View key={s} style={sp.chip}>
+                  <Text style={sp.chipText}>{s}</Text>
+                  <TouchableOpacity onPress={() => toggle(s)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <Text style={sp.chipX}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )
+        }
+        <Text style={sp.arrow}>›</Text>
+      </TouchableOpacity>
+
+      <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
+        <View style={sp.modal}>
+          <View style={sp.modalHeader}>
+            <Text style={sp.modalTitle}>Select Species</Text>
+            <TouchableOpacity onPress={() => { setOpen(false); setSearch(''); }}>
+              <Text style={sp.modalDone}>Done {selected.length > 0 ? `(${selected.length})` : ''}</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={sp.searchWrap}>
+            <TextInput
+              style={sp.searchInput}
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search species…"
+              placeholderTextColor={colors.textMuted}
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+          </View>
+          <FlatList
+            data={flatData}
+            keyExtractor={(item, i) => `${i}`}
+            renderItem={({ item }) => {
+              if (item.type === 'header') {
+                return <Text style={sp.groupHeader}>{item.label.toUpperCase()}</Text>;
+              }
+              const checked = selected.includes(item.species);
+              return (
+                <TouchableOpacity style={[sp.speciesRow, checked && sp.speciesRowChecked]} onPress={() => toggle(item.species)}>
+                  <View style={[sp.checkbox, checked && sp.checkboxChecked]}>
+                    {checked && <Text style={sp.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={[sp.speciesName, checked && { color: colors.green }]}>{item.species}</Text>
+                </TouchableOpacity>
+              );
+            }}
+            keyboardShouldPersistTaps="handled"
+          />
+          {selected.length > 0 && (
+            <TouchableOpacity style={sp.clearAll} onPress={() => onChange([])}>
+              <Text style={sp.clearAllText}>Clear all ({selected.length})</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const sp = StyleSheet.create({
+  trigger: { backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, flexDirection: 'row', alignItems: 'center', minHeight: 42 },
+  placeholder: { color: colors.textMuted, fontSize: 14, flex: 1 },
+  chipWrap: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceHigh, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: colors.border, gap: 4 },
+  chipText: { color: colors.textSecondary, fontSize: 12 },
+  chipX: { color: colors.textMuted, fontSize: 14, fontWeight: '700', lineHeight: 16 },
+  arrow: { color: colors.textMuted, fontSize: 18, marginLeft: 6 },
+  modal: { flex: 1, backgroundColor: colors.bg },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  modalDone: { fontSize: 15, color: colors.green, fontWeight: '700' },
+  searchWrap: { padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  searchInput: { backgroundColor: colors.surface, borderRadius: 8, padding: 10, color: colors.textPrimary, fontSize: 14, borderWidth: 1, borderColor: colors.border },
+  groupHeader: { fontSize: 10, fontWeight: '800', color: colors.textMuted, letterSpacing: 0.8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
+  speciesRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: colors.border + '50' },
+  speciesRowChecked: { backgroundColor: colors.greenMuted },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: colors.green, borderColor: colors.green },
+  checkmark: { color: colors.bg, fontSize: 12, fontWeight: '800' },
+  speciesName: { color: colors.textPrimary, fontSize: 15 },
+  clearAll: { padding: 14, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center' },
+  clearAllText: { color: colors.red, fontSize: 14, fontWeight: '600' },
+});
+
 // ── Edit Profile Form ─────────────────────────────────────────────────────────
 
 function EditProfileForm({
@@ -256,6 +408,7 @@ function EditProfileForm({
     homeState: existing?.homeState ?? '',
     homeCity: existing?.homeCity ?? '',
     country: existing?.country ?? '',
+    zipCode: existing?.zipCode ?? '',
     primarySpecies: existing?.primarySpecies ?? [],
     favoriteTechniques: existing?.favoriteTechniques ?? [],
     favoriteBaits: existing?.favoriteBaits ?? [],
@@ -309,11 +462,19 @@ function EditProfileForm({
       <FormSection title="Location">
         <FLInput label="State / Province" value={form.homeState ?? ''} onChangeText={v => setForm(f => ({ ...f, homeState: v }))} placeholder="Texas" />
         <FLInput label="City" value={form.homeCity ?? ''} onChangeText={v => setForm(f => ({ ...f, homeCity: v }))} placeholder="Austin" />
-        <FLInput label="Country" value={form.country ?? ''} onChangeText={v => setForm(f => ({ ...f, country: v }))} placeholder="USA" />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <FLInput label="Country" value={form.country ?? ''} onChangeText={v => setForm(f => ({ ...f, country: v }))} placeholder="USA" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <FLInput label="Zip / Postal Code" value={form.zipCode ?? ''} onChangeText={v => setForm(f => ({ ...f, zipCode: v }))} placeholder="78701" />
+          </View>
+        </View>
       </FormSection>
 
       <FormSection title="Fishing Preferences">
-        <FLInput label="Species (comma-separated)" value={(form.primarySpecies ?? []).join(', ')} onChangeText={v => setArr('primarySpecies', v)} placeholder="Bass, Trout, Redfish" />
+        <Text style={s.fieldLabel}>Primary Species</Text>
+        <SpeciesPicker selected={form.primarySpecies ?? []} onChange={v => setForm(f => ({ ...f, primarySpecies: v }))} />
         <FLInput label="Techniques (comma-separated)" value={(form.favoriteTechniques ?? []).join(', ')} onChangeText={v => setArr('favoriteTechniques', v)} placeholder="Fly, Spinning, Baitcasting" />
         <FLInput label="Baits (comma-separated)" value={(form.favoriteBaits ?? []).join(', ')} onChangeText={v => setArr('favoriteBaits', v)} placeholder="Crankbait, Jig, Live Shrimp" />
         <Text style={s.fieldLabel}>Water Type</Text>

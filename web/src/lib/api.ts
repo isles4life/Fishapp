@@ -65,6 +65,7 @@ export interface AnglerProfile {
   homeState: string | null;
   homeCity: string | null;
   country: string | null;
+  zipCode: string | null;
   primarySpecies: string[];
   favoriteTechniques: string[];
   favoriteBaits: string[];
@@ -92,7 +93,7 @@ export interface UpdateProfilePayload {
   username?: string;
   bio?: string;
   profilePhotoUrl?: string;
-  homeState?: string; homeCity?: string; country?: string;
+  homeState?: string; homeCity?: string; country?: string; zipCode?: string;
   primarySpecies?: string[];
   favoriteTechniques?: string[];
   favoriteBaits?: string[];

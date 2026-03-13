@@ -166,7 +166,7 @@ export class ProfileService {
   async uploadAvatar(userId: string, file: Express.Multer.File) {
     const ext = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
     const key = `avatars/${userId}.${ext}`;
-    await this.s3.uploadBuffer(key, file.buffer, file.mimetype);
+    await this.s3.uploadBuffer(key, file.buffer, file.mimetype, true);
     const avatarUrl = this.s3.getPublicUrl(key);
 
     await this.prisma.anglerProfile.upsert({

@@ -200,6 +200,7 @@ model AnglerProfile {
   homeState          String?
   homeCity           String?
   country            String?
+  zipCode            String?
 
   // Fishing preferences
   primarySpecies     String[]
