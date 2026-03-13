@@ -31,13 +31,14 @@ async function request<T>(
   }
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
+    throw new Error(data?.message ?? `HTTP ${res.status}`);
   }
 
-  return res.json();
+  return data;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ export function getMyRank(tournamentId: string): Promise<UserRank> {
 
 export function getMyProfile(): Promise<AnglerProfile | null> {
   return request<AnglerProfile>('/profile/me').catch(e => {
-    if (e.message?.includes('404') || e.message?.includes('401')) return null;
+    if (e.message === 'no_profile' || e.message?.includes('404')) return null;
     throw e;
   });
 }

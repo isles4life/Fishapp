@@ -67,7 +67,7 @@ export class ProfileService {
       include: { achievements: true, user: { select: { displayName: true, createdAt: true } } },
     });
 
-    if (!profile) return null;
+    if (!profile) throw new NotFoundException('no_profile');
 
     const stats = await this.computeStats(userId);
     return { ...profile, stats };

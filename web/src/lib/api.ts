@@ -24,11 +24,12 @@ async function apiFetch<T>(path: string, init?: RequestInit, auth = false): Prom
     if (token) headers['Authorization'] = `Bearer ${token}`;
   }
   const res = await fetch(`${BASE}${path}`, { ...init, headers: { ...headers, ...init?.headers } });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `HTTP ${res.status}`);
+    throw new Error(data?.message ?? `HTTP ${res.status}`);
   }
-  return res.json();
+  return data;
 }
 
 export interface Region { id: string; name: string; }
@@ -117,7 +118,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password, displayName, regionId }),
     }),
-  getMyProfile: () => apiFetch<AnglerProfile | null>('/profile/me', undefined, true),
+  getMyProfile: () =>
+    apiFetch<AnglerProfile>('/profile/me', undefined, true).catch(e =>
+      e.message === 'no_profile' || e.message?.includes('404') ? null : Promise.reject(e)
+    ),
   updateProfile: (data: UpdateProfilePayload) =>
     apiFetch<AnglerProfile>('/profile/me', { method: 'PUT', body: JSON.stringify(data) }, true),
   getProfile: (username: string) => apiFetch<AnglerProfile>(`/profile/${username}`),
