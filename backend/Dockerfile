@@ -5,10 +5,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+RUN npx prisma generate
 RUN npm run build
 # Compile seed script to plain JS so it can run without ts-node at runtime
 RUN npx tsc --module commonjs --target es2020 --esModuleInterop true --skipLibCheck true --outDir dist prisma/seed.ts 2>/dev/null || true
-RUN npx prisma generate
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
