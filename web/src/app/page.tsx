@@ -64,7 +64,10 @@ export default function HomePage() {
           <span style={{ color: C.text, fontWeight: 800, fontSize: 18 }}>FishLeague</span>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
             {loggedIn ? (
-              <button onClick={handleLogout} style={ghostBtn}>Sign Out</button>
+              <>
+                <Link href="/profile" style={ghostBtn}>My Profile</Link>
+                <button onClick={handleLogout} style={ghostBtn}>Sign Out</button>
+              </>
             ) : (
               <>
                 <Link href="/login" style={ghostBtn}>Sign In</Link>
