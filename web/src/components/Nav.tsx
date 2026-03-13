@@ -121,7 +121,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         </div>
 
         {/* Right: auth */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0, marginLeft: 'auto' }}>
           {loggedIn ? (
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
