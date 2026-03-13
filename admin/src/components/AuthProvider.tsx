@@ -25,8 +25,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   async function login(email: string, password: string): Promise<string | null> {
     const res = await fetch(`${BASE}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, platform: 'admin' }),
+      headers: { 'Content-Type': 'application/json', 'X-Platform': 'admin' },
+      body: JSON.stringify({ email, password }),
     });
     if (!res.ok) return 'Invalid credentials';
     const data = await res.json();

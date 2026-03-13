@@ -35,7 +35,7 @@ export class AuthService {
     return { token: this.sign(user.id), userId: user.id };
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, platform?: string) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials');
     if (user.suspended) throw new UnauthorizedException('Your account has been suspended. Please contact admin@fishleague.app for assistance.');
@@ -45,15 +45,14 @@ export class AuthService {
 
     await this.auditService.log('USER_LOGIN', user.id, user.displayName, user.id, {
       authProvider: 'EMAIL',
-      platform: dto.platform ?? 'unknown',
+      platform: platform ?? 'unknown',
       email: user.email,
     });
 
     return { token: this.sign(user.id), userId: user.id };
   }
 
-  async appleLogin(dto: AppleLoginDto) {
-    // Verify the Apple identity token
+  async appleLogin(dto: AppleLoginDto, platform?: string) {
     const payload = await appleSignin.verifyIdToken(dto.identityToken, {
       audience: process.env.APPLE_BUNDLE_ID,
       ignoreExpiration: false,
@@ -78,7 +77,7 @@ export class AuthService {
 
     await this.auditService.log('USER_LOGIN', user.id, user.displayName, user.id, {
       authProvider: 'APPLE',
-      platform: dto.platform ?? 'mobile',
+      platform: platform ?? 'mobile',
     });
 
     return { token: this.sign(user.id), userId: user.id };

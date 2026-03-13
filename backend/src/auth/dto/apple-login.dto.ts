@@ -10,8 +10,4 @@ export class AppleLoginDto {
 
   @IsUUID()
   regionId: string;
-
-  @IsOptional()
-  @IsString()
-  platform?: string;
 }

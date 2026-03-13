@@ -47,7 +47,11 @@ export const api = {
   getActiveTournament: () => apiFetch<Tournament>('/tournaments/open'),
   getLeaderboard: (id: string) => apiFetch<LeaderboardEntry[]>(`/leaderboard/${id}`),
   login: (email: string, password: string) =>
-    apiFetch<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, platform: 'web' }) }),
+    apiFetch<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+      headers: { 'X-Platform': 'web' },
+    }),
   register: (email: string, password: string, displayName: string, regionId: string) =>
     apiFetch<AuthResponse>('/auth/register', {
       method: 'POST',
