@@ -56,7 +56,7 @@ export class ProfileService {
       where: { userId },
       create: { userId, username: dto.username ?? `angler_${userId.slice(0, 8)}`, ...dto },
       update: { ...dto, lastActiveAt: new Date() },
-      include: { achievements: true },
+      include: { achievements: true, user: { select: { displayName: true, createdAt: true } } },
     });
 
     const stats = await this.computeStats(userId);
