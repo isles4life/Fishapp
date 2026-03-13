@@ -142,10 +142,10 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
                     : <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{initials(profile?.user?.displayName)}</span>
                   }
                 </div>
-                <span style={{ color: C.textSub, fontSize: 13, fontWeight: 600 }}>
+                <span className="hide-mobile" style={{ color: C.textSub, fontSize: 13, fontWeight: 600 }}>
                   {profile?.username ? `@${profile.username}` : 'My Account'}
                 </span>
-                <span style={{ color: C.textMuted, fontSize: 10 }}>{navOpen ? '▲' : '▼'}</span>
+                <span className="hide-mobile" style={{ color: C.textMuted, fontSize: 10 }}>{navOpen ? '▲' : '▼'}</span>
               </button>
               {navOpen && (
                 <div style={{
@@ -181,7 +181,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
           ) : (
             <>
               <Link href="/login" style={ghostBtn}>Sign In</Link>
-              <Link href="/register" style={accentBtn}>Join Now</Link>
+              <Link href="/register" style={accentBtn} className="hide-mobile">Join Now</Link>
             </>
           )}
         </div>
@@ -191,6 +191,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
       <style>{`
         @media (max-width: 640px) {
           .nav-center-links { display: none !important; }
+          .hide-mobile { display: none !important; }
         }
       `}</style>
     </nav>
