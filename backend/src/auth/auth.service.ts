@@ -36,7 +36,7 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials');
-    if (user.suspended) throw new UnauthorizedException('Account suspended');
+    if (user.suspended) throw new UnauthorizedException('Your account has been suspended. Please contact admin@fishleague.app for assistance.');
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
@@ -66,7 +66,7 @@ export class AuthService {
       });
     }
 
-    if (user.suspended) throw new UnauthorizedException('Account suspended');
+    if (user.suspended) throw new UnauthorizedException('Your account has been suspended. Please contact admin@fishleague.app for assistance.');
 
     return { token: this.sign(user.id), userId: user.id };
   }
