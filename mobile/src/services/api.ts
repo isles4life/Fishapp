@@ -8,6 +8,8 @@ import type {
   SubmissionResult,
   LeaderboardEntry,
   UserRank,
+  AnglerProfile,
+  UpdateProfilePayload,
 } from '../models';
 
 const BASE_URL =
@@ -133,4 +135,29 @@ export function getLeaderboard(tournamentId: string): Promise<LeaderboardEntry[]
 
 export function getMyRank(tournamentId: string): Promise<UserRank> {
   return request(`/leaderboard/${tournamentId}/me`);
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+export function getMyProfile(): Promise<AnglerProfile | null> {
+  return request<AnglerProfile>('/profile/me').catch(e => {
+    if (e.message?.includes('404') || e.message?.includes('401')) return null;
+    throw e;
+  });
+}
+
+export function updateProfile(data: UpdateProfilePayload): Promise<AnglerProfile> {
+  return request('/profile/me', { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function getProfile(username: string): Promise<AnglerProfile> {
+  return request(`/profile/${username}`, {}, false);
+}
+
+export function followAngler(username: string): Promise<{ following: boolean }> {
+  return request(`/profile/${username}/follow`, { method: 'POST' });
+}
+
+export function unfollowAngler(username: string): Promise<{ following: boolean }> {
+  return request(`/profile/${username}/follow`, { method: 'DELETE' });
 }

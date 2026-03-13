@@ -56,3 +56,75 @@ export interface LeaderboardUpdate {
   entries: LeaderboardEntry[];
   updatedAt: string;
 }
+
+// ── Angler Profile ────────────────────────────────────────────────────────────
+
+export type WaterType = 'FRESHWATER' | 'SALTWATER' | 'BOTH';
+
+export interface AnglerStats {
+  totalCatches: number;
+  totalTournamentsEntered: number;
+  tournamentsWon: number;
+  largestCatchCm: number | null;
+  averageCatchCm: number | null;
+  verifiedCatches: number;
+}
+
+export interface Achievement {
+  id: string;
+  badge: string;
+  earnedAt: string;
+}
+
+export interface AnglerProfile {
+  id: string;
+  userId: string;
+  username: string;
+  bio: string | null;
+  profilePhotoUrl: string | null;
+  verifiedAngler: boolean;
+  homeState: string | null;
+  homeCity: string | null;
+  country: string | null;
+  primarySpecies: string[];
+  favoriteTechniques: string[];
+  favoriteBaits: string[];
+  preferredWaterType: WaterType | null;
+  favoriteRod: string | null;
+  favoriteReel: string | null;
+  favoriteLine: string | null;
+  favoriteBoat: string | null;
+  sponsorTags: string[];
+  sportsmanshipScore: number;
+  followersCount: number;
+  followingCount: number;
+  allowFollowers: boolean;
+  publicProfile: boolean;
+  badges: string[];
+  lastActiveAt: string;
+  profileViews: number;
+  achievements: Achievement[];
+  stats: AnglerStats;
+  isFollowing?: boolean;
+  user: { displayName: string; createdAt: string };
+}
+
+export interface UpdateProfilePayload {
+  username?: string;
+  bio?: string;
+  profilePhotoUrl?: string;
+  homeState?: string;
+  homeCity?: string;
+  country?: string;
+  primarySpecies?: string[];
+  favoriteTechniques?: string[];
+  favoriteBaits?: string[];
+  preferredWaterType?: WaterType;
+  favoriteRod?: string;
+  favoriteReel?: string;
+  favoriteLine?: string;
+  favoriteBoat?: string;
+  sponsorTags?: string[];
+  allowFollowers?: boolean;
+  publicProfile?: boolean;
+}
