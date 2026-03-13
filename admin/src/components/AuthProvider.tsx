@@ -28,7 +28,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       headers: { 'Content-Type': 'application/json', 'X-Platform': 'admin' },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) return 'Invalid credentials';
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return err.message ?? 'Invalid credentials';
+    }
     const data = await res.json();
     localStorage.setItem('admin_token', data.token);
     setToken(data.token);
