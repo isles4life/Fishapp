@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { api, clearToken, isLoggedIn } from '../../lib/api';
-import type { AnglerProfile } from '../../lib/api';
+import { api, clearToken, isLoggedIn } from '../lib/api';
+import type { AnglerProfile } from '../lib/api';
 
 const C = {
   bg:          '#0D1A0D',
