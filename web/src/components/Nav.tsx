@@ -194,6 +194,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
       `}</style>
     </nav>
     <MobileBottomNav active={active} />
+    </>
   );
 }
 
