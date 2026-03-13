@@ -80,6 +80,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
   };
 
   return (
+    <>
     <nav style={{
       backgroundColor: C.surface,
       borderBottom: `1px solid ${C.border}`,
