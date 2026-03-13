@@ -9,6 +9,7 @@ const C = {
   red: '#C0392B', redBg: '#3A1414',
   orange: '#D4820A', orangeBg: '#3A2800',
   blue: '#3A7ABF', blueBg: '#0E2236',
+  purple: '#9b59b6',
   text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
 };
 
