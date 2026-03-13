@@ -1,11 +1,11 @@
-import React, { useCallback, useContext, useState } from 'react';
+import React, { useCallback, useContext, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, SafeAreaView,
+  ActivityIndicator, SafeAreaView, Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../../services/api';
-import type { Tournament, LeaderboardEntry } from '../../models';
+import type { Tournament, LeaderboardEntry, UserWarning } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { FishLeagueLogoFull } from '../../components/icons/Logo';
@@ -35,7 +35,12 @@ function countdownTo(dateStr: string): string {
 }
 
 function TournamentBanner({ tournament }: { tournament: Tournament }) {
-  const prizePool = '$500'; // placeholder — not in model yet
+  const entryFee = tournament.entryFeeCents > 0
+    ? `$${(tournament.entryFeeCents / 100).toFixed(2)} entry`
+    : 'Free';
+  const prizePool = tournament.prizePoolCents > 0
+    ? `$${(tournament.prizePoolCents / 100).toFixed(2)} prize pool`
+    : null;
   return (
     <View style={styles.tournamentBanner}>
       <View style={styles.tournamentBannerTop}>
@@ -47,6 +52,15 @@ function TournamentBanner({ tournament }: { tournament: Tournament }) {
       <Text style={styles.tournamentName}>{tournament.name}</Text>
       <View style={styles.tournamentMeta}>
         <Text style={styles.tournamentMetaText}>Week {tournament.weekNumber} · {tournament.region?.name ?? 'All Regions'}</Text>
+      </View>
+      <View style={[styles.tournamentMeta, { marginTop: 6 }]}>
+        <Text style={[styles.tournamentMetaText, { color: colors.textSub }]}>{entryFee}</Text>
+        {prizePool && (
+          <>
+            <Text style={[styles.tournamentMetaText, { marginHorizontal: 6 }]}> · </Text>
+            <Text style={[styles.tournamentMetaText, { color: colors.accent, fontWeight: '700' }]}>🏆 {prizePool}</Text>
+          </>
+        )}
       </View>
     </View>
   );
@@ -127,11 +141,80 @@ function FeedCard({ entry, region }: { entry: LeaderboardEntry; region: string }
   );
 }
 
+const WARNING_LEVEL_COLORS: Record<string, string> = {
+  MINOR: '#D4820A',
+  MAJOR: '#C0392B',
+  FINAL: '#8B0000',
+};
+
+function WarningsModal({
+  warnings,
+  onDismiss,
+}: {
+  warnings: UserWarning[];
+  onDismiss: () => void;
+}) {
+  const [idx, setIdx] = useState(0);
+  const [acknowledging, setAcknowledging] = useState(false);
+  const warning = warnings[idx];
+  if (!warning) return null;
+
+  async function handleAcknowledge() {
+    setAcknowledging(true);
+    try {
+      await api.acknowledgeWarning(warning.id);
+      if (idx < warnings.length - 1) {
+        setIdx(i => i + 1);
+      } else {
+        onDismiss();
+      }
+    } catch {
+      onDismiss();
+    } finally {
+      setAcknowledging(false);
+    }
+  }
+
+  const levelColor = WARNING_LEVEL_COLORS[warning.level] ?? colors.textSub;
+
+  return (
+    <Modal visible transparent animationType="fade">
+      <View style={warningStyles.overlay}>
+        <View style={warningStyles.card}>
+          <Text style={warningStyles.header}>⚠ LEAGUE WARNING</Text>
+          <View style={[warningStyles.levelBadge, { backgroundColor: levelColor + '20', borderColor: levelColor + '60' }]}>
+            <Text style={[warningStyles.levelText, { color: levelColor }]}>{warning.level}</Text>
+          </View>
+          <Text style={warningStyles.reason}>{warning.reason}</Text>
+          <Text style={warningStyles.sub}>
+            {idx + 1} of {warnings.length} unacknowledged warning{warnings.length > 1 ? 's' : ''}
+          </Text>
+          <TouchableOpacity
+            style={[warningStyles.btn, { opacity: acknowledging ? 0.6 : 1 }]}
+            onPress={handleAcknowledge}
+            disabled={acknowledging}
+            activeOpacity={0.8}
+          >
+            <Text style={warningStyles.btnText}>{acknowledging ? 'ACKNOWLEDGING…' : 'I UNDERSTAND'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function HomeScreen() {
   const { setTournamentId } = useContext(TournamentContext);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingWarnings, setPendingWarnings] = useState<UserWarning[]>([]);
+
+  useEffect(() => {
+    api.getMyWarnings()
+      .then(ws => { if (ws.length > 0) setPendingWarnings(ws); })
+      .catch(() => {});
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -161,6 +244,12 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {pendingWarnings.length > 0 && (
+        <WarningsModal
+          warnings={pendingWarnings}
+          onDismiss={() => setPendingWarnings([])}
+        />
+      )}
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -476,5 +565,70 @@ const styles = StyleSheet.create({
     ...typography.bodyMd,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+});
+
+const warningStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  card: {
+    backgroundColor: '#1D331D',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2A4A2A',
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  header: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#F0EDE4',
+    marginBottom: 16,
+    letterSpacing: 1,
+  },
+  levelBadge: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginBottom: 16,
+  },
+  levelText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  reason: {
+    fontSize: 14,
+    color: '#F0EDE4',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  sub: {
+    fontSize: 12,
+    color: '#8BA88B',
+    marginBottom: 20,
+  },
+  btn: {
+    backgroundColor: '#C9A450',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+  },
+  btnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0D1A0D',
+    letterSpacing: 0.8,
   },
 });
