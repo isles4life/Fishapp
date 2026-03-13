@@ -10,6 +10,9 @@ import { ModerationModule } from './moderation/moderation.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { AuditModule } from './audit/audit.module';
 import { ProfileModule } from './profile/profile.module';
+import { PropsModule } from './props/props.module';
+import { CommentsModule } from './comments/comments.module';
+import { WarningsModule } from './warnings/warnings.module';
 
 @Module({
   imports: [
@@ -24,6 +27,9 @@ import { ProfileModule } from './profile/profile.module';
     WebsocketModule,
     AuditModule,
     ProfileModule,
+    PropsModule,
+    CommentsModule,
+    WarningsModule,
   ],
 })
 export class AppModule {}

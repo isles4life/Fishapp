@@ -19,6 +19,7 @@ const inputStyle: React.CSSProperties = {
 interface Tournament {
   id: string; name: string; weekNumber: number; year: number;
   startsAt: string; endsAt: string; isOpen: boolean;
+  entryFeeCents: number; prizePoolCents: number;
   region: { name: string };
 }
 
@@ -26,7 +27,7 @@ export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(), startsAt: '', endsAt: '' });
+  const [form, setForm] = useState({ regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(), startsAt: '', endsAt: '', entryFee: '', prizePool: '' });
 
   async function load() {
     try {
@@ -42,9 +43,15 @@ export default function TournamentsPage() {
     e.preventDefault();
     setError('');
     try {
-      await api.createTournament({ ...form, weekNumber: parseInt(form.weekNumber), year: parseInt(form.year) });
+      await api.createTournament({
+        ...form,
+        weekNumber: parseInt(form.weekNumber),
+        year: parseInt(form.year),
+        entryFeeCents: form.entryFee ? Math.round(parseFloat(form.entryFee) * 100) : 0,
+        prizePoolCents: form.prizePool ? Math.round(parseFloat(form.prizePool) * 100) : 0,
+      });
       await load();
-      setForm(f => ({ ...f, name: '', weekNumber: '', startsAt: '', endsAt: '' }));
+      setForm(f => ({ ...f, name: '', weekNumber: '', startsAt: '', endsAt: '', entryFee: '', prizePool: '' }));
     } catch (e: any) { setError(e.message); }
   }
 
@@ -83,6 +90,17 @@ export default function TournamentsPage() {
         <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>End</label>
         <input type="datetime-local" value={form.endsAt} onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))} required style={inputStyle} />
 
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Entry Fee ($)</label>
+            <input type="number" min="0" step="0.01" value={form.entryFee} onChange={e => setForm(f => ({ ...f, entryFee: e.target.value }))} placeholder="0.00" style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Prize Pool ($)</label>
+            <input type="number" min="0" step="0.01" value={form.prizePool} onChange={e => setForm(f => ({ ...f, prizePool: e.target.value }))} placeholder="0.00" style={inputStyle} />
+          </div>
+        </div>
+
         <button type="submit" style={{ marginTop: 8, backgroundColor: C.accent, color: C.bg, padding: '10px 24px', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.8 }}>
           Create Tournament
         </button>
@@ -93,14 +111,14 @@ export default function TournamentsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-              {['Name', 'Region', 'Week', 'Start', 'End', 'Status', 'Actions'].map(h => (
+              {['Name', 'Region', 'Week', 'Start', 'End', 'Entry', 'Prize Pool', 'Status', 'Actions'].map(h => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {tournaments.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: C.textMuted }}>No tournaments yet.</td></tr>
+              <tr><td colSpan={9} style={{ padding: 24, textAlign: 'center', color: C.textMuted }}>No tournaments yet.</td></tr>
             )}
             {tournaments.map((t) => (
               <tr key={t.id} style={{ borderBottom: `1px solid ${C.border}` }}>
@@ -109,6 +127,14 @@ export default function TournamentsPage() {
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 14 }}>Wk {t.weekNumber}</td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>{new Date(t.startsAt).toLocaleString()}</td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>{new Date(t.endsAt).toLocaleString()}</td>
+                <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>
+                  {t.entryFeeCents > 0 ? `$${(t.entryFeeCents / 100).toFixed(2)}` : <span style={{ color: C.textMuted }}>Free</span>}
+                </td>
+                <td style={{ padding: '12px 16px', fontSize: 13 }}>
+                  {t.prizePoolCents > 0
+                    ? <span style={{ color: C.accent, fontWeight: 700 }}>${(t.prizePoolCents / 100).toFixed(2)}</span>
+                    : <span style={{ color: C.textMuted }}>—</span>}
+                </td>
                 <td style={{ padding: '12px 16px' }}>
                   <span style={{
                     color: t.isOpen ? C.green : C.textMuted,

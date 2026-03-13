@@ -1,4 +1,4 @@
-import { IsUUID, IsNumber, IsString, IsDateString, Min, Max } from 'class-validator';
+import { IsUUID, IsNumber, IsString, IsDateString, IsOptional, Min, Max } from 'class-validator';
 
 export class CreateSubmissionDto {
   @IsUUID()
@@ -24,4 +24,12 @@ export class CreateSubmissionDto {
 
   @IsDateString()
   capturedAt: string;
+
+  @IsOptional()
+  @IsString()
+  speciesName?: string;
+
+  @IsOptional()
+  @IsString()
+  speciesCategory?: string;
 }

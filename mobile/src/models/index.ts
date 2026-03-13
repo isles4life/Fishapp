@@ -24,6 +24,8 @@ export interface Tournament {
   startsAt: string;
   endsAt: string;
   isOpen: boolean;
+  entryFeeCents: number;
+  prizePoolCents: number;
   region?: { name: string };
 }
 
@@ -41,11 +43,31 @@ export interface SubmissionResult {
 
 export interface LeaderboardEntry {
   rank: number;
+  submissionId?: string;
   userId: string;
   displayName: string;
   fishLengthCm: number;
   profilePhotoUrl?: string | null;
   username?: string | null;
+  speciesName?: string | null;
+  speciesCategory?: string | null;
+}
+
+export interface CatchComment {
+  id: string;
+  submissionId: string;
+  userId: string;
+  body: string;
+  createdAt: string;
+  user: { id: string; displayName: string };
+}
+
+export interface UserWarning {
+  id: string;
+  level: 'MINOR' | 'MAJOR' | 'FINAL';
+  reason: string;
+  acknowledged: boolean;
+  createdAt: string;
 }
 
 export interface UserRank {

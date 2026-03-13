@@ -51,6 +51,12 @@ function Badge({ label, color, bg, border }: { label: string; color: string; bg:
   );
 }
 
+interface WarningForm {
+  level: 'MINOR' | 'MAJOR' | 'FINAL';
+  reason: string;
+  submitting: boolean;
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
@@ -61,9 +67,23 @@ export default function UsersPage() {
   const [pwLoading, setPwLoading] = useState<string | null>(null);
   const [pwSuccess, setPwSuccess] = useState<string | null>(null);
   const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [warnVisible, setWarnVisible] = useState<Record<string, boolean>>({});
+  const [warnForms, setWarnForms] = useState<Record<string, WarningForm>>({});
+  const [warnCounts, setWarnCounts] = useState<Record<string, number>>({});
+  const [warnSuccess, setWarnSuccess] = useState<string | null>(null);
 
   async function load() {
-    try { setUsers(await api.getUsers()); }
+    try {
+      const us = await api.getUsers();
+      setUsers(us);
+      // Load warning counts in parallel
+      const counts = await Promise.all(
+        us.map(u => api.getUserWarnings(u.id).then(ws => ({ id: u.id, count: ws.length })).catch(() => ({ id: u.id, count: 0 })))
+      );
+      const countMap: Record<string, number> = {};
+      counts.forEach(c => { countMap[c.id] = c.count; });
+      setWarnCounts(countMap);
+    }
     catch (e: any) { setError(e.message); }
   }
 
@@ -112,6 +132,30 @@ export default function UsersPage() {
     setPwVisible(prev => ({ ...prev, [userId]: !prev[userId] }));
     if (pwVisible[userId]) {
       setPwInputs(prev => { const n = { ...prev }; delete n[userId]; return n; });
+    }
+  }
+
+  function toggleWarnInput(userId: string) {
+    setWarnVisible(prev => ({ ...prev, [userId]: !prev[userId] }));
+    if (!warnForms[userId]) {
+      setWarnForms(prev => ({ ...prev, [userId]: { level: 'MINOR', reason: '', submitting: false } }));
+    }
+  }
+
+  async function submitWarning(u: User) {
+    const form = warnForms[u.id];
+    if (!form || !form.reason.trim()) { setError('Warning reason is required.'); return; }
+    setWarnForms(prev => ({ ...prev, [u.id]: { ...form, submitting: true } }));
+    setError('');
+    try {
+      await api.issueWarning(u.id, form.level, form.reason.trim());
+      setWarnVisible(prev => ({ ...prev, [u.id]: false }));
+      setWarnCounts(prev => ({ ...prev, [u.id]: (prev[u.id] ?? 0) + 1 }));
+      setWarnSuccess(u.id);
+      setTimeout(() => setWarnSuccess(null), 3000);
+    } catch (e: any) { setError(e.message); }
+    finally {
+      setWarnForms(prev => ({ ...prev, [u.id]: { ...form, submitting: false } }));
     }
   }
 
@@ -187,7 +231,18 @@ export default function UsersPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <Initials name={u.displayName} />
                     <div>
-                      <div style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>{u.displayName}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>{u.displayName}</span>
+                        {(warnCounts[u.id] ?? 0) > 0 && (
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 10,
+                            backgroundColor: C.orange + '25', border: `1px solid ${C.orange}50`,
+                            color: C.orange,
+                          }}>
+                            ⚠ {warnCounts[u.id]}
+                          </span>
+                        )}
+                      </div>
                       <div style={{ color: C.textMuted, fontSize: 12, marginTop: 2 }}>
                         {u.email ?? (
                           <span style={{ color: C.textSub }}>
@@ -257,7 +312,56 @@ export default function UsersPage() {
                       >
                         {impersonating === u.id ? '…' : 'Impersonate'}
                       </ActionBtn>
+                      <ActionBtn
+                        onClick={() => toggleWarnInput(u.id)}
+                        color={C.orange}
+                        bg={C.orangeBg}
+                      >
+                        {warnVisible[u.id] ? 'Cancel' : 'Warn'}
+                      </ActionBtn>
                     </div>
+
+                    {warnVisible[u.id] && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+                        <select
+                          value={warnForms[u.id]?.level ?? 'MINOR'}
+                          onChange={e => setWarnForms(prev => ({ ...prev, [u.id]: { ...prev[u.id], level: e.target.value as any } }))}
+                          style={{
+                            padding: '5px 10px', fontSize: 12,
+                            backgroundColor: C.bg, border: `1px solid ${C.border}`,
+                            borderRadius: 6, color: C.text,
+                          }}
+                        >
+                          <option value="MINOR">MINOR</option>
+                          <option value="MAJOR">MAJOR</option>
+                          <option value="FINAL">FINAL</option>
+                        </select>
+                        <textarea
+                          placeholder="Reason for warning…"
+                          value={warnForms[u.id]?.reason ?? ''}
+                          onChange={e => setWarnForms(prev => ({ ...prev, [u.id]: { ...prev[u.id], reason: e.target.value } }))}
+                          maxLength={1000}
+                          rows={2}
+                          style={{
+                            padding: '5px 10px', fontSize: 12,
+                            backgroundColor: C.bg, border: `1px solid ${C.border}`,
+                            borderRadius: 6, color: C.text, resize: 'vertical',
+                          }}
+                        />
+                        <ActionBtn
+                          onClick={() => submitWarning(u)}
+                          disabled={warnForms[u.id]?.submitting}
+                          color={C.orange}
+                          bg={C.orangeBg}
+                        >
+                          {warnForms[u.id]?.submitting ? '…' : 'Issue Warning'}
+                        </ActionBtn>
+                      </div>
+                    )}
+
+                    {warnSuccess === u.id && (
+                      <span style={{ fontSize: 12, color: C.orange }}>⚠ Warning issued</span>
+                    )}
 
                     {pwVisible[u.id] && (
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

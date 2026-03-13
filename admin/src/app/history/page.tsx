@@ -30,6 +30,7 @@ const ACTION_META: Record<string, { label: string; color: string; icon: string }
   USER_LOGIN:              { label: 'Login',               color: C.textSub, icon: '→' },
   USER_IMPERSONATED:       { label: 'User Impersonated',   color: C.purple,  icon: '👤' },
   USER_PASSWORD_RESET:     { label: 'Password Reset',      color: C.blue,    icon: '🔑' },
+  USER_WARNING_ISSUED:     { label: 'Warning Issued',       color: C.orange,  icon: '⚠' },
 };
 
 function getDetails(entry: AuditEntry): string {

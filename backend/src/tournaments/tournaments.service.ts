@@ -45,6 +45,9 @@ export class TournamentsService {
         startsAt: new Date(dto.startsAt),
         endsAt: new Date(dto.endsAt),
         isOpen: dto.isOpen ?? false,
+        entryFeeCents: dto.entryFeeCents ?? 0,
+        prizePoolCents: dto.prizePoolCents ?? 0,
+        prizeStructure: dto.prizeStructure,
       },
     });
   }

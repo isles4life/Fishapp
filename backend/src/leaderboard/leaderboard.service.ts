@@ -49,9 +49,18 @@ export class LeaderboardService {
     this.gateway.broadcastLeaderboardUpdate(submission.tournamentId, top25);
   }
 
-  async getTop25(tournamentId: string) {
+  async getTop25(tournamentId: string, speciesCategory?: string) {
     const entries = await this.prisma.leaderboardEntry.findMany({
-      where: { tournamentId },
+      where: {
+        tournamentId,
+        ...(speciesCategory
+          ? {
+              submission: {
+                speciesCategory,
+              },
+            }
+          : {}),
+      },
       orderBy: { fishLengthCm: 'desc' },
       take: TOP_N,
       include: {
@@ -61,16 +70,22 @@ export class LeaderboardService {
             profile: { select: { profilePhotoUrl: true, username: true } },
           },
         },
+        submission: {
+          select: { speciesName: true, speciesCategory: true },
+        },
       },
     });
 
     return entries.map((e, idx) => ({
       rank: idx + 1,
+      submissionId: e.submissionId,
       userId: e.userId,
       displayName: e.user.displayName,
       fishLengthCm: e.fishLengthCm,
       profilePhotoUrl: e.user.profile?.profilePhotoUrl ?? null,
       username: e.user.profile?.username ?? null,
+      speciesName: e.submission?.speciesName ?? null,
+      speciesCategory: e.submission?.speciesCategory ?? null,
     }));
   }
 

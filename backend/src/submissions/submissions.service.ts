@@ -127,6 +127,8 @@ export class SubmissionsService {
         flagDuplicateHash: !!dupHash,
         flagDuplicateGps: gpsCount >= 2,
         status: 'PENDING',
+        speciesName: dto.speciesName,
+        speciesCategory: dto.speciesCategory,
       },
     });
 

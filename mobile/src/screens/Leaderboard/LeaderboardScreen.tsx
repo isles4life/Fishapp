@@ -1,16 +1,19 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   ActivityIndicator, TouchableOpacity, Image, SafeAreaView,
+  ScrollView, TextInput,
 } from 'react-native';
 import * as api from '../../services/api';
 import { wsService } from '../../services/websocket';
-import type { LeaderboardEntry, UserRank } from '../../models';
+import type { LeaderboardEntry, UserRank, CatchComment } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { TournamentContext } from '../../navigation';
 
 type Tab = 'largest' | 'season';
+
+const SPECIES_FILTERS = ['All', 'Bass', 'Walleye', 'Trout', 'Pike', 'Catfish', 'Panfish', 'Other'];
 
 function rankColor(rank: number): string {
   if (rank === 1) return '#FFD700';
@@ -23,42 +26,172 @@ function getInitials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-function LeaderboardRow({ item }: { item: LeaderboardEntry }) {
+function PropButton({
+  submissionId,
+  initialCount,
+}: {
+  submissionId: string;
+  initialCount?: number;
+}) {
+  const [propped, setPropped] = useState(false);
+  const [count, setCount] = useState(initialCount ?? 0);
+  const [loading, setLoading] = useState(false);
+
+  const handleProp = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const result = await api.toggleProp(submissionId);
+      setPropped(result.propped);
+      setCount(result.count);
+    } catch {
+      // silently handle
+    } finally {
+      setLoading(false);
+    }
+  }, [submissionId, loading]);
+
+  return (
+    <TouchableOpacity
+      style={[styles.propBtn, propped && styles.propBtnActive]}
+      onPress={handleProp}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.propIcon}>👍</Text>
+      <Text style={[styles.propCount, propped && { color: colors.accent }]}>{count}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function CommentsSection({ submissionId }: { submissionId: string }) {
+  const [comments, setComments] = useState<CatchComment[]>([]);
+  const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    api.getComments(submissionId)
+      .then(c => { if (active) setComments(c); })
+      .catch(() => {})
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [submissionId]);
+
+  async function handleSubmit() {
+    const trimmed = body.trim();
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
+    try {
+      const comment = await api.addComment(submissionId, trimmed);
+      setComments(prev => [...prev, comment]);
+      setBody('');
+    } catch {
+      // silently handle
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <View style={styles.commentsSection}>
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.accent} style={{ padding: 8 }} />
+      ) : (
+        <>
+          {comments.length === 0 && (
+            <Text style={styles.noCommentsText}>No comments yet.</Text>
+          )}
+          {comments.map(c => (
+            <View key={c.id} style={styles.commentRow}>
+              <Text style={styles.commentAuthor}>{c.user.displayName}</Text>
+              <Text style={styles.commentBody}>{c.body}</Text>
+            </View>
+          ))}
+        </>
+      )}
+      <View style={styles.commentInputRow}>
+        <TextInput
+          style={styles.commentInput}
+          placeholder="Add a comment..."
+          placeholderTextColor={colors.textMuted}
+          value={body}
+          onChangeText={setBody}
+          maxLength={500}
+        />
+        <TouchableOpacity
+          style={[styles.commentSubmitBtn, (!body.trim() || submitting) && { opacity: 0.5 }]}
+          onPress={handleSubmit}
+          disabled={!body.trim() || submitting}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.commentSubmitText}>{submitting ? '…' : '↑'}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function LeaderboardRow({
+  item,
+  expanded,
+  onToggle,
+}: {
+  item: LeaderboardEntry;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const isTop = item.rank <= 3;
   const rc = rankColor(item.rank);
   const isFirst = item.rank === 1;
 
   return (
-    <View style={[styles.row, isFirst && styles.firstRow, isTop && !isFirst && styles.topRow]}>
-      {/* Rank number */}
-      <View style={[styles.rankBox, { borderColor: rc + '60' }]}>
-        <Text style={[styles.rankNum, { color: rc }]}>
-          {item.rank <= 3 ? ['🥇', '🥈', '🥉'][item.rank - 1] : `#${item.rank}`}
-        </Text>
-      </View>
+    <View>
+      <TouchableOpacity
+        style={[styles.row, isFirst && styles.firstRow, isTop && !isFirst && styles.topRow]}
+        onPress={onToggle}
+        activeOpacity={0.85}
+      >
+        {/* Rank number */}
+        <View style={[styles.rankBox, { borderColor: rc + '60' }]}>
+          <Text style={[styles.rankNum, { color: rc }]}>
+            {item.rank <= 3 ? ['🥇', '🥈', '🥉'][item.rank - 1] : `#${item.rank}`}
+          </Text>
+        </View>
 
-      {/* Avatar */}
-      <View style={styles.avatarWrap}>
-        {item.profilePhotoUrl ? (
-          <Image source={{ uri: item.profilePhotoUrl }} style={styles.avatar} />
-        ) : (
-          <Text style={styles.avatarInitials}>{getInitials(item.displayName)}</Text>
-        )}
-      </View>
+        {/* Avatar */}
+        <View style={styles.avatarWrap}>
+          {item.profilePhotoUrl ? (
+            <Image source={{ uri: item.profilePhotoUrl }} style={styles.avatar} />
+          ) : (
+            <Text style={styles.avatarInitials}>{getInitials(item.displayName)}</Text>
+          )}
+        </View>
 
-      {/* Info */}
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>{item.displayName}</Text>
-        {item.username && <Text style={styles.username}>@{item.username}</Text>}
-      </View>
+        {/* Info */}
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={1}>{item.displayName}</Text>
+          {item.username && <Text style={styles.username}>@{item.username}</Text>}
+          {item.speciesName && <Text style={styles.speciesLabel}>{item.speciesName}</Text>}
+        </View>
 
-      {/* Measurement */}
-      <View style={styles.measureWrap}>
-        <Text style={[styles.measurement, isFirst && { color: colors.accent }]}>
-          {item.fishLengthCm}
-        </Text>
-        <Text style={styles.measureUnit}>CM</Text>
-      </View>
+        {/* Measurement + prop */}
+        <View style={styles.measureWrap}>
+          <Text style={[styles.measurement, isFirst && { color: colors.accent }]}>
+            {item.fishLengthCm}
+          </Text>
+          <Text style={styles.measureUnit}>CM</Text>
+          {item.submissionId && (
+            <PropButton submissionId={item.submissionId} />
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* Inline comments */}
+      {expanded && item.submissionId && (
+        <CommentsSection submissionId={item.submissionId} />
+      )}
     </View>
   );
 }
@@ -69,6 +202,8 @@ export default function LeaderboardScreen() {
   const [myRank, setMyRank] = useState<UserRank | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('largest');
+  const [speciesFilter, setSpeciesFilter] = useState('All');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tournamentId) {
@@ -80,8 +215,9 @@ export default function LeaderboardScreen() {
     async function load() {
       setLoading(true);
       try {
+        const species = speciesFilter === 'All' ? undefined : speciesFilter;
         const [board, rank] = await Promise.all([
-          api.getLeaderboard(tournamentId!),
+          api.getLeaderboard(tournamentId!, species),
           api.getMyRank(tournamentId!),
         ]);
         if (!active) return;
@@ -102,7 +238,11 @@ export default function LeaderboardScreen() {
       unsubscribe();
       wsService.disconnect();
     };
-  }, [tournamentId]);
+  }, [tournamentId, speciesFilter]);
+
+  function toggleExpanded(userId: string) {
+    setExpandedId(prev => (prev === userId ? null : userId));
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -133,6 +273,27 @@ export default function LeaderboardScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Species filter pills */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.pillsContainer}
+        style={styles.pillsScroll}
+      >
+        {SPECIES_FILTERS.map(f => (
+          <TouchableOpacity
+            key={f}
+            style={[styles.pill, speciesFilter === f && styles.pillActive]}
+            onPress={() => setSpeciesFilter(f)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.pillText, speciesFilter === f && styles.pillTextActive]}>
+              {f}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {/* No tournament */}
       {!tournamentId && !loading && (
         <View style={styles.emptyWrap}>
@@ -161,7 +322,13 @@ export default function LeaderboardScreen() {
           data={entries}
           keyExtractor={item => item.userId}
           contentContainerStyle={{ padding: 16, paddingBottom: myRank?.rank ? 80 : 24 }}
-          renderItem={({ item }) => <LeaderboardRow item={item} />}
+          renderItem={({ item }) => (
+            <LeaderboardRow
+              item={item}
+              expanded={expandedId === item.userId}
+              onToggle={() => toggleExpanded(item.userId)}
+            />
+          )}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           showsVerticalScrollIndicator={false}
         />
@@ -201,6 +368,7 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
     margin: 16,
+    marginBottom: 0,
     backgroundColor: colors.surface,
     borderRadius: 10,
     borderWidth: 1,
@@ -223,6 +391,35 @@ const styles = StyleSheet.create({
   },
   tabBtnTextActive: {
     color: colors.accent,
+  },
+  pillsScroll: {
+    flexGrow: 0,
+    marginTop: 12,
+  },
+  pillsContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  pill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: 8,
+  },
+  pillActive: {
+    backgroundColor: colors.accent + '25',
+    borderColor: colors.accent,
+  },
+  pillText: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  pillTextActive: {
+    color: colors.accent,
+    fontWeight: '700',
   },
   loadingWrap: {
     flex: 1,
@@ -312,6 +509,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 1,
   },
+  speciesLabel: {
+    ...typography.caption,
+    color: colors.accent,
+    marginTop: 2,
+  },
   measureWrap: {
     alignItems: 'flex-end',
   },
@@ -323,6 +525,89 @@ const styles = StyleSheet.create({
     ...typography.labelSm,
     color: colors.textMuted,
     marginTop: -2,
+  },
+  propBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: colors.surfaceHigh,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  propBtnActive: {
+    borderColor: colors.accent + '70',
+    backgroundColor: colors.accent + '18',
+  },
+  propIcon: {
+    fontSize: 12,
+  },
+  propCount: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  commentsSection: {
+    backgroundColor: colors.surfaceHigh,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    padding: 12,
+    marginBottom: 2,
+  },
+  noCommentsText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  commentRow: {
+    marginBottom: 8,
+  },
+  commentAuthor: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSub,
+    marginBottom: 2,
+  },
+  commentBody: {
+    fontSize: 13,
+    color: colors.text,
+  },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: colors.text,
+  },
+  commentSubmitBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commentSubmitText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.bg,
   },
   myRankBanner: {
     position: 'absolute',

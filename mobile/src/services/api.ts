@@ -10,6 +10,8 @@ import type {
   UserRank,
   AnglerProfile,
   UpdateProfilePayload,
+  CatchComment,
+  UserWarning,
 } from '../models';
 
 const BASE_URL =
@@ -97,6 +99,7 @@ export async function uploadSubmission(fields: {
   capturedAt: string;
   photo1Uri: string;
   photo2Uri: string;
+  speciesName?: string;
 }): Promise<SubmissionResult> {
   const token = await storage.getToken();
   const form = new FormData();
@@ -130,12 +133,47 @@ export async function uploadSubmission(fields: {
 
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 
-export function getLeaderboard(tournamentId: string): Promise<LeaderboardEntry[]> {
-  return request(`/leaderboard/${tournamentId}`);
+export function getLeaderboard(tournamentId: string, species?: string): Promise<LeaderboardEntry[]> {
+  const qs = species ? `?species=${encodeURIComponent(species)}` : '';
+  return request(`/leaderboard/${tournamentId}${qs}`);
 }
 
 export function getMyRank(tournamentId: string): Promise<UserRank> {
   return request(`/leaderboard/${tournamentId}/me`);
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────────
+
+export function toggleProp(submissionId: string): Promise<{ propped: boolean; count: number }> {
+  return request(`/submissions/${submissionId}/prop`, { method: 'POST' });
+}
+
+export function getProps(submissionId: string): Promise<{ count: number; userHasPropped: boolean }> {
+  return request(`/submissions/${submissionId}/props`, {}, false);
+}
+
+// ── Comments ──────────────────────────────────────────────────────────────────
+
+export function getComments(submissionId: string): Promise<CatchComment[]> {
+  return request(`/submissions/${submissionId}/comments`, {}, false);
+}
+
+export function addComment(submissionId: string, body: string): Promise<CatchComment> {
+  return request(`/submissions/${submissionId}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+}
+
+export function deleteComment(commentId: string): Promise<{ ok: boolean }> {
+  return request(`/comments/${commentId}`, { method: 'DELETE' });
+}
+
+// ── Warnings ──────────────────────────────────────────────────────────────────
+
+export function getMyWarnings(): Promise<UserWarning[]> {
+  return request('/warnings/mine');
+}
+
+export function acknowledgeWarning(warningId: string): Promise<UserWarning> {
+  return request(`/warnings/${warningId}/acknowledge`, { method: 'PATCH' });
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────

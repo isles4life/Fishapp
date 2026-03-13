@@ -36,11 +36,17 @@ export interface Region { id: string; name: string; }
 export interface Tournament {
   id: string; name: string; weekNumber: number; year: number;
   startsAt: string; endsAt: string; isOpen: boolean;
+  entryFeeCents: number; prizePoolCents: number;
   region: { name: string };
 }
 export interface LeaderboardEntry {
-  rank: number; userId: string; displayName: string; fishLengthCm: number;
+  rank: number; submissionId?: string; userId: string; displayName: string; fishLengthCm: number;
   profilePhotoUrl?: string | null; username?: string | null;
+  speciesName?: string | null; speciesCategory?: string | null;
+}
+export interface CatchComment {
+  id: string; submissionId: string; userId: string; body: string; createdAt: string;
+  user: { id: string; displayName: string };
 }
 export interface AuthResponse { token: string; userId: string; }
 
@@ -121,7 +127,20 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
 export const api = {
   getRegions: () => apiFetch<Region[]>('/users/regions'),
   getActiveTournament: () => apiFetch<Tournament>('/tournaments/open'),
-  getLeaderboard: (id: string) => apiFetch<LeaderboardEntry[]>(`/leaderboard/${id}`),
+  getLeaderboard: (id: string, species?: string) => {
+    const qs = species ? `?species=${encodeURIComponent(species)}` : '';
+    return apiFetch<LeaderboardEntry[]>(`/leaderboard/${id}${qs}`);
+  },
+  toggleProp: (submissionId: string) =>
+    apiFetch<{ propped: boolean; count: number }>(`/submissions/${submissionId}/prop`, { method: 'POST' }, true),
+  getProps: (submissionId: string) =>
+    apiFetch<{ count: number; userHasPropped: boolean }>(`/submissions/${submissionId}/props`, undefined, false),
+  getComments: (submissionId: string) =>
+    apiFetch<CatchComment[]>(`/submissions/${submissionId}/comments`, undefined, false),
+  addComment: (submissionId: string, body: string) =>
+    apiFetch<CatchComment>(`/submissions/${submissionId}/comments`, { method: 'POST', body: JSON.stringify({ body }) }, true),
+  deleteComment: (commentId: string) =>
+    apiFetch<{ ok: boolean }>(`/comments/${commentId}`, { method: 'DELETE' }, true),
   login: (email: string, password: string) =>
     apiFetch<AuthResponse>('/auth/login', {
       method: 'POST',

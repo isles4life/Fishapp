@@ -24,6 +24,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const [photo2Uri, setPhoto2Uri] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [fishLength, setFishLength] = useState('');
+  const [speciesName, setSpeciesName] = useState('');
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const cameraRef = useRef<CameraView>(null);
@@ -79,6 +80,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         capturedAt: new Date().toISOString(),
         photo1Uri,
         photo2Uri,
+        speciesName: speciesName.trim() || undefined,
       });
       setStep('success');
     } catch (e: any) {
@@ -214,6 +216,19 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             {fishLength !== '' && !isNaN(Number(fishLength)) && (
               <Text style={styles.lengthPreview}>{fishLength} CM</Text>
             )}
+          </View>
+
+          {/* Species */}
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailsFieldLabel}>SPECIES (OPTIONAL)</Text>
+            <TextInput
+              style={styles.lengthInput}
+              placeholder="e.g. Largemouth Bass"
+              placeholderTextColor={colors.textMuted}
+              value={speciesName}
+              onChangeText={setSpeciesName}
+              autoCapitalize="words"
+            />
           </View>
 
           {/* GPS */}

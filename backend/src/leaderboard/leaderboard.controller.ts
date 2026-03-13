@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { LeaderboardService } from './leaderboard.service';
 
@@ -8,8 +8,11 @@ export class LeaderboardController {
 
   // Public — no auth required for viewing leaderboard
   @Get(':tournamentId')
-  getTop25(@Param('tournamentId') tournamentId: string) {
-    return this.leaderboardService.getTop25(tournamentId);
+  getTop25(
+    @Param('tournamentId') tournamentId: string,
+    @Query('species') species?: string,
+  ) {
+    return this.leaderboardService.getTop25(tournamentId, species);
   }
 
   @Get(':tournamentId/me')

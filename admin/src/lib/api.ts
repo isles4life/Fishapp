@@ -54,4 +54,10 @@ export const api = {
 
   impersonateUser: (id: string) =>
     apiFetch<{ token: string; userId: string }>(`/users/${id}/impersonate`, { method: 'POST' }),
+
+  issueWarning: (userId: string, level: 'MINOR' | 'MAJOR' | 'FINAL', reason: string) =>
+    apiFetch('/admin/warnings', { method: 'POST', body: JSON.stringify({ userId, level, reason }) }),
+
+  getUserWarnings: (userId: string) =>
+    apiFetch<any[]>(`/admin/warnings?userId=${userId}`),
 };
