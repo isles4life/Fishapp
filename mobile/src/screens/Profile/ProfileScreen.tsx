@@ -162,7 +162,7 @@ export function ProfileView({
 
   return (
     <SafeAreaView style={s.safeArea}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48, backgroundColor: CREAM }}>
         {/* Header bar */}
         <View style={s.headerBar}>
           <Text style={s.headerTitle}>MY PROFILE</Text>
@@ -766,11 +766,19 @@ function FLInput({ label, value, onChangeText, placeholder, multiline }: {
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
+// Light/cream palette for profile view
+const CREAM = '#F0EAD0';
+const CREAM_CARD = '#FFFFFF';
+const CREAM_BORDER = '#C8BEA0';
+const DARK_TEXT = '#1A2A1A';
+const DARK_SUB = '#2E4A2E';
+const DARK_MUTED = '#5A7A5A';
+
 const s = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.bg },
+  safeArea: { flex: 1, backgroundColor: colors.surface },
   center: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: 32 },
 
-  // Header
+  // Header — stays dark green
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -779,8 +787,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 0,
   },
   headerTitle: {
     ...typography.displayMd,
@@ -798,21 +805,21 @@ const s = StyleSheet.create({
     color: colors.accent,
   },
 
-  // Hero
+  // Hero — cream background
   profileHero: {
     alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 20,
+    paddingTop: 28,
+    paddingBottom: 24,
     paddingHorizontal: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: CREAM,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: CREAM_BORDER,
   },
   avatarRing: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 3,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 4,
     borderColor: colors.accent,
     overflow: 'hidden',
     position: 'relative',
@@ -820,19 +827,19 @@ const s = StyleSheet.create({
   avatarImg: { width: '100%', height: '100%' },
   avatarFallback: {
     flex: 1,
-    backgroundColor: colors.surfaceHigh,
+    backgroundColor: '#E8E0C8',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitials: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800',
-    color: colors.textSub,
+    color: DARK_MUTED,
   },
   avatarOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -840,9 +847,9 @@ const s = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
@@ -856,7 +863,7 @@ const s = StyleSheet.create({
   },
   displayName: {
     ...typography.displayMd,
-    color: colors.text,
+    color: DARK_TEXT,
   },
   verifiedChip: {
     backgroundColor: colors.verifiedBg,
@@ -872,12 +879,12 @@ const s = StyleSheet.create({
   },
   username: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: DARK_MUTED,
     marginTop: 4,
   },
   bio: {
     ...typography.bodySm,
-    color: colors.textSub,
+    color: DARK_SUB,
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 18,
@@ -892,32 +899,33 @@ const s = StyleSheet.create({
   },
   metaText: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: DARK_MUTED,
   },
   metaVal: {
     fontWeight: '700',
-    color: colors.textSub,
+    color: DARK_SUB,
   },
   metaDot: {
-    color: colors.textMuted,
+    color: DARK_MUTED,
     fontSize: 12,
   },
 
-  // Stats grid
+  // Stats grid — cream bg, white cards
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 12,
     gap: 8,
-    marginTop: 4,
+    marginTop: 0,
+    backgroundColor: CREAM,
   },
   statCard: {
     width: '47%',
-    backgroundColor: colors.surface,
+    backgroundColor: CREAM_CARD,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: CREAM_BORDER,
     alignItems: 'center',
   },
   statValueRow: {
@@ -927,32 +935,33 @@ const s = StyleSheet.create({
   },
   statValue: {
     ...typography.numMd,
-    color: colors.accent,
+    color: DARK_TEXT,
   },
   statUnit: {
     ...typography.labelSm,
-    color: colors.textMuted,
+    color: DARK_MUTED,
   },
   statLabel: {
     ...typography.labelSm,
-    color: colors.textMuted,
+    color: DARK_MUTED,
     marginTop: 4,
     textAlign: 'center',
   },
 
-  // Sections
+  // Sections — white cards on cream
   section: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: colors.surface,
+    marginHorizontal: 12,
+    marginTop: 10,
+    backgroundColor: CREAM_CARD,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: CREAM_BORDER,
+    marginBottom: 2,
   },
   sectionTitle: {
     ...typography.label,
-    color: colors.textMuted,
+    color: DARK_MUTED,
     marginBottom: 12,
   },
   badgeGrid: {
@@ -967,15 +976,15 @@ const s = StyleSheet.create({
   },
   badgeLabel: {
     ...typography.labelSm,
-    color: colors.textMuted,
+    color: DARK_MUTED,
     textAlign: 'center',
   },
 
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tagChip: { backgroundColor: colors.surfaceHigh, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: colors.border },
-  tagText: { color: colors.textSub, fontSize: 12 },
-  infoLine: { fontSize: 13, color: colors.textSub, marginBottom: 6 },
-  infoLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  tagChip: { backgroundColor: '#EDE8D0', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: CREAM_BORDER },
+  tagText: { color: DARK_SUB, fontSize: 12 },
+  infoLine: { fontSize: 13, color: DARK_SUB, marginBottom: 6 },
+  infoLabel: { color: DARK_MUTED, fontSize: 11, fontWeight: '600', marginBottom: 4 },
 
   // Buttons
   goldBtn: {
