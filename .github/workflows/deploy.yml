@@ -8,6 +8,7 @@ on:
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   ECS_CLUSTER: fishleague
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ─── Detect which services changed ──────────────────────────────────────────
