@@ -6,12 +6,14 @@ Competitive weekly fishing tournament platform. 6-week validation build.
 
 | Layer | Tech |
 |-------|------|
-| iOS | Swift 5.9, SwiftUI, MVVM, AVFoundation, CoreLocation |
+| Mobile (iOS + Android) | React Native (Expo), AVFoundation (iOS QR), CoreLocation |
 | Backend | Node.js, NestJS, Prisma, PostgreSQL |
 | Admin | Next.js 14 (App Router) |
+| Web | Next.js 14 (App Router) — public leaderboard + login |
 | Storage | AWS S3 |
 | Real-time | Socket.IO WebSocket |
-| Infra | Docker Compose |
+| Infra | Docker Compose (local), AWS ECS Fargate + RDS (production) |
+| CI/CD | GitHub Actions — parallel builds, path-based deploys, ~4 min |
 
 ## Project Structure
 
@@ -19,32 +21,40 @@ Competitive weekly fishing tournament platform. 6-week validation build.
 FishAPP/
 ├── backend/                  # NestJS API
 │   ├── prisma/
-│   │   ├── schema.prisma     # DB schema (7 tables)
-│   │   └── seed.ts           # Region + mat serials seed
+│   │   ├── schema.prisma     # DB schema (8 tables incl. AuditLog)
+│   │   └── seed.ts           # Regions + mat serials + admin user seed
 │   └── src/
-│       ├── auth/             # JWT + Apple Sign In
-│       ├── users/            # User profile + regions
-│       ├── tournaments/      # Tournament CRUD + open/close
+│       ├── auth/             # JWT + Apple Sign In + login audit logging
+│       ├── users/            # User profile, regions, admin user management
+│       ├── tournaments/      # Tournament CRUD + open/close + audit logging
 │       ├── submissions/      # Verified catch submission flow
 │       ├── leaderboard/      # Ranking engine + weekly reset cron
 │       ├── moderation/       # Admin moderation API
+│       ├── audit/            # AuditLog service + GET /admin/audit endpoint
 │       ├── websocket/        # Socket.IO leaderboard gateway
-│       └── common/           # Prisma service, JWT guard
-├── admin/                    # Next.js admin dashboard
+│       └── common/           # Prisma service, JWT guard, Admin guard
+├── admin/                    # Next.js admin dashboard (port 3001)
 │   └── src/app/
 │       ├── moderation/       # Review queue with images + GPS
 │       ├── tournaments/      # Create / open / close
-│       └── leaderboard/      # Live standings
-├── ios/FishLeague/
-│   ├── Models/               # Decodable data models
-│   ├── Services/             # APIClient, KeychainService, WebSocketService
-│   ├── ViewModels/           # AuthVM, TournamentVM, SubmissionVM, LeaderboardVM
-│   ├── Views/
-│   │   ├── Auth/             # Login, Register
-│   │   ├── Tournament/       # Home, active tournament
-│   │   ├── Submission/       # CameraView (AVFoundation + QR), SubmissionFlow
-│   │   └── Leaderboard/      # Live top-25 + user rank
-│   └── Utilities/            # QRValidator
+│       ├── leaderboard/      # Live standings
+│       ├── users/            # User list, role management, suspend/unsuspend
+│       └── history/          # Audit log: logins, role changes, tournament events
+├── mobile/                   # React Native (Expo) — iOS + Android
+│   └── src/
+│       ├── screens/          # Auth, Submission, Leaderboard, Tournament
+│       ├── services/         # API client, storage (token)
+│       ├── models/           # TypeScript data models
+│       ├── navigation/       # React Navigation stack
+│       └── theme/            # Colors, shared styles
+├── web/                      # Next.js public site (port 3002)
+│   └── src/app/
+│       ├── page.tsx          # Public leaderboard (no auth required)
+│       ├── login/            # Web login
+│       └── register/         # Web registration
+├── infra/terraform/          # AWS infrastructure (ECS, RDS, S3, Secrets Manager)
+├── .github/workflows/
+│   └── deploy.yml            # Parallel CI/CD: backend + admin deploy independently
 ├── docker-compose.yml
 └── ARCHITECTURE.md
 ```
@@ -55,20 +65,20 @@ FishAPP/
 
 - Node.js 20+
 - Docker + Docker Compose
-- Xcode 15+ (for iOS)
 - AWS account with S3 bucket
 
 ### 1. Backend + Admin (Docker)
 
 ```bash
-# Copy and fill in your AWS credentials
+# Copy and fill in your AWS credentials and secrets
 cp backend/.env.example backend/.env
 
 # Start Postgres + Backend + Admin
 docker compose up --build
 
-# First run: seed the database
-docker compose exec backend npm run prisma:seed
+# Seed runs automatically on first start (regions, mat serials, admin user)
+# Default admin credentials: admin@fishleague.com / FishAdmin2026!
+# Override password via ADMIN_PASSWORD env var
 ```
 
 Services:
@@ -81,7 +91,7 @@ Services:
 cd backend
 npm install
 cp .env.example .env          # set DATABASE_URL to your local Postgres
-npx prisma migrate dev
+npx prisma db push
 npm run prisma:seed
 npm run start:dev
 ```
@@ -94,43 +104,95 @@ npm install
 NEXT_PUBLIC_API_URL=http://localhost:3000 npm run dev
 ```
 
-### 4. iOS App
-
-1. Open `ios/FishLeague.xcodeproj` in Xcode
-2. Set `API_BASE_URL` in `Info.plist` (or the Xcode scheme environment variable)
-3. Add your Apple Sign In capability and set `APPLE_BUNDLE_ID` in backend `.env`
-4. Run on device (camera requires real hardware)
-
-### 5. First Tournament
+### 4. Web (local dev)
 
 ```bash
-# Via admin dashboard at http://localhost:3001/tournaments
-# 1. Create a tournament for the Pacific Northwest region
-# 2. Click "Open" to make it active
-# 3. Submit a catch from the iOS app
-# 4. Approve via Moderation tab – leaderboard updates in real-time
+cd web
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:3000 npm run dev
 ```
 
-## API Reference (Key Endpoints)
+### 5. Mobile (Expo)
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | /auth/register | — | Email registration |
-| POST | /auth/login | — | Email login |
-| POST | /auth/apple | — | Apple Sign In |
-| GET | /users/me | JWT | Current user |
-| GET | /users/regions | JWT | Available regions |
-| GET | /tournaments/active | JWT | Active tournament in user's region |
-| POST | /tournaments | JWT | Create tournament (admin) |
-| PATCH | /tournaments/:id/open | JWT | Open tournament (admin) |
-| PATCH | /tournaments/:id/close | JWT | Close tournament (admin) |
-| POST | /submissions | JWT | Submit catch (multipart) |
-| GET | /submissions/mine | JWT | User's own submissions |
-| GET | /leaderboard/:id | JWT | Top 25 entries |
-| GET | /leaderboard/:id/me | JWT | User's rank |
-| GET | /admin/moderation/pending | JWT | Pending queue |
-| GET | /admin/moderation/flagged | JWT | Flagged submissions |
-| POST | /admin/moderation/:id/action | JWT | Approve/Reject/Suspend |
+```bash
+cd mobile
+npm install
+npx expo start
+# Press 'i' for iOS simulator, 'a' for Android emulator
+```
+
+Set `apiBaseUrl` in `app.config.js` extra field to point at your backend.
+
+### 6. First Tournament
+
+```
+1. Go to http://localhost:3001 → sign in with admin@fishleague.com / FishAdmin2026!
+2. Navigate to Tournaments → Create a tournament → click Open
+3. Register a user via mobile or http://localhost:3002/register
+4. Submit a catch from the mobile app
+5. Approve via Moderation tab — leaderboard updates in real-time
+```
+
+## Authentication & RBAC
+
+- Email/password auth with bcrypt hashing
+- Apple Sign In (iOS only, requires APPLE_BUNDLE_ID env var)
+- JWT (30-day expiry), stored in device Keychain (mobile) / localStorage (web/admin)
+- Two roles: `USER` (default) and `ADMIN`
+- Admin panel protected by `AdminGuard` — non-admin JWT returns 403
+- Suspended users receive a specific error: *"Your account has been suspended. Please contact admin@fishleague.app for assistance."*
+
+## API Reference
+
+### Public (no auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /auth/register | Email registration |
+| POST | /auth/login | Email login (accepts optional `platform` field) |
+| POST | /auth/apple | Apple Sign In (accepts optional `platform` field) |
+| GET | /users/regions | Available regions |
+| GET | /tournaments/open | Currently open tournament (for public leaderboard) |
+
+### Authenticated (JWT required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /users/me | Current user profile |
+| GET | /tournaments/active | Active tournament in user's region |
+| GET | /leaderboard/:id | Top 25 entries (public) |
+| GET | /leaderboard/:id/me | User's own rank |
+| POST | /submissions | Submit catch (multipart: 2 photos + metadata) |
+| GET | /submissions/mine | User's own submissions |
+
+### Admin only (JWT + ADMIN role)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /tournaments | Create tournament |
+| PATCH | /tournaments/:id/open | Open tournament |
+| PATCH | /tournaments/:id/close | Close tournament |
+| GET | /users | List all users |
+| PATCH | /users/:id | Update user role or suspended status |
+| GET | /admin/moderation/pending | Pending submission queue |
+| GET | /admin/moderation/flagged | Flagged submissions |
+| POST | /admin/moderation/:id/action | Approve / Reject / Suspend |
+| GET | /admin/audit | Audit log (logins, role changes, tournament events) |
+
+## Audit Log
+
+Every significant action is recorded in the `AuditLog` table and visible in the admin History page.
+
+| Event | Triggered by |
+|-------|-------------|
+| `USER_LOGIN` | Any successful login (email or Apple), tagged with `platform` (admin/web/mobile) |
+| `TOURNAMENT_CREATED` | Admin creates a tournament |
+| `TOURNAMENT_OPENED` | Admin opens a tournament |
+| `TOURNAMENT_CLOSED` | Admin closes a tournament |
+| `USER_PROMOTED_TO_ADMIN` | Admin promotes a user |
+| `USER_DEMOTED_TO_USER` | Admin demotes a user |
+| `USER_SUSPENDED` | Admin suspends a user |
+| `USER_UNSUSPENDED` | Admin unsuspends a user |
 
 ## WebSocket
 
@@ -144,32 +206,53 @@ Connect to `ws://localhost:3000/leaderboard`
 { "event": "leaderboard:update", "data": { "tournamentId": "...", "entries": [...] } }
 ```
 
+## Database Schema
+
+8 tables: `User`, `Region`, `Tournament`, `MatSerial`, `Submission`, `LeaderboardEntry`, `ModerationAction`, `AuditLog`
+
+See `backend/prisma/schema.prisma` for full definitions.
+
+Key fields added beyond initial scaffold:
+- `User.role` — `UserRole` enum (`USER` | `ADMIN`), default `USER`
+- `User.passwordHash` — bcrypt hash for email auth
+- `AuditLog` — action, actorId, actorName, targetId, details (JSON), createdAt
+
 ## Tests
 
 ```bash
-# Backend
 cd backend
 npm test
 npm run test:cov   # coverage report
-
-# iOS
-# Run FishLeagueTests target in Xcode (⌘U)
 ```
 
 ## Weekly Reset
 
-The cron job in `WeeklyResetService` closes all open tournaments at **Sunday 23:59 UTC**.
+`WeeklyResetService` closes all open tournaments at **Sunday 23:59 UTC**.
 Leaderboard entries are retained for historical records.
 Admin manually creates the next week's tournament via the dashboard.
 
-## Deployment (Render / Railway)
+## Production Deployment
 
-1. Push `backend/` as a Docker service, set env vars from `.env.example`
-2. Push `admin/` as a Next.js service
-3. Attach a managed Postgres instance
-4. Set `DATABASE_URL` to the managed DB connection string
-5. Ensure S3 bucket policy allows `PutObject` from the backend service role
+Infrastructure lives in `infra/terraform/` (AWS ECS Fargate + RDS + S3 + Secrets Manager).
+
+CI/CD via `.github/workflows/deploy.yml`:
+- Path-filtered: only changed services rebuild and deploy
+- Backend and admin jobs run in **parallel**
+- Docker layer caching keeps deploys under ~4 minutes
+- `prisma db push` and seed run automatically on ECS container startup
+
+Production URLs:
+- API: https://api.fishleague.app
+- Admin: https://admin.fishleague.app
+- Web: https://fishleague.app
+
+Environment variables required (stored in AWS Secrets Manager):
+- `DATABASE_URL` — RDS connection string
+- `JWT_SECRET` — token signing key
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` / `S3_BUCKET`
+- `APPLE_BUNDLE_ID` — for Apple Sign In verification
+- `ADMIN_PASSWORD` — initial admin account password (seed only)
 
 ---
 
-> MVP scope only. Phase 2 adds: push notifications, payment automation, ML fraud detection, multi-region, offline mode.
+> MVP scope. Phase 2: push notifications, payment automation, ML fraud detection, multi-region expansion, offline mode.
