@@ -13,13 +13,37 @@ const Ctx = createContext<AuthCtx>({ token: null, login: async () => null, logou
 
 export function useAuth() { return useContext(Ctx); }
 
+async function verifyAdminRole(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return false;
+    const user = await res.json();
+    return user.role === 'ADMIN';
+  } catch {
+    return false;
+  }
+}
+
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setToken(localStorage.getItem('admin_token'));
-    setReady(true);
+    const stored = localStorage.getItem('admin_token');
+    if (stored) {
+      verifyAdminRole(stored).then(isAdmin => {
+        if (isAdmin) {
+          setToken(stored);
+        } else {
+          localStorage.removeItem('admin_token');
+        }
+        setReady(true);
+      });
+    } else {
+      setReady(true);
+    }
   }, []);
 
   async function login(email: string, password: string): Promise<string | null> {
@@ -33,6 +57,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       return err.message ?? 'Invalid credentials';
     }
     const data = await res.json();
+    const isAdmin = await verifyAdminRole(data.token);
+    if (!isAdmin) return 'This account does not have admin access.';
     localStorage.setItem('admin_token', data.token);
     setToken(data.token);
     return null;
