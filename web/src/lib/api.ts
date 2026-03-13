@@ -42,6 +42,66 @@ export interface LeaderboardEntry {
 }
 export interface AuthResponse { token: string; userId: string; }
 
+export interface AnglerStats {
+  totalCatches: number;
+  totalTournamentsEntered: number;
+  tournamentsWon: number;
+  largestCatchCm: number | null;
+  averageCatchCm: number | null;
+  verifiedCatches: number;
+}
+
+export interface Achievement { id: string; badge: string; earnedAt: string; }
+
+export interface AnglerProfile {
+  id: string;
+  userId: string;
+  username: string;
+  bio: string | null;
+  profilePhotoUrl: string | null;
+  verifiedAngler: boolean;
+  homeState: string | null;
+  homeCity: string | null;
+  country: string | null;
+  primarySpecies: string[];
+  favoriteTechniques: string[];
+  favoriteBaits: string[];
+  preferredWaterType: 'FRESHWATER' | 'SALTWATER' | 'BOTH' | null;
+  favoriteRod: string | null;
+  favoriteReel: string | null;
+  favoriteLine: string | null;
+  favoriteBoat: string | null;
+  sponsorTags: string[];
+  sportsmanshipScore: number;
+  followersCount: number;
+  followingCount: number;
+  allowFollowers: boolean;
+  publicProfile: boolean;
+  badges: string[];
+  lastActiveAt: string;
+  profileViews: number;
+  achievements: Achievement[];
+  stats: AnglerStats;
+  isFollowing?: boolean;
+  user: { displayName: string; createdAt: string };
+}
+
+export interface UpdateProfilePayload {
+  username?: string;
+  bio?: string;
+  profilePhotoUrl?: string;
+  homeState?: string; homeCity?: string; country?: string;
+  primarySpecies?: string[];
+  favoriteTechniques?: string[];
+  favoriteBaits?: string[];
+  preferredWaterType?: 'FRESHWATER' | 'SALTWATER' | 'BOTH';
+  favoriteRod?: string; favoriteReel?: string;
+  favoriteLine?: string; favoriteBoat?: string;
+  sponsorTags?: string[];
+  allowFollowers?: boolean;
+  publicProfile?: boolean;
+}
+
 export const api = {
   getRegions: () => apiFetch<Region[]>('/users/regions'),
   getActiveTournament: () => apiFetch<Tournament>('/tournaments/open'),
@@ -57,4 +117,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password, displayName, regionId }),
     }),
+  getMyProfile: () => apiFetch<AnglerProfile | null>('/profile/me', undefined, true),
+  updateProfile: (data: UpdateProfilePayload) =>
+    apiFetch<AnglerProfile>('/profile/me', { method: 'PUT', body: JSON.stringify(data) }, true),
+  getProfile: (username: string) => apiFetch<AnglerProfile>(`/profile/${username}`),
+  followAngler: (username: string) =>
+    apiFetch<{ following: boolean }>(`/profile/${username}/follow`, { method: 'POST' }, true),
+  unfollowAngler: (username: string) =>
+    apiFetch<{ following: boolean }>(`/profile/${username}/follow`, { method: 'DELETE' }, true),
 };

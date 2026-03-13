@@ -33,6 +33,12 @@ enum UserRole {
   ADMIN
 }
 
+enum WaterType {
+  FRESHWATER
+  SALTWATER
+  BOTH
+}
+
 model User {
   id               String    @id @default(uuid())
   email            String?   @unique
@@ -50,6 +56,7 @@ model User {
   submissions      Submission[]
   leaderboardEntries LeaderboardEntry[]
   moderationActions  ModerationAction[] @relation("ModeratorActions")
+  profile          AnglerProfile?
 
   @@index([regionId])
 }
@@ -174,4 +181,83 @@ model ModerationAction {
   moderator    User       @relation("ModeratorActions", fields: [moderatorId], references: [id])
 
   @@index([submissionId])
+}
+
+// ─── Angler Profile ───────────────────────────────────────────────────────────
+
+model AnglerProfile {
+  id                 String     @id @default(uuid())
+  userId             String     @unique
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Identity
+  username           String     @unique
+  bio                String?    @db.VarChar(250)
+  profilePhotoUrl    String?
+  verifiedAngler     Boolean    @default(false)
+
+  // Location
+  homeState          String?
+  homeCity           String?
+  country            String?
+
+  // Fishing preferences
+  primarySpecies     String[]
+  favoriteTechniques String[]
+  favoriteBaits      String[]
+  preferredWaterType WaterType?
+
+  // Gear
+  favoriteRod        String?
+  favoriteReel       String?
+  favoriteLine       String?
+  favoriteBoat       String?
+  sponsorTags        String[]
+
+  // Reputation (maintained by moderation system)
+  sportsmanshipScore Float      @default(5.0)
+  ruleViolations     Int        @default(0)
+
+  // Social
+  followersCount     Int        @default(0)
+  followingCount     Int        @default(0)
+  allowFollowers     Boolean    @default(true)
+  publicProfile      Boolean    @default(true)
+
+  // Badges & activity
+  badges             String[]
+  lastActiveAt       DateTime   @default(now())
+  profileViews       Int        @default(0)
+
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  achievements       Achievement[]
+  followers          Follower[]  @relation("FollowerTarget")
+  following          Follower[]  @relation("FollowerActor")
+
+  @@index([username])
+  @@index([publicProfile])
+}
+
+model Achievement {
+  id        String        @id @default(uuid())
+  profileId String
+  profile   AnglerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  badge     String
+  earnedAt  DateTime      @default(now())
+
+  @@index([profileId])
+}
+
+model Follower {
+  id        String        @id @default(uuid())
+  actorId   String
+  actor     AnglerProfile @relation("FollowerActor", fields: [actorId], references: [id], onDelete: Cascade)
+  targetId  String
+  target    AnglerProfile @relation("FollowerTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([actorId, targetId])
+  @@index([targetId])
 }

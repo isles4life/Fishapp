@@ -9,6 +9,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { AuditModule } from './audit/audit.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuditModule } from './audit/audit.module';
     ModerationModule,
     WebsocketModule,
     AuditModule,
+    ProfileModule,
   ],
 })
 export class AppModule {}

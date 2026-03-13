@@ -7,11 +7,15 @@ struct FishLeagueApp: App {
     var body: some Scene {
         WindowGroup {
             if authVM.isAuthenticated {
-                // userId would normally come from decoding the stored JWT
-                // For MVP, store userId in Keychain at login time
                 let userId = KeychainService.shared.get(key: "user_id") ?? ""
-                TournamentHomeView(userId: userId)
-                    .environmentObject(authVM)
+                TabView {
+                    TournamentHomeView(userId: userId)
+                        .tabItem { Label("Tournament", systemImage: "fish.fill") }
+                    ProfileView()
+                        .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                }
+                .tint(Color(hex: "#2ecc71"))
+                .environmentObject(authVM)
             } else {
                 LoginView()
                     .environmentObject(authVM)
