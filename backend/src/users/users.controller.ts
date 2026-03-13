@@ -1,4 +1,5 @@
 import { Controller, Get, Patch, Param, Body, Request, UseGuards } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { AdminGuard } from '../common/admin.guard';
 import { PrismaService } from '../common/prisma.service';
@@ -65,5 +66,29 @@ export class UsersController {
     }
 
     return updated;
+  }
+
+  // Admin-only: reset a user's password
+  @Patch(':id/password')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async resetPassword(
+    @Param('id') id: string,
+    @Body() body: { password: string },
+    @Request() req: any,
+  ) {
+    const passwordHash = await bcrypt.hash(body.password, 10);
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+      select: { id: true, displayName: true, email: true },
+    });
+
+    await this.auditService.log(
+      'USER_PASSWORD_RESET',
+      req.user.id, req.user.displayName, id,
+      { targetName: updated.displayName, targetEmail: updated.email },
+    );
+
+    return { success: true };
   }
 }

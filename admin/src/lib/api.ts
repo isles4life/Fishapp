@@ -47,5 +47,8 @@ export const api = {
   updateUser: (id: string, data: { role?: 'USER' | 'ADMIN'; suspended?: boolean }) =>
     apiFetch(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
+  resetPassword: (id: string, password: string) =>
+    apiFetch(`/users/${id}/password`, { method: 'PATCH', body: JSON.stringify({ password }) }),
+
   getAuditLog: () => apiFetch<any[]>('/admin/audit'),
 };

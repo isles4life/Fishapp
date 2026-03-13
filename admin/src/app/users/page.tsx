@@ -6,6 +6,7 @@ const C = {
   bg: '#0d1821', surface: '#162032', surfaceHigh: '#1e2d40', border: '#2a3f55',
   green: '#2ecc71', greenMuted: '#1a3a2a', red: '#e74c3c', orange: '#e67e22',
   gold: '#f0b429', text: '#e8f0fe', textSub: '#7a9bbf', textMuted: '#4a6580',
+  blue: '#3498db',
 };
 
 interface User {
@@ -24,6 +25,11 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState<string | null>(null);
+  // password reset state: { [userId]: newPassword }
+  const [pwInputs, setPwInputs] = useState<Record<string, string>>({});
+  const [pwVisible, setPwVisible] = useState<Record<string, boolean>>({});
+  const [pwLoading, setPwLoading] = useState<string | null>(null);
+  const [pwSuccess, setPwSuccess] = useState<string | null>(null);
 
   async function load() {
     try { setUsers(await api.getUsers()); }
@@ -44,6 +50,28 @@ export default function UsersPage() {
     try { await api.updateUser(user.id, { suspended: !user.suspended }); await load(); }
     catch (e: any) { setError(e.message); }
     finally { setLoading(null); }
+  }
+
+  async function resetPassword(user: User) {
+    const pw = pwInputs[user.id] ?? '';
+    if (pw.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    setPwLoading(user.id);
+    setError('');
+    try {
+      await api.resetPassword(user.id, pw);
+      setPwInputs(prev => { const n = { ...prev }; delete n[user.id]; return n; });
+      setPwVisible(prev => { const n = { ...prev }; delete n[user.id]; return n; });
+      setPwSuccess(user.id);
+      setTimeout(() => setPwSuccess(null), 3000);
+    } catch (e: any) { setError(e.message); }
+    finally { setPwLoading(null); }
+  }
+
+  function togglePwInput(userId: string) {
+    setPwVisible(prev => ({ ...prev, [userId]: !prev[userId] }));
+    if (pwVisible[userId]) {
+      setPwInputs(prev => { const n = { ...prev }; delete n[userId]; return n; });
+    }
   }
 
   const filtered = users.filter(u =>
@@ -115,14 +143,45 @@ export default function UsersPage() {
                   {new Date(u.createdAt).toLocaleDateString()}
                 </td>
                 <td style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {u.role === 'USER'
-                      ? <button onClick={() => setRole(u, 'ADMIN')} disabled={!!loading} style={btnStyle('#7c5c00', C.gold)}>Make Admin</button>
-                      : <button onClick={() => setRole(u, 'USER')} disabled={!!loading} style={btnStyle('#3a1a00', C.orange)}>Revoke Admin</button>
-                    }
-                    <button onClick={() => toggleSuspend(u)} disabled={!!loading} style={btnStyle(u.suspended ? '#1a3a2a' : '#3a0f0f', u.suspended ? C.green : C.red)}>
-                      {u.suspended ? 'Unsuspend' : 'Suspend'}
-                    </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {u.role === 'USER'
+                        ? <button onClick={() => setRole(u, 'ADMIN')} disabled={!!loading} style={btnStyle('#7c5c00', C.gold)}>Make Admin</button>
+                        : <button onClick={() => setRole(u, 'USER')} disabled={!!loading} style={btnStyle('#3a1a00', C.orange)}>Revoke Admin</button>
+                      }
+                      <button onClick={() => toggleSuspend(u)} disabled={!!loading} style={btnStyle(u.suspended ? '#1a3a2a' : '#3a0f0f', u.suspended ? C.green : C.red)}>
+                        {u.suspended ? 'Unsuspend' : 'Suspend'}
+                      </button>
+                      {u.authProvider !== 'APPLE' && (
+                        <button onClick={() => togglePwInput(u.id)} style={btnStyle('#0e2236', C.blue)}>
+                          {pwVisible[u.id] ? 'Cancel' : 'Reset Password'}
+                        </button>
+                      )}
+                    </div>
+
+                    {pwVisible[u.id] && (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <input
+                          type="password"
+                          placeholder="New password (min 8)"
+                          value={pwInputs[u.id] ?? ''}
+                          onChange={e => setPwInputs(prev => ({ ...prev, [u.id]: e.target.value }))}
+                          onKeyDown={e => e.key === 'Enter' && resetPassword(u)}
+                          style={{ padding: '5px 10px', fontSize: 13, backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, width: 180 }}
+                        />
+                        <button
+                          onClick={() => resetPassword(u)}
+                          disabled={pwLoading === u.id}
+                          style={btnStyle('#0e2236', C.blue)}
+                        >
+                          {pwLoading === u.id ? '...' : 'Set'}
+                        </button>
+                      </div>
+                    )}
+
+                    {pwSuccess === u.id && (
+                      <span style={{ fontSize: 12, color: C.green }}>Password updated.</span>
+                    )}
                   </div>
                 </td>
               </tr>
