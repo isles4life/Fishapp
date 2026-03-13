@@ -59,6 +59,7 @@ export default function UsersPage() {
   const [pwVisible, setPwVisible] = useState<Record<string, boolean>>({});
   const [pwLoading, setPwLoading] = useState<string | null>(null);
   const [pwSuccess, setPwSuccess] = useState<string | null>(null);
+  const [impersonating, setImpersonating] = useState<string | null>(null);
 
   async function load() {
     try { setUsers(await api.getUsers()); }
@@ -94,6 +95,16 @@ export default function UsersPage() {
       setTimeout(() => setPwSuccess(null), 3000);
     } catch (e: any) { setError(e.message); }
     finally { setPwLoading(null); }
+  }
+
+  async function impersonate(user: User) {
+    setImpersonating(user.id);
+    try {
+      const { token } = await api.impersonateUser(user.id);
+      const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? 'http://localhost:3002';
+      window.open(`${webUrl}/impersonate?token=${encodeURIComponent(token)}`, '_blank');
+    } catch (e: any) { setError(e.message); }
+    finally { setImpersonating(null); }
   }
 
   function togglePwInput(userId: string) {
@@ -237,6 +248,14 @@ export default function UsersPage() {
                           {pwVisible[u.id] ? 'Cancel' : 'Reset PW'}
                         </ActionBtn>
                       )}
+                      <ActionBtn
+                        onClick={() => impersonate(u)}
+                        disabled={impersonating === u.id}
+                        color={C.purple}
+                        bg={C.purple + '20'}
+                      >
+                        {impersonating === u.id ? '…' : 'Impersonate'}
+                      </ActionBtn>
                     </div>
 
                     {pwVisible[u.id] && (

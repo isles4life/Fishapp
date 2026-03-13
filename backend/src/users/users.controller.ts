@@ -1,15 +1,17 @@
-import { Controller, Get, Patch, Param, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Request, UseGuards, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { AdminGuard } from '../common/admin.guard';
 import { PrismaService } from '../common/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly authService: AuthService,
   ) {}
 
   @Get('me')
@@ -66,6 +68,28 @@ export class UsersController {
     }
 
     return updated;
+  }
+
+  // Admin-only: impersonate a user (returns a JWT for that user)
+  @Post(':id/impersonate')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async impersonateUser(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    const target = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, displayName: true, email: true },
+    });
+    if (!target) throw new NotFoundException('User not found');
+
+    await this.auditService.log(
+      'USER_IMPERSONATED',
+      req.user.id, req.user.displayName, id,
+      { targetName: target.displayName, targetEmail: target.email },
+    );
+
+    return { token: this.authService.generateToken(target.id), userId: target.id };
   }
 
   // Admin-only: reset a user's password

@@ -51,4 +51,7 @@ export const api = {
     apiFetch(`/users/${id}/password`, { method: 'PATCH', body: JSON.stringify({ password }) }),
 
   getAuditLog: () => apiFetch<any[]>('/admin/audit'),
+
+  impersonateUser: (id: string) =>
+    apiFetch<{ token: string; userId: string }>(`/users/${id}/impersonate`, { method: 'POST' }),
 };

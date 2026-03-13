@@ -28,6 +28,8 @@ const ACTION_META: Record<string, { label: string; color: string; icon: string }
   USER_SUSPENDED:          { label: 'User Suspended',      color: C.red,    icon: '⊘' },
   USER_UNSUSPENDED:        { label: 'User Unsuspended',    color: C.green,  icon: '✓' },
   USER_LOGIN:              { label: 'Login',               color: C.textSub, icon: '→' },
+  USER_IMPERSONATED:       { label: 'User Impersonated',   color: C.purple,  icon: '👤' },
+  USER_PASSWORD_RESET:     { label: 'Password Reset',      color: C.blue,    icon: '🔑' },
 };
 
 function getDetails(entry: AuditEntry): string {

@@ -83,7 +83,11 @@ export class AuthService {
     return { token: this.sign(user.id), userId: user.id };
   }
 
-  private sign(userId: string) {
+  generateToken(userId: string) {
     return this.jwt.sign({ sub: userId });
+  }
+
+  private sign(userId: string) {
+    return this.generateToken(userId);
   }
 }
