@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'FishLeague – Live Leaderboard',
-  description: 'Follow the live competitive fishing leaderboard',
+  title: 'FishLeague – Competitive Fishing',
+  description: 'Competitive fishing league with live leaderboards and weekly tournaments',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

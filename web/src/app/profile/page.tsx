@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Nav from '../../components/Nav';
 import { api, clearToken, isLoggedIn } from '../../lib/api';
 import type { AnglerProfile, UpdateProfilePayload } from '../../lib/api';
 
@@ -191,8 +192,8 @@ function TagList({ label, tags }: { label: string; tags: string[] }) {
 
 function StatCard({ label, value }: { label: string; value: string | number | null }) {
   return (
-    <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.border}`, textAlign: 'center' }}>
-      <div style={{ fontSize: 24, fontWeight: 900, color: C.accent }}>{value ?? '—'}</div>
+    <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 12, padding: '18px 16px', border: `1px solid ${C.border}`, textAlign: 'center' }}>
+      <div style={{ fontSize: 28, fontWeight: 900, color: C.accent }}>{value ?? '—'}</div>
       <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
     </div>
   );
@@ -286,9 +287,6 @@ export default function MyProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [navOpen, setNavOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
   const [form, setForm] = useState<UpdateProfilePayload>({});
 
   useEffect(() => {
@@ -312,15 +310,8 @@ export default function MyProfilePage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setNavOpen(false);
-    }
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, []);
-
   function handleLogout() { clearToken(); router.push('/'); }
+  void handleLogout; // kept for potential future use
 
   function setArr(field: keyof UpdateProfilePayload, raw: string) {
     setForm(f => ({ ...f, [field]: raw.split(',').map(s => s.trim()).filter(Boolean) }));
@@ -339,52 +330,13 @@ export default function MyProfilePage() {
     finally { setSaving(false); }
   }
 
-  const nav = (
-    <nav style={{ backgroundColor: C.surface, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 10 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="FishLeague" style={{ height: 34 }} />
-          <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 1 }}>
-            <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
-          </span>
-        </Link>
-        <div style={{ marginLeft: 'auto' }}>
-          <div ref={dropdownRef} style={{ position: 'relative' }}>
-            <button onClick={() => setNavOpen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 17, overflow: 'hidden', border: `1.5px solid ${C.border}`, backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {profile?.profilePhotoUrl
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={profile.profilePhotoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <span style={{ fontSize: 13, fontWeight: 700, color: C.textSub }}>{profile?.user?.displayName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? '?'}</span>
-                }
-              </div>
-              <span style={{ color: C.textSub, fontSize: 13, fontWeight: 600 }}>{profile?.username ? `@${profile.username}` : 'My Profile'}</span>
-              <span style={{ color: C.textMuted, fontSize: 10 }}>{navOpen ? '▲' : '▼'}</span>
-            </button>
-            {navOpen && (
-              <div style={{ position: 'absolute', top: 44, right: 0, minWidth: 170, backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 100 }}>
-                <Link href="/profile" onClick={() => setNavOpen(false)} style={{ display: 'block', padding: '12px 16px', color: C.text, textDecoration: 'none', fontSize: 14, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
-                  👤 My Profile
-                </Link>
-                <button onClick={handleLogout} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 16px', color: C.textSub, background: 'none', border: 'none', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-
   if (loading) return (
-    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>{nav}<div style={{ textAlign: 'center', color: C.textMuted, padding: 80 }}>Loading...</div></div>
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}><Nav active="profile" /><div style={{ textAlign: 'center', color: C.textMuted, padding: 80 }}>Loading...</div></div>
   );
 
   if (editing) return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
-      {nav}
+      <Nav active="profile" />
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -483,7 +435,7 @@ export default function MyProfilePage() {
 
   if (!profile) return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
-      {nav}
+      <Nav active="profile" />
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px', textAlign: 'center', paddingTop: 60 }}>
         <p style={{ color: C.textSub, fontSize: 18, marginBottom: 20 }}>You haven&apos;t set up your angler profile yet.</p>
         <button onClick={() => setEditing(true)} style={{ backgroundColor: C.accent, color: C.bg, fontWeight: 700, padding: '12px 28px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' }}>Set Up Profile</button>
@@ -495,7 +447,7 @@ export default function MyProfilePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
-      {nav}
+      <Nav active="profile" />
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px' }}>
         {success && <div style={{ backgroundColor: C.verifiedBg, border: `1px solid ${C.accent}50`, color: C.accent, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{success}</div>}
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
@@ -528,14 +480,12 @@ export default function MyProfilePage() {
             <button onClick={() => setEditing(true)} style={ghostBtn}>Edit Profile</button>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
-            <StatCard label="Catches" value={stats.totalCatches} />
+          {/* Stats — 2×2 grid matching mobile layout */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 24 }}>
+            <StatCard label="Total Catches" value={stats.totalCatches} />
+            <StatCard label="PB / Best Catch" value={stats.largestCatchCm ? `${stats.largestCatchCm} cm` : null} />
             <StatCard label="Tournaments" value={stats.totalTournamentsEntered} />
-            <StatCard label="Wins" value={stats.tournamentsWon} />
-            <StatCard label="Best Catch" value={stats.largestCatchCm ? `${stats.largestCatchCm} cm` : null} />
             <StatCard label="Avg Catch" value={stats.averageCatchCm ? `${stats.averageCatchCm} cm` : null} />
-            <StatCard label="Sportsmanship" value={`${profile.sportsmanshipScore.toFixed(1)} ★`} />
           </div>
 
           {/* Badges */}

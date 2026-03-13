@@ -1,0 +1,191 @@
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Nav from '../../components/Nav';
+import { api } from '../../lib/api';
+import type { Tournament } from '../../lib/api';
+
+const C = {
+  bg:          '#0D1A0D',
+  surface:     '#152515',
+  surfaceHigh: '#1D331D',
+  border:      '#2A4A2A',
+  borderGold:  '#C9A450',
+  accent:      '#C9A450',
+  accentDark:  '#9E7A30',
+  verified:    '#3DAF5A',
+  verifiedBg:  '#0F3A1E',
+  error:       '#C0392B',
+  errorBg:     '#3A1414',
+  text:        '#F0EDE4',
+  textSub:     '#8BA88B',
+  textMuted:   '#4A6A4A',
+  gold:        '#C9A450',
+  silver:      '#A0A8A0',
+  bronze:      '#8B6F4A',
+};
+
+type Tab = 'active' | 'upcoming';
+
+export default function TournamentsPage() {
+  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [tab, setTab] = useState<Tab>('active');
+
+  useEffect(() => {
+    api.getActiveTournament()
+      .then(t => { setTournament(t); setError(''); })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function tabStyle(name: Tab): React.CSSProperties {
+    const active = tab === name;
+    return {
+      background: 'none',
+      border: 'none',
+      borderBottom: active ? `2px solid ${C.accent}` : '2px solid transparent',
+      color: active ? C.accent : C.textMuted,
+      fontWeight: 700,
+      fontSize: 14,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      padding: '10px 20px',
+      cursor: 'pointer',
+    };
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
+      <Nav active="tournaments" />
+
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <h1 className="display" style={{ fontSize: 36, fontWeight: 900, color: C.text, margin: '0 0 6px', letterSpacing: -1, textTransform: 'uppercase' }}>
+            Tournaments
+          </h1>
+          <p style={{ color: C.textSub, fontSize: 15, margin: 0 }}>
+            Competitive fishing leagues in your region
+          </p>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}`, marginBottom: 28 }}>
+          <button style={tabStyle('active')} onClick={() => setTab('active')}>Active</button>
+          <button style={tabStyle('upcoming')} onClick={() => setTab('upcoming')}>Upcoming</button>
+        </div>
+
+        {loading && (
+          <div style={{ textAlign: 'center', color: C.textMuted, padding: 60 }}>Loading...</div>
+        )}
+
+        {/* ACTIVE TAB */}
+        {!loading && tab === 'active' && (
+          <>
+            {(error || !tournament) ? (
+              <div style={{
+                textAlign: 'center', padding: '60px 20px',
+                backgroundColor: C.surface, borderRadius: 16, border: `1px solid ${C.border}`,
+              }}>
+                <p style={{ color: C.textSub, fontSize: 18, margin: '0 0 8px' }}>No active tournament right now.</p>
+                <p style={{ color: C.textMuted, fontSize: 14, margin: 0 }}>Check back when the next week opens.</p>
+              </div>
+            ) : (
+              <div style={{
+                backgroundColor: C.surface,
+                border: `1px solid ${C.border}`,
+                borderRadius: 16,
+                overflow: 'hidden',
+              }}>
+                {/* Card top accent bar */}
+                <div style={{ height: 4, backgroundColor: C.accent }} />
+                <div style={{ padding: '24px 28px' }}>
+                  {/* Status badge */}
+                  <div style={{ marginBottom: 12 }}>
+                    <span style={{
+                      backgroundColor: C.accent, color: C.bg,
+                      borderRadius: 20, padding: '4px 12px',
+                      fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
+                      textTransform: 'uppercase',
+                    }}>
+                      Active
+                    </span>
+                  </div>
+
+                  {/* Tournament name */}
+                  <h2 style={{
+                    fontSize: 22, fontWeight: 900, color: C.text,
+                    margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: 0.5,
+                  }}>
+                    {tournament.name}
+                  </h2>
+
+                  {/* Stat chips */}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+                    <div style={{
+                      backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`,
+                      borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600,
+                    }}>
+                      📍 {tournament.region.name}
+                    </div>
+                    <div style={{
+                      backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`,
+                      borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600,
+                    }}>
+                      📅 Ends {new Date(tournament.endsAt).toLocaleDateString()}
+                    </div>
+                    <div style={{
+                      backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`,
+                      borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600,
+                    }}>
+                      📆 Week {tournament.weekNumber} · {tournament.year}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Link href="/leaderboard" style={{
+                      backgroundColor: C.accent, color: C.bg, fontWeight: 700,
+                      padding: '11px 24px', borderRadius: 10, textDecoration: 'none',
+                      fontSize: 14, letterSpacing: 1, textTransform: 'uppercase', display: 'inline-block',
+                    }}>
+                      View Leaderboard
+                    </Link>
+                    <span style={{ color: C.textMuted, fontSize: 13 }}>
+                      📱 Get the app to compete
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* UPCOMING TAB */}
+        {!loading && tab === 'upcoming' && (
+          <div style={{
+            textAlign: 'center', padding: '60px 20px',
+            backgroundColor: C.surface, borderRadius: 16, border: `1px solid ${C.border}`,
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
+            <h3 style={{ color: C.textSub, fontSize: 20, fontWeight: 700, margin: '0 0 8px' }}>
+              Check Back for Upcoming Tournaments
+            </h3>
+            <p style={{ color: C.textMuted, fontSize: 14, margin: '0 0 24px' }}>
+              New weekly tournaments are announced every Sunday.
+            </p>
+            <Link href="/register" style={{
+              backgroundColor: C.accent, color: C.bg, fontWeight: 700,
+              padding: '11px 24px', borderRadius: 10, textDecoration: 'none',
+              fontSize: 14, letterSpacing: 1, textTransform: 'uppercase', display: 'inline-block',
+            }}>
+              Create Account
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

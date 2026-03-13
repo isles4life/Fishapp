@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import Link from 'next/link';
-import { api, clearToken, isLoggedIn } from '../lib/api';
-import type { Tournament, LeaderboardEntry, AnglerProfile } from '../lib/api';
+import Nav from '../components/Nav';
+import { api, isLoggedIn } from '../lib/api';
+import type { Tournament, LeaderboardEntry } from '../lib/api';
 
 const C = {
   bg:          '#0D1A0D',
@@ -45,7 +46,7 @@ function AvatarCircle({ photoUrl, name, size = 36 }: { photoUrl?: string | null;
   if (photoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={photoUrl} alt="" style={{ width: size, height: size, borderRadius: size / 2, objectFit: 'cover', border: `1.5px solid ${C.border}`, display: 'block' }} />
+      <img src={photoUrl} alt="" style={{ width: size, height: size, borderRadius: size / 2, objectFit: 'cover', border: `1.5px solid ${C.borderGold}`, display: 'block' }} />
     );
   }
   return (
@@ -60,15 +61,19 @@ function AvatarCircle({ photoUrl, name, size = 36 }: { photoUrl?: string | null;
   );
 }
 
+function cmToInches(cm: number): string {
+  return (cm / 2.54).toFixed(2);
+}
+
+const rankColor = (rank: number) => rank === 1 ? C.gold : rank === 2 ? C.silver : rank === 3 ? C.bronze : C.textMuted;
+const medalFor = (rank: number) => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+
 export default function HomePage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [profile, setProfile] = useState<AnglerProfile | null>(null);
-  const [navOpen, setNavOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -85,142 +90,168 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const li = isLoggedIn();
-    setLoggedIn(li);
-    if (li) api.getMyProfile().then(setProfile).catch(() => {});
+    setLoggedIn(isLoggedIn());
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
   }, [load]);
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setNavOpen(false);
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
-
-  function handleLogout() { clearToken(); setLoggedIn(false); setProfile(null); setNavOpen(false); }
-
-  const rankColor = (rank: number) => rank === 1 ? C.gold : rank === 2 ? C.silver : rank === 3 ? C.bronze : C.textMuted;
-  const medalFor = (rank: number) => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
-      {/* ── Nav ─────────────────────────────────────────────────────── */}
-      <nav style={{ backgroundColor: C.surface, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="FishLeague" style={{ height: 34, marginRight: 10 }} />
-          <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 1 }}>
-            <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
-          </span>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
-            {loggedIn ? (
-              <div ref={dropdownRef} style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setNavOpen(o => !o)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}
-                >
-                  <AvatarCircle photoUrl={profile?.profilePhotoUrl} name={profile?.user?.displayName} size={36} />
-                  <span style={{ color: C.textSub, fontSize: 13, fontWeight: 600 }}>
-                    {profile?.username ? `@${profile.username}` : 'My Account'}
-                  </span>
-                  <span style={{ color: C.textMuted, fontSize: 10 }}>{navOpen ? '▲' : '▼'}</span>
-                </button>
-                {navOpen && (
-                  <div style={{
-                    position: 'absolute', top: 44, right: 0, minWidth: 170,
-                    backgroundColor: C.surface, border: `1px solid ${C.border}`,
-                    borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                    zIndex: 100,
-                  }}>
-                    <Link href="/profile" onClick={() => setNavOpen(false)} style={{ display: 'block', padding: '12px 16px', color: C.text, textDecoration: 'none', fontSize: 14, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
-                      👤 My Profile
-                    </Link>
-                    <button onClick={handleLogout} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 16px', color: C.textSub, background: 'none', border: 'none', fontSize: 14, cursor: 'pointer', fontWeight: 600 }}>
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <Link href="/login" style={ghostBtn}>Sign In</Link>
-                <Link href="/register" style={accentBtn}>Join Now</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Nav active="home" />
 
-      {/* ── Content ─────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 20px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <h1 style={{ fontSize: 42, fontWeight: 900, color: C.text, margin: '0 0 8px', letterSpacing: -1, textTransform: 'uppercase' }}>Live Leaderboard</h1>
-          {tournament && (
-            <p style={{ color: C.textSub, fontSize: 15, margin: 0 }}>
-              {tournament.name} · {tournament.region.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
-            </p>
-          )}
-          <p style={{ color: C.textMuted, fontSize: 11, marginTop: 6, letterSpacing: 1.5, textTransform: 'uppercase' }}>AUTO-REFRESHES EVERY 30 SECONDS</p>
-        </div>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px' }}>
 
-        {loading && <div style={{ textAlign: 'center', color: C.textMuted, padding: 60 }}>Loading...</div>}
+        {/* ── Hero / Tournament Banner ─────────────────────────────── */}
+        {loading && (
+          <div style={{ textAlign: 'center', color: C.textMuted, padding: 60 }}>Loading...</div>
+        )}
 
         {error && !loading && (
-          <div style={{ textAlign: 'center', padding: 60 }}>
-            <p style={{ color: C.textSub, fontSize: 18 }}>No active tournament right now.</p>
-            <p style={{ color: C.textMuted, fontSize: 14 }}>Check back when the next week opens.</p>
+          <div style={{
+            textAlign: 'center', padding: '60px 20px',
+            backgroundColor: C.surface, borderRadius: 20, border: `1px solid ${C.border}`,
+            marginBottom: 40,
+          }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.png" alt="FishLeague" style={{ width: 64, marginBottom: 16, opacity: 0.5 }} />
+            <h2 style={{ color: C.textSub, fontSize: 20, fontWeight: 700, margin: '0 0 8px' }}>No Active Tournament</h2>
+            <p style={{ color: C.textMuted, fontSize: 15, margin: '0 0 24px' }}>Check back when the next week opens.</p>
+            <Link href="/register" style={accentBtn}>Join Now</Link>
           </div>
         )}
 
-        {!loading && !error && entries.length === 0 && (
+        {!loading && !error && tournament && (
+          <div style={{
+            backgroundColor: C.surface,
+            borderRadius: 20,
+            border: `1px solid ${C.border}`,
+            borderLeft: `4px solid ${C.accent}`,
+            padding: '28px 32px',
+            marginBottom: 40,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.accent, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
+              Active Tournament
+            </div>
+            <h1 style={{ fontSize: 32, fontWeight: 900, color: C.text, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: -0.5 }}>
+              {tournament.name}
+            </h1>
+            <p style={{ color: C.textSub, fontSize: 15, margin: '0 0 24px' }}>
+              {tournament.region.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link href="/leaderboard" style={accentBtn}>📊 View Leaderboard</Link>
+              <Link href="/tournaments" style={ghostBtn}>🏆 View Tournaments</Link>
+            </div>
+          </div>
+        )}
+
+        {/* ── Recent Catches ───────────────────────────────────────── */}
+        {!loading && !error && entries.length > 0 && (
+          <>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Recent Catches
+              </h2>
+              <p style={{ color: C.textMuted, fontSize: 13, margin: 0, textTransform: 'uppercase', letterSpacing: 1 }}>
+                Live Activity Feed
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {entries.map((entry) => (
+                <div key={entry.userId} style={{
+                  backgroundColor: C.surface,
+                  border: `1px solid ${entry.rank <= 3 ? C.accent + '40' : C.border}`,
+                  borderRadius: 16,
+                  padding: 20,
+                  overflow: 'hidden',
+                }}>
+                  {/* Top row: rank + avatar + name + verified */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 20, flexShrink: 0,
+                      border: `2px solid ${rankColor(entry.rank)}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: entry.rank <= 3 ? 18 : 13, fontWeight: 800,
+                      color: rankColor(entry.rank),
+                      backgroundColor: C.surfaceHigh,
+                    }}>
+                      {medalFor(entry.rank)}
+                    </div>
+                    <AvatarCircle photoUrl={entry.profilePhotoUrl} name={entry.displayName} size={42} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{entry.displayName}</span>
+                        {entry.rank <= 3 && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 800, color: C.verified,
+                            backgroundColor: C.verifiedBg, padding: '2px 7px',
+                            borderRadius: 10, letterSpacing: 0.5, textTransform: 'uppercase',
+                          }}>✓ VERIFIED</span>
+                        )}
+                      </div>
+                      {entry.username && (
+                        <div style={{ color: C.textMuted, fontSize: 12, marginTop: 1 }}>@{entry.username}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fish catch measurement */}
+                  <div style={{
+                    backgroundColor: C.surfaceHigh,
+                    borderRadius: 12,
+                    padding: '16px 20px',
+                    textAlign: 'center',
+                    marginBottom: 12,
+                  }}>
+                    <div style={{ fontSize: 36, fontWeight: 900, color: C.accent, letterSpacing: -1 }}>
+                      {cmToInches(entry.fishLengthCm)} <span style={{ fontSize: 18, fontWeight: 700 }}>IN</span>
+                    </div>
+                    <div style={{
+                      fontSize: 13, fontWeight: 900, color: C.text,
+                      textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4,
+                    }}>
+                      {entry.displayName} IS RANKED #{entry.rank}
+                    </div>
+                  </div>
+
+                  {/* Meta row */}
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
+                    {tournament && (
+                      <span style={{ color: C.textSub, fontSize: 13 }}>📍 {tournament.region.name}</span>
+                    )}
+                    <span style={{ color: C.textSub, fontSize: 13 }}>🏅 {entry.rank} PTS</span>
+                  </div>
+
+                  {/* Action row */}
+                  <div style={{ display: 'flex', gap: 16, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                    <button disabled style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: 13, cursor: 'not-allowed', padding: 0 }}>
+                      🏆 Props
+                    </button>
+                    <button disabled style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: 13, cursor: 'not-allowed', padding: 0 }}>
+                      💬 Comments
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && !error && entries.length === 0 && tournament && (
           <div style={{ textAlign: 'center', color: C.textMuted, padding: 60, fontSize: 16 }}>
             No entries yet — tournament just opened!
           </div>
         )}
 
-        {!loading && entries.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {entries.map((entry) => (
-              <div key={entry.userId} style={{
-                display: 'flex', alignItems: 'center',
-                backgroundColor: entry.rank === 1 ? C.surfaceHigh : C.surface,
-                borderRadius: 14, padding: '14px 18px',
-                border: `1px solid ${entry.rank === 1 ? C.accent + '60' : C.border}`,
-              }}>
-                {/* Rank */}
-                <div style={{
-                  width: 44, height: 44, borderRadius: 22,
-                  border: `1.5px solid ${rankColor(entry.rank)}60`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: entry.rank <= 3 ? 22 : 13, fontWeight: 800,
-                  color: rankColor(entry.rank), marginRight: 14, flexShrink: 0,
-                }}>
-                  {medalFor(entry.rank)}
-                </div>
-                {/* Avatar */}
-                <div style={{ marginRight: 12, flexShrink: 0 }}>
-                  <AvatarCircle photoUrl={entry.profilePhotoUrl} name={entry.displayName} size={38} />
-                </div>
-                {/* Name */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{entry.displayName}</div>
-                  {entry.username && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>@{entry.username}</div>}
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: C.accent }}>{entry.fishLengthCm} cm</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!loggedIn && (
-          <div style={{ marginTop: 48, backgroundColor: C.surface, borderRadius: 14, padding: 32, textAlign: 'center', border: `1px solid ${C.border}` }}>
-            <h3 style={{ margin: '0 0 8px', color: C.text, fontSize: 20, fontWeight: 700 }}>Want to compete?</h3>
+        {/* ── CTA (non-logged-in) ──────────────────────────────────── */}
+        {!loggedIn && !loading && (
+          <div style={{ marginTop: 48, backgroundColor: C.surface, borderRadius: 16, padding: 32, textAlign: 'center', border: `1px solid ${C.border}` }}>
+            <h3 style={{ margin: '0 0 8px', color: C.text, fontSize: 20, fontWeight: 700 }}>Download the app to compete</h3>
             <p style={{ margin: '0 0 20px', color: C.textSub, fontSize: 15 }}>
-              Download the FishLeague app, create an account, and start submitting catches.
+              Submit catches from your phone with GPS verification and real-time leaderboard updates.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/register" style={accentBtn}>Create Account</Link>

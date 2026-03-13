@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Nav from '../../../components/Nav';
 import { api, isLoggedIn } from '../../../lib/api';
 import type { AnglerProfile } from '../../../lib/api';
 
@@ -45,8 +46,8 @@ function TagList({ label, tags }: { label: string; tags: string[] }) {
 
 function StatCard({ label, value }: { label: string; value: string | number | null }) {
   return (
-    <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.border}`, textAlign: 'center' }}>
-      <div style={{ fontSize: 24, fontWeight: 900, color: C.accent }}>{value ?? '—'}</div>
+    <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 12, padding: '18px 16px', border: `1px solid ${C.border}`, textAlign: 'center' }}>
+      <div style={{ fontSize: 28, fontWeight: 900, color: C.accent }}>{value ?? '—'}</div>
       <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
     </div>
   );
@@ -93,18 +94,7 @@ export default function PublicProfilePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
-      <nav style={{ backgroundColor: C.surface, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '12px 20px', display: 'flex', alignItems: 'center' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 10 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.png" alt="FishLeague" style={{ height: 34 }} />
-            <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 1 }}>
-              <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
-            </span>
-          </Link>
-          <span style={{ marginLeft: 'auto', color: C.textMuted, fontSize: 14 }}>Angler Profile</span>
-        </div>
-      </nav>
+      <Nav />
 
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '32px 20px' }}>
         {loading && <div style={{ textAlign: 'center', color: C.textMuted, padding: 80 }}>Loading...</div>}
@@ -112,7 +102,7 @@ export default function PublicProfilePage() {
         {error && !loading && (
           <div style={{ textAlign: 'center', padding: 60 }}>
             <p style={{ color: C.textSub, fontSize: 18 }}>{error}</p>
-            <Link href="/" style={{ color: C.accent, textDecoration: 'none', fontSize: 14 }}>← Back to Leaderboard</Link>
+            <Link href="/" style={{ color: C.accent, textDecoration: 'none', fontSize: 14 }}>← Back to Home</Link>
           </div>
         )}
 
@@ -154,14 +144,12 @@ export default function PublicProfilePage() {
 
             {error && <div style={{ color: C.error, background: C.errorBg, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
-            {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
-              <StatCard label="Catches" value={profile.stats.totalCatches} />
+            {/* Stats — 2×2 grid matching mobile layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 24 }}>
+              <StatCard label="Total Catches" value={profile.stats.totalCatches} />
+              <StatCard label="PB / Best Catch" value={profile.stats.largestCatchCm ? `${profile.stats.largestCatchCm} cm` : null} />
               <StatCard label="Tournaments" value={profile.stats.totalTournamentsEntered} />
-              <StatCard label="Wins" value={profile.stats.tournamentsWon} />
-              <StatCard label="Best Catch" value={profile.stats.largestCatchCm ? `${profile.stats.largestCatchCm} cm` : null} />
               <StatCard label="Avg Catch" value={profile.stats.averageCatchCm ? `${profile.stats.averageCatchCm} cm` : null} />
-              <StatCard label="Sportsmanship" value={`${profile.sportsmanshipScore.toFixed(1)} ★`} />
             </div>
 
             {/* Badges */}
