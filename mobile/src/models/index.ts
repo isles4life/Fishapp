@@ -135,6 +135,23 @@ export interface AnglerProfile {
   user: { displayName: string; createdAt: string };
 }
 
+// ── Fishing Intelligence ───────────────────────────────────────────────────
+
+export interface FishingIntelResponse {
+  conditions: {
+    temperatureF: number;
+    windMph: number;
+    pressureHpa: number;
+    pressureTrend: 'rising' | 'falling' | 'stable';
+    weatherDesc: string;
+    season: string;
+    localTime: string;
+  };
+  activity: { level: string; headline: string; reason: string };
+  recommendations: { lure: string; altLure: string; depth: string; technique: string };
+  windows: { label: string; start: string; end: string; quality: string }[];
+}
+
 export interface UpdateProfilePayload {
   username?: string;
   bio?: string;

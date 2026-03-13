@@ -157,12 +157,9 @@ export function ProfileView({
     }
   }
 
-  const initials = profile.user.displayName
-    .split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-
   return (
     <SafeAreaView style={s.safeArea}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48, backgroundColor: CREAM }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
         {/* Header bar */}
         <View style={s.headerBar}>
           <Text style={s.headerTitle}>MY PROFILE</Text>
@@ -181,7 +178,7 @@ export function ProfileView({
                 <Image source={{ uri: avatarUrl }} style={s.avatarImg} />
               ) : (
                 <View style={s.avatarFallback}>
-                  <Text style={s.avatarInitials}>{initials}</Text>
+                  <Text style={s.avatarFallbackEmoji}>🎣</Text>
                 </View>
               )}
               {avatarLoading && (
@@ -805,15 +802,15 @@ const s = StyleSheet.create({
     color: colors.accent,
   },
 
-  // Hero — cream background
+  // Hero — dark green background (matches web)
   profileHero: {
     alignItems: 'center',
     paddingTop: 28,
     paddingBottom: 24,
     paddingHorizontal: 16,
-    backgroundColor: CREAM,
+    backgroundColor: colors.bg,
     borderBottomWidth: 1,
-    borderBottomColor: CREAM_BORDER,
+    borderBottomColor: colors.border,
   },
   avatarRing: {
     width: 96,
@@ -827,14 +824,12 @@ const s = StyleSheet.create({
   avatarImg: { width: '100%', height: '100%' },
   avatarFallback: {
     flex: 1,
-    backgroundColor: '#E8E0C8',
+    backgroundColor: colors.surfaceHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: DARK_MUTED,
+  avatarFallbackEmoji: {
+    fontSize: 36,
   },
   avatarOverlay: {
     position: 'absolute',
@@ -863,7 +858,7 @@ const s = StyleSheet.create({
   },
   displayName: {
     ...typography.displayMd,
-    color: DARK_TEXT,
+    color: colors.text,
   },
   verifiedChip: {
     backgroundColor: colors.verifiedBg,
@@ -879,12 +874,12 @@ const s = StyleSheet.create({
   },
   username: {
     ...typography.caption,
-    color: DARK_MUTED,
+    color: colors.textMuted,
     marginTop: 4,
   },
   bio: {
     ...typography.bodySm,
-    color: DARK_SUB,
+    color: colors.textSub,
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 18,
@@ -899,14 +894,14 @@ const s = StyleSheet.create({
   },
   metaText: {
     ...typography.caption,
-    color: DARK_MUTED,
+    color: colors.textMuted,
   },
   metaVal: {
     fontWeight: '700',
-    color: DARK_SUB,
+    color: colors.textSub,
   },
   metaDot: {
-    color: DARK_MUTED,
+    color: colors.textMuted,
     fontSize: 12,
   },
 

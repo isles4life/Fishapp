@@ -124,6 +124,24 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   return data;
 }
 
+// ── Fishing Intelligence ───────────────────────────────────────────────────
+
+export interface FishingIntelResponse {
+  conditions: {
+    temperatureF: number;
+    windMph: number;
+    pressureHpa: number;
+    pressureTrend: 'rising' | 'falling' | 'stable';
+    weatherDesc: string;
+    season: string;
+    localTime: string;
+    weatherCode?: number;
+  };
+  activity: { level: string; headline: string; reason: string };
+  recommendations: { lure: string; altLure: string; depth: string; technique: string };
+  windows: { label: string; start: string; end: string; quality: string }[];
+}
+
 export const api = {
   getRegions: () => apiFetch<Region[]>('/users/regions'),
   getActiveTournament: () => apiFetch<Tournament>('/tournaments/open'),
@@ -168,4 +186,6 @@ export const api = {
     form.append('avatar', file);
     return apiUpload<{ avatarUrl: string }>('/profile/me/avatar', form);
   },
+  getFishingIntel: (lat: number, lon: number) =>
+    apiFetch<FishingIntelResponse>(`/fishing-intelligence?lat=${lat}&lon=${lon}`, undefined, true),
 };

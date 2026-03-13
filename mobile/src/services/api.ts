@@ -12,6 +12,7 @@ import type {
   UpdateProfilePayload,
   CatchComment,
   UserWarning,
+  FishingIntelResponse,
 } from '../models';
 
 const BASE_URL =
@@ -199,6 +200,12 @@ export function followAngler(username: string): Promise<{ following: boolean }> 
 
 export function unfollowAngler(username: string): Promise<{ following: boolean }> {
   return request(`/profile/${username}/follow`, { method: 'DELETE' });
+}
+
+// ── Fishing Intelligence ───────────────────────────────────────────────────
+
+export function getFishingIntel(lat: number, lon: number): Promise<FishingIntelResponse> {
+  return request<FishingIntelResponse>(`/fishing-intelligence?lat=${lat}&lon=${lon}`);
 }
 
 export async function uploadAvatar(uri: string, mimeType: string): Promise<{ avatarUrl: string }> {

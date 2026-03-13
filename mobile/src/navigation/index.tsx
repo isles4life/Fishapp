@@ -11,6 +11,7 @@ import LeaderboardScreen from '../screens/Leaderboard/LeaderboardScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import PublicProfileScreen from '../screens/Profile/PublicProfileScreen';
 import SubmissionFlowScreen from '../screens/Submission/SubmissionFlowScreen';
+import FishingIntelligenceScreen from '../screens/FishingIntelligence/FishingIntelligenceScreen';
 import { HomeIcon, LeaderboardIcon, TrophyIcon, ProfileIcon } from '../components/icons/TabIcons';
 import { colors } from '../theme/colors';
 
@@ -31,6 +32,7 @@ export type RootStackParamList = {
 export type TabParamList = {
   Home: undefined;
   Leaderboard: undefined;
+  Forecast: undefined;
   Submit: undefined;
   Tournaments: undefined;
   Profile: undefined;
@@ -76,7 +78,21 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         else if (route.name === 'Tournaments') Icon = TrophyIcon;
         else Icon = ProfileIcon;
 
-        const label = route.name === 'Tournaments' ? 'Compete' : route.name;
+        const label =
+          route.name === 'Tournaments' ? 'Compete' :
+          route.name === 'Forecast' ? 'Forecast' :
+          route.name;
+
+        // Forecast tab uses a text emoji icon instead of SVG
+        if (route.name === 'Forecast') {
+          return (
+            <TouchableOpacity key={route.key} onPress={onPress} style={tabStyles.tab} activeOpacity={0.7}>
+              <Text style={{ fontSize: 20, lineHeight: 24 }}>⚡</Text>
+              <Text style={[tabStyles.label, { color: iconColor }]}>Forecast</Text>
+              {isFocused && <View style={tabStyles.dot} />}
+            </TouchableOpacity>
+          );
+        }
 
         return (
           <TouchableOpacity key={route.key} onPress={onPress} style={tabStyles.tab} activeOpacity={0.7}>
@@ -149,6 +165,7 @@ function MainTabs() {
     <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <Tab.Screen name="Forecast" component={FishingIntelligenceScreen} />
       <Tab.Screen
         name="Submit"
         component={SubmitPlaceholder}

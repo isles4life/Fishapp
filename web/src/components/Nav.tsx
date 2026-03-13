@@ -21,7 +21,7 @@ function initials(name?: string | null) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tournaments' | 'profile' }) {
+export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tournaments' | 'profile' | 'forecast' }) {
   const [loggedIn, setLoggedIn] = useState(false);
   const [profile, setProfile] = useState<AnglerProfile | null>(null);
   const [navOpen, setNavOpen] = useState(false);
@@ -53,7 +53,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
     window.location.href = '/';
   }
 
-  function linkStyle(name: 'home' | 'leaderboard' | 'tournaments' | 'profile'): React.CSSProperties {
+  function linkStyle(name: 'home' | 'leaderboard' | 'tournaments' | 'profile' | 'forecast'): React.CSSProperties {
     const isActive = active === name;
     return {
       color: isActive ? C.accent : C.textSub,
@@ -110,6 +110,9 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 28 }} className="nav-center-links">
           <Link href="/" style={linkStyle('home')}>Home</Link>
           <Link href="/leaderboard" style={linkStyle('leaderboard')}>Leaderboard</Link>
+          {loggedIn && (
+            <Link href="/fishing-intelligence" style={linkStyle('forecast')}>⚡ Forecast</Link>
+          )}
           <Link href="/tournaments" style={linkStyle('tournaments')}>Tournaments</Link>
           {loggedIn && (
             <Link href="/profile" style={linkStyle('profile')}>Profile</Link>

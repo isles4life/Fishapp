@@ -13,6 +13,7 @@ import { ProfileModule } from './profile/profile.module';
 import { PropsModule } from './props/props.module';
 import { CommentsModule } from './comments/comments.module';
 import { WarningsModule } from './warnings/warnings.module';
+import { FishingIntelligenceModule } from './fishing-intelligence/fishing-intelligence.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { WarningsModule } from './warnings/warnings.module';
     PropsModule,
     CommentsModule,
     WarningsModule,
+    FishingIntelligenceModule,
   ],
 })
 export class AppModule {}
