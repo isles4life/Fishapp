@@ -193,5 +193,38 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         }
       `}</style>
     </nav>
+    <MobileBottomNav active={active} />
+  );
+}
+
+function MobileBottomNav({ active }: { active?: string }) {
+  const loggedIn = isLoggedIn();
+  return (
+    <nav style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
+      backgroundColor: '#152515', borderTop: '1px solid #2A4A2A',
+      padding: '8px 0 max(8px, env(safe-area-inset-bottom))',
+    }} id="mobile-bottom-nav">
+      <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+        {[
+          { href: '/', label: 'Home', icon: '🏠' },
+          { href: '/leaderboard', label: 'Board', icon: '🏆' },
+          { href: '/tournaments', label: 'Compete', icon: '🎣' },
+          ...(loggedIn ? [
+            { href: '/fishing-intelligence', label: 'Forecast', icon: '⚡' },
+            { href: '/profile', label: 'Profile', icon: '👤' },
+          ] : []),
+        ].map(item => (
+          <a key={item.href} href={item.href} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            color: active === item.label.toLowerCase() ? '#C9A450' : '#4A6A4A',
+            textDecoration: 'none', padding: '4px 8px', minWidth: 48,
+          }}>
+            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.5 }}>{item.label.toUpperCase()}</span>
+          </a>
+        ))}
+      </div>
+    </nav>
   );
 }

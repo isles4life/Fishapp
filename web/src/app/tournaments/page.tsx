@@ -57,13 +57,13 @@ export default function TournamentsPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg, paddingBottom: 80 }}>
       <Nav active="tournaments" />
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <h1 className="display" style={{ fontSize: 36, fontWeight: 900, color: C.text, margin: '0 0 6px', letterSpacing: -1, textTransform: 'uppercase' }}>
+          <h1 className="display" style={{ fontSize: 'clamp(22px, 5vw, 36px)', fontWeight: 900, color: C.text, margin: '0 0 6px', letterSpacing: -1, textTransform: 'uppercase' }}>
             Tournaments
           </h1>
           <p style={{ color: C.textSub, fontSize: 15, margin: 0 }}>
@@ -101,7 +101,7 @@ export default function TournamentsPage() {
               }}>
                 {/* Card top accent bar */}
                 <div style={{ height: 4, backgroundColor: C.accent }} />
-                <div style={{ padding: '24px 28px' }}>
+                <div style={{ padding: '16px' }}>
                   {/* Status badge */}
                   <div style={{ marginBottom: 12 }}>
                     <span style={{

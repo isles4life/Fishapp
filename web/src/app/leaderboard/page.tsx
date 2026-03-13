@@ -239,13 +239,13 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg, paddingBottom: 80 }}>
       <Nav active="leaderboard" />
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <h1 className="display" style={{ fontSize: 36, fontWeight: 900, color: C.text, margin: '0 0 6px', letterSpacing: -1, textTransform: 'uppercase' }}>
+          <h1 className="display" style={{ fontSize: 'clamp(22px, 5vw, 36px)', fontWeight: 900, color: C.text, margin: '0 0 6px', letterSpacing: -1, textTransform: 'uppercase' }}>
             Leaderboard
           </h1>
           {tournament && (
@@ -333,10 +333,10 @@ export default function LeaderboardPage() {
                 >
                   {/* Rank circle */}
                   <div style={{
-                    width: 48, height: 48, borderRadius: 24, flexShrink: 0,
+                    width: 40, height: 40, borderRadius: 20, flexShrink: 0,
                     border: `2px solid ${rankBorderColor(entry.rank)}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: entry.rank <= 3 ? 20 : 14, fontWeight: 800,
+                    fontSize: entry.rank <= 3 ? 18 : 13, fontWeight: 800,
                     color: rankBorderColor(entry.rank),
                     backgroundColor: C.bg,
                   }}>
