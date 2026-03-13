@@ -44,12 +44,17 @@ export default function HistoryPage() {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('ALL');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    api.getAuditLog()
-      .then(setEntries)
-      .catch((e: any) => setError(e.message));
-  }, []);
+  async function load() {
+    setLoading(true);
+    setError('');
+    try { setEntries(await api.getAuditLog()); }
+    catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(); }, []);
 
   const categories = [
     { key: 'ALL', label: 'All' },
@@ -66,6 +71,9 @@ export default function HistoryPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
         <h2 style={{ color: C.text, margin: 0 }}>History</h2>
         <span style={{ color: C.textMuted, fontSize: 14 }}>{entries.length} events</span>
+        <button onClick={load} disabled={loading} style={{ marginLeft: 'auto', background: C.surfaceHigh, color: C.textSub, border: `1px solid ${C.border}`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
+          {loading ? 'Loading…' : '↻ Refresh'}
+        </button>
       </div>
 
       {error && (

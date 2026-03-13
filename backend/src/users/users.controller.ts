@@ -50,14 +50,14 @@ export class UsersController {
     });
 
     if (body.role !== undefined) {
-      this.auditService.log(
+      await this.auditService.log(
         body.role === 'ADMIN' ? 'USER_PROMOTED_TO_ADMIN' : 'USER_DEMOTED_TO_USER',
         req.user.id, req.user.displayName, id,
         { targetName: updated.displayName, targetEmail: updated.email },
       );
     }
     if (body.suspended !== undefined) {
-      this.auditService.log(
+      await this.auditService.log(
         body.suspended ? 'USER_SUSPENDED' : 'USER_UNSUSPENDED',
         req.user.id, req.user.displayName, id,
         { targetName: updated.displayName, targetEmail: updated.email },

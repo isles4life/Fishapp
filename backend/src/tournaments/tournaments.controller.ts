@@ -41,7 +41,7 @@ export class TournamentsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   async create(@Body() dto: CreateTournamentDto, @Request() req: any) {
     const tournament = await this.tournamentsService.create(dto);
-    this.auditService.log('TOURNAMENT_CREATED', req.user.id, req.user.displayName, tournament.id, { name: tournament.name, weekNumber: tournament.weekNumber, year: tournament.year });
+    await this.auditService.log('TOURNAMENT_CREATED', req.user.id, req.user.displayName, tournament.id, { name: tournament.name, weekNumber: tournament.weekNumber, year: tournament.year });
     return tournament;
   }
 
@@ -49,7 +49,7 @@ export class TournamentsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   async open(@Param('id') id: string, @Request() req: any) {
     const tournament = await this.tournamentsService.setOpen(id, true);
-    this.auditService.log('TOURNAMENT_OPENED', req.user.id, req.user.displayName, id, { name: tournament.name });
+    await this.auditService.log('TOURNAMENT_OPENED', req.user.id, req.user.displayName, id, { name: tournament.name });
     return tournament;
   }
 
@@ -57,7 +57,7 @@ export class TournamentsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   async close(@Param('id') id: string, @Request() req: any) {
     const tournament = await this.tournamentsService.setOpen(id, false);
-    this.auditService.log('TOURNAMENT_CLOSED', req.user.id, req.user.displayName, id, { name: tournament.name });
+    await this.auditService.log('TOURNAMENT_CLOSED', req.user.id, req.user.displayName, id, { name: tournament.name });
     return tournament;
   }
 }
