@@ -17,7 +17,8 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Take a photo of your catch and scan the mat QR code",
-        "NSLocationWhenInUseUsageDescription": "Verify you are fishing at an approved location"
+        "NSLocationWhenInUseUsageDescription": "Verify you are fishing at an approved location",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
