@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as api from '../../services/api';
-import type { FishingIntelResponse } from '../../models';
+import type { FishingIntelResponse, FishingSpot } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
@@ -85,7 +85,6 @@ export default function FishingIntelligenceScreen() {
   const [data, setData] = useState<FishingIntelResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [locationLabel, setLocationLabel] = useState<string>('Requesting location…');
 
   const fetchIntel = useCallback(async () => {
     setLoading(true);
@@ -94,11 +93,8 @@ export default function FishingIntelligenceScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setError('Location permission denied. Please enable location access in Settings.');
-        setLocationLabel('Location unavailable');
         return;
       }
-
-      setLocationLabel('Using your location');
       const loc = await Location.getCurrentPositionAsync({});
       const result = await api.getFishingIntel(loc.coords.latitude, loc.coords.longitude);
       setData(result);
@@ -150,7 +146,7 @@ export default function FishingIntelligenceScreen() {
           {/* Location status */}
           <View style={styles.locationRow}>
             <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.locationText}>{locationLabel}</Text>
+            <Text style={styles.locationText}>{data.locationLabel}</Text>
             <Text style={styles.localTime}>{data.conditions.localTime}</Text>
           </View>
 
@@ -247,6 +243,35 @@ export default function FishingIntelligenceScreen() {
               {data.windows.length === 0 && (
                 <Text style={styles.noWindowsText}>No upcoming bite windows today.</Text>
               )}
+            </SectionCard>
+          )}
+
+          {/* ── Nearby fishing spots ─────────────────────────────────────── */}
+          {data.spots.length > 0 && (
+            <SectionCard>
+              <Text style={styles.cardTitle}>NEARBY FISHING SPOTS</Text>
+              <Text style={styles.spotsSubtitle}>Within 20 miles · Powered by OpenStreetMap</Text>
+              {data.spots.map((spot: FishingSpot, i: number) => (
+                <View
+                  key={`${spot.name}-${i}`}
+                  style={[styles.spotRow, i < data.spots.length - 1 && styles.spotRowBorder]}
+                >
+                  <View style={styles.spotIcon}>
+                    <Text style={styles.spotIconText}>
+                      {spot.type === 'River' || spot.type === 'Stream' ? '🌊' :
+                       spot.type === 'Fishing Access' ? '🎣' :
+                       spot.type === 'Reservoir' ? '💧' : '🏞'}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.spotName}>{spot.name}</Text>
+                    <Text style={styles.spotType}>{spot.type}</Text>
+                  </View>
+                  <View style={styles.spotDistanceBadge}>
+                    <Text style={styles.spotDistanceText}>{spot.distanceMi} mi</Text>
+                  </View>
+                </View>
+              ))}
             </SectionCard>
           )}
 
@@ -491,6 +516,60 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     paddingVertical: 8,
+  },
+  // Spots
+  spotsSubtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  spotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 11,
+    gap: 12,
+  },
+  spotRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  spotIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceHigh,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexShrink: 0,
+  },
+  spotIconText: {
+    fontSize: 16,
+  },
+  spotName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  spotType: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  spotDistanceBadge: {
+    backgroundColor: colors.surfaceHigh,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  spotDistanceText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSub,
   },
   // Refresh
   refreshBtn: {

@@ -55,11 +55,21 @@ export interface BiteWindow {
   quality: 'GOOD' | 'EXCELLENT';
 }
 
+export interface FishingSpot {
+  name: string;
+  type: string;
+  distanceMi: number;
+  lat: number;
+  lon: number;
+}
+
 export interface FishingIntelResponse {
   conditions: FishingConditions;
   activity: ActivityLevel;
   recommendations: Recommendations;
   windows: BiteWindow[];
+  locationLabel: string;
+  spots: FishingSpot[];
 }
 
 // ── WMO weather code descriptions ────────────────────────────────────────────
@@ -410,12 +420,131 @@ function buildHeadline(
   return { headline: headlines[level], reason };
 }
 
+// ── Haversine distance (miles) ────────────────────────────────────────────────
+
+function haversineDistanceMi(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ── Overpass (OpenStreetMap) nearby fishing spots ─────────────────────────────
+
+interface OverpassElement {
+  type: 'node' | 'way' | 'relation';
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
+
+function spotTypeLabel(tags: Record<string, string>): string {
+  if (tags['leisure'] === 'fishing') return 'Fishing Access';
+  if (tags['water'] === 'reservoir') return 'Reservoir';
+  if (tags['water'] === 'lake' || tags['natural'] === 'water') return 'Lake';
+  if (tags['waterway'] === 'river') return 'River';
+  if (tags['waterway'] === 'stream') return 'Stream';
+  if (tags['water'] === 'pond') return 'Pond';
+  return 'Water Body';
+}
+
+async function getNearbySpots(lat: number, lon: number): Promise<FishingSpot[]> {
+  const radius = 32186; // 20 miles in metres
+  const query = `
+[out:json][timeout:20];
+(
+  node["leisure"="fishing"](around:${radius},${lat},${lon});
+  way["leisure"="fishing"](around:${radius},${lat},${lon});
+  node["natural"="water"]["name"](around:${radius},${lat},${lon});
+  way["natural"="water"]["name"](around:${radius},${lat},${lon});
+  way["water"="lake"]["name"](around:${radius},${lat},${lon});
+  way["water"="reservoir"]["name"](around:${radius},${lat},${lon});
+  way["waterway"="river"]["name"](around:${radius},${lat},${lon});
+  way["waterway"="stream"]["name"](around:${radius},${lat},${lon});
+);
+out center 30;
+  `.trim();
+
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(query)}`,
+      signal: AbortSignal.timeout(22000),
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { elements: OverpassElement[] };
+
+    const seen = new Set<string>();
+    const spots: FishingSpot[] = [];
+
+    for (const el of json.elements) {
+      const tags = el.tags ?? {};
+      const name = tags['name'];
+      if (!name) continue;
+      if (seen.has(name)) continue;
+      seen.add(name);
+
+      const elLat = el.lat ?? el.center?.lat;
+      const elLon = el.lon ?? el.center?.lon;
+      if (elLat === undefined || elLon === undefined) continue;
+
+      spots.push({
+        name,
+        type: spotTypeLabel(tags),
+        distanceMi: Math.round(haversineDistanceMi(lat, lon, elLat, elLon) * 10) / 10,
+        lat: elLat,
+        lon: elLon,
+      });
+    }
+
+    return spots.sort((a, b) => a.distanceMi - b.distanceMi).slice(0, 12);
+  } catch {
+    return [];
+  }
+}
+
+// ── Nominatim reverse geocode ─────────────────────────────────────────────────
+
+async function getLocationLabel(lat: number, lon: number): Promise<string> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=12`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'FishLeague/1.0 (admin@fishleague.app)' },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return 'Your location';
+    const data = (await res.json()) as {
+      address?: {
+        city?: string; town?: string; village?: string;
+        county?: string; state?: string; postcode?: string;
+      };
+    };
+    const addr = data.address ?? {};
+    const city = addr.city ?? addr.town ?? addr.village ?? addr.county ?? '';
+    const state = addr.state ?? '';
+    const zip = addr.postcode ?? '';
+    if (city && state && zip) return `${city}, ${state} ${zip}`;
+    if (city && state) return `${city}, ${state}`;
+    return 'Your location';
+  } catch {
+    return 'Your location';
+  }
+}
+
 // ── Main service ──────────────────────────────────────────────────────────────
 
 @Injectable()
 export class FishingIntelligenceService {
   async getRecommendations(lat: number, lon: number): Promise<FishingIntelResponse> {
-    const url =
+    const weatherUrl =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${lat}&longitude=${lon}` +
       `&current=temperature_2m,wind_speed_10m,surface_pressure,precipitation,weathercode` +
@@ -425,12 +554,18 @@ export class FishingIntelligenceService {
       `&timezone=auto`;
 
     let raw: OpenMeteoResponse;
+    let spots: FishingSpot[];
+    let locationLabel: string;
+
     try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`Open-Meteo returned ${res.status}`);
-      }
-      raw = (await res.json()) as OpenMeteoResponse;
+      [raw, spots, locationLabel] = await Promise.all([
+        fetch(weatherUrl).then(r => {
+          if (!r.ok) throw new Error(`Open-Meteo returned ${r.status}`);
+          return r.json() as Promise<OpenMeteoResponse>;
+        }),
+        getNearbySpots(lat, lon),
+        getLocationLabel(lat, lon),
+      ]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new BadGatewayException(`Weather fetch failed: ${msg}`);
@@ -516,6 +651,8 @@ export class FishingIntelligenceService {
         technique: lureRec.technique,
       },
       windows,
+      locationLabel,
+      spots,
     };
   }
 }

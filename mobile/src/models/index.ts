@@ -137,6 +137,14 @@ export interface AnglerProfile {
 
 // ── Fishing Intelligence ───────────────────────────────────────────────────
 
+export interface FishingSpot {
+  name: string;
+  type: string;
+  distanceMi: number;
+  lat: number;
+  lon: number;
+}
+
 export interface FishingIntelResponse {
   conditions: {
     temperatureF: number;
@@ -150,6 +158,8 @@ export interface FishingIntelResponse {
   activity: { level: string; headline: string; reason: string };
   recommendations: { lure: string; altLure: string; depth: string; technique: string };
   windows: { label: string; start: string; end: string; quality: string }[];
+  locationLabel: string;
+  spots: FishingSpot[];
 }
 
 export interface UpdateProfilePayload {
