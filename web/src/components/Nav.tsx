@@ -109,17 +109,13 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
 
         {/* Center nav links — hidden on narrow screens via inline style trick */}
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 28 }} className="nav-center-links">
-          <Link href="/" style={linkStyle('home')}>Home</Link>
           <Link href="/leaderboard" style={linkStyle('leaderboard')}>Leaderboard</Link>
+          <Link href="/tournaments" style={linkStyle('tournaments')}>Tournaments</Link>
           {loggedIn && (
             <Link href="/fishing-intelligence" style={linkStyle('forecast')}>⚡ Forecast</Link>
           )}
           {loggedIn && (
             <Link href="/map" style={linkStyle('map')}>🗺️ Map</Link>
-          )}
-          <Link href="/tournaments" style={linkStyle('tournaments')}>Tournaments</Link>
-          {loggedIn && (
-            <Link href="/profile" style={linkStyle('profile')}>Profile</Link>
           )}
         </div>
 
