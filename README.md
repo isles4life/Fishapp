@@ -65,15 +65,15 @@ FishAPP/
 
 - Node.js 20+
 - Docker + Docker Compose
-- AWS account with S3 bucket
+- AWS account with S3 bucket (production only — local dev uses LocalStack)
 
-### 1. Backend + Admin (Docker)
+### 1. Backend + Admin + DB (Docker)
 
 ```bash
-# Copy and fill in your AWS credentials and secrets
+# Copy and fill in secrets (JWT_SECRET, APPLE_BUNDLE_ID at minimum)
 cp backend/.env.example backend/.env
 
-# Start Postgres + Backend + Admin
+# Start Postgres + LocalStack S3 + Backend + Admin
 docker compose up --build
 
 # Seed runs automatically on first start (regions, mat serials, admin user)
@@ -81,9 +81,12 @@ docker compose up --build
 # Override password via ADMIN_PASSWORD env var
 ```
 
-Services:
+Services started by Docker:
 - Backend API: http://localhost:3000
 - Admin Dashboard: http://localhost:3001
+- LocalStack (S3): http://localhost:4566
+
+> **Note:** The public web app is not in docker-compose — run it separately (see step 4).
 
 ### 2. Backend (local dev, no Docker)
 
@@ -106,11 +109,16 @@ NEXT_PUBLIC_API_URL=http://localhost:3000 npm run dev
 
 ### 4. Web (local dev)
 
+Public leaderboard + login/register site. Runs on port 3002 (backend is on 3000, admin on 3001).
+
 ```bash
 cd web
 npm install
-NEXT_PUBLIC_API_URL=http://localhost:3000 npm run dev
+NEXT_PUBLIC_API_URL=http://localhost:3000 npm run dev -- -p 3002
 ```
+
+- Web App: http://localhost:3002
+- No auth required to view the leaderboard — anonymous visitors can see live standings.
 
 ### 5. Mobile (Expo)
 
@@ -119,9 +127,12 @@ cd mobile
 npm install
 npx expo start
 # Press 'i' for iOS simulator, 'a' for Android emulator
+# Press 's' to switch to Expo Go if needed
 ```
 
-Set `apiBaseUrl` in `app.config.js` extra field to point at your backend.
+Set `apiBaseUrl` in `mobile/app.config.js` → `extra.apiBaseUrl` to point at your backend:
+- iOS Simulator: `http://localhost:3000`
+- Physical device: `http://<your-machine-ip>:3000` (must be on the same network)
 
 ### 6. First Tournament
 

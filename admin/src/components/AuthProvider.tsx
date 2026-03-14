@@ -99,11 +99,11 @@ function LoginScreen({ login }: { login: AuthCtx['login'] }) {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0D1A0D' }}>
       <form onSubmit={submit} style={{ background: '#152515', padding: 40, borderRadius: 16, border: '1px solid #2A4A2A', width: 360 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon.png" alt="FishLeague" style={{ width: 72, display: 'block', margin: '0 auto 16px' }} />
-        <h2 style={{ margin: '0 0 4px', color: '#F0EDE4', textAlign: 'center', fontSize: 22, fontWeight: 900, letterSpacing: 1, textTransform: 'uppercase' }}>
+        <img src="/icon.png" alt="FishLeague" style={{ width: 150, display: 'block', margin: '0 auto 20px' }} />
+        <h2 style={{ margin: '0 0 4px', color: '#F0EDE4', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' }}>
           <span style={{ color: '#F0EDE4' }}>FISH</span><span style={{ color: '#C9A450' }}>LEAGUE</span>
         </h2>
-        <p style={{ margin: '0 0 24px', color: '#4A6A4A', textAlign: 'center', fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' }}>Admin Panel</p>
+        <p style={{ margin: '0 0 28px', color: '#4A6A4A', textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>Admin Panel</p>
         <label style={{ display: 'block', marginBottom: 12 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: '#4A6A4A', textTransform: 'uppercase', letterSpacing: 1 }}>Email</span>
           <input

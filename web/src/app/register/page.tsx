@@ -65,9 +65,13 @@ export default function RegisterPage() {
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ backgroundColor: C.surface, borderRadius: 16, padding: 40, width: '100%', maxWidth: 400, border: `1px solid ${C.border}` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon.png" alt="FishLeague" style={{ width: 80, display: 'block', margin: '0 auto 12px' }} />
-        <h1 style={{ color: C.text, textAlign: 'center', margin: '0 0 4px', fontSize: 26, fontWeight: 900, letterSpacing: -0.5, textTransform: 'uppercase' }}>Create Account</h1>
-        <p style={{ color: C.textSub, textAlign: 'center', margin: '0 0 24px', fontSize: 14 }}>Join the competition</p>
+        <img src="/icon.png" alt="FishLeague" style={{ width: 160, display: 'block', margin: '0 auto 16px' }} />
+        <div style={{ textAlign: 'center', marginBottom: 6 }}>
+          <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: 1.5, color: C.text }}>FISH</span>
+          <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: 1.5, color: C.accent }}>LEAGUE</span>
+        </div>
+        <h1 style={{ color: C.textSub, textAlign: 'center', margin: '0 0 4px', fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Create Account</h1>
+        <p style={{ color: C.textMuted, textAlign: 'center', margin: '0 0 28px', fontSize: 13 }}>Join the competition</p>
 
         {error && (
           <div style={{ backgroundColor: C.errorBg, border: `1px solid ${C.error}`, color: C.error, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>

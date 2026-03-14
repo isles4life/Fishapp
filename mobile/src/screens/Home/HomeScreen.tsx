@@ -1,12 +1,12 @@
 import React, { useCallback, useContext, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, SafeAreaView, Modal, Alert,
+  ActivityIndicator, SafeAreaView, Modal, Alert, Image,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as api from '../../services/api';
-import type { Tournament, LeaderboardEntry, UserWarning } from '../../models';
+import type { Tournament, LeaderboardEntry, UserWarning, AnglerProfile } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { FishLeagueLogoFull } from '../../components/icons/Logo';
@@ -213,10 +213,14 @@ export default function HomeScreen() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingWarnings, setPendingWarnings] = useState<UserWarning[]>([]);
+  const [profile, setProfile] = useState<AnglerProfile | null>(null);
 
   useEffect(() => {
     api.getMyWarnings()
       .then(ws => { if (ws.length > 0) setPendingWarnings(ws); })
+      .catch(() => {});
+    api.getMyProfile()
+      .then(p => { if (p) setProfile(p); })
       .catch(() => {});
   }, []);
 
@@ -259,6 +263,18 @@ export default function HomeScreen() {
     ]);
   }
 
+  function handleAvatarPress() {
+    Alert.alert(
+      profile?.displayName ?? 'My Account',
+      undefined,
+      [
+        { text: 'View Profile', onPress: () => navigation.navigate('Profile' as any) },
+        { text: 'Sign Out', style: 'destructive', onPress: handleSignOut },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       {pendingWarnings.length > 0 && (
@@ -271,8 +287,16 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <FishLeagueLogoFull width={240} />
-          <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn} activeOpacity={0.7}>
-            <Text style={styles.signOutText}>Sign Out</Text>
+          <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarBtn} activeOpacity={0.8}>
+            {profile?.profilePhotoUrl ? (
+              <Image source={{ uri: profile.profilePhotoUrl }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatarInitials}>
+                <Text style={styles.avatarInitialsText}>
+                  {getInitials(profile?.displayName ?? '?')}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -346,17 +370,33 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  signOutBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
+  avatarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    overflow: 'hidden',
   },
-  signOutText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
+  avatarImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: colors.borderGold,
+  },
+  avatarInitials: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.surfaceHigh,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitialsText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSub,
   },
   loadingWrap: {
     paddingTop: 60,
