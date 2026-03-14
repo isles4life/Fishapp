@@ -10,10 +10,10 @@ export default function Nav() {
   const { logout } = useAuth();
 
   return (
-    <nav style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 24px', display: 'flex', alignItems: 'center', height: 64, gap: 4 }}>
+    <nav style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 24px 0 6px', display: 'flex', alignItems: 'center', height: 64, gap: 4 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icon.png" alt="FishLeague" style={{ height: 44, marginRight: 8 }} />
-      <span style={{ fontWeight: 900, fontSize: 16, marginRight: 28, letterSpacing: 1 }}>
+      <img src="/icon.png" alt="FishLeague" style={{ height: 44, marginRight: 0 }} />
+      <span style={{ fontWeight: 900, fontSize: 16, marginRight: 28, letterSpacing: 1, marginLeft: 6 }}>
         <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
         <span style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, marginLeft: 8, letterSpacing: 1.5 }}>ADMIN</span>
       </span>
