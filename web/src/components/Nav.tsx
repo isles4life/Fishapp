@@ -99,10 +99,10 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         gap: 0,
       }}>
         {/* Logo */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 3, flexShrink: 0 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 0, flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="FishLeague" style={{ height: 56, width: 'auto', display: 'block' }} />
-          <span style={{ fontWeight: 900, fontSize: 19, letterSpacing: 1, lineHeight: 1 }}>
+          <span style={{ fontWeight: 900, fontSize: 19, letterSpacing: 1, lineHeight: 1, marginLeft: -10 }}>
             <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
           </span>
         </Link>
