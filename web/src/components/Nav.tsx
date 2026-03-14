@@ -87,7 +87,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
       position: 'sticky',
       top: 0,
       zIndex: 10,
-      height: 56,
+      height: 64,
     }}>
       <div style={{
         maxWidth: 900,
@@ -101,7 +101,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         {/* Logo */}
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 10, flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="FishLeague" style={{ height: 32 }} />
+          <img src="/icon.png" alt="FishLeague" style={{ height: 48 }} />
           <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: 1 }}>
             <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
           </span>
