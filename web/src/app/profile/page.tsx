@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Nav from '../../components/Nav';
-import { api, clearToken, isLoggedIn } from '../../lib/api';
+import { api, clearToken, isLoggedIn, fixS3Url } from '../../lib/api';
 import type { AnglerProfile, UpdateProfilePayload } from '../../lib/api';
 
 const C = {
@@ -240,7 +240,7 @@ function AvatarUpload({ current, displayName, onUploaded }: {
     }
   }
 
-  const shown = preview ?? current;
+  const shown = preview ?? fixS3Url(current);
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -467,7 +467,7 @@ export default function MyProfilePage() {
               <div style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: C.surfaceHigh, border: `4px solid ${C.borderGold}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
                 {profile.profilePhotoUrl
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={profile.profilePhotoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ? <img src={fixS3Url(profile.profilePhotoUrl) ?? ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : '🎣'}
               </div>
               <div style={{ position: 'absolute', bottom: 2, right: 2, width: 24, height: 24, borderRadius: 12, backgroundColor: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✏️</div>

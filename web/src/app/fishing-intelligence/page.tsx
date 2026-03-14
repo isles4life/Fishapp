@@ -22,10 +22,14 @@ const C = {
   orange:      '#E67E22',
 };
 
-function weatherEmoji(code?: number): string {
+function weatherEmoji(code?: number, sunriseIso?: string, sunsetIso?: string): string {
   if (!code && code !== 0) return '🌡';
-  if (code === 0) return '☀️';
-  if (code <= 2) return '🌤';
+  const now = Date.now();
+  const isNight = sunriseIso && sunsetIso
+    ? now < new Date(sunriseIso).getTime() || now > new Date(sunsetIso).getTime()
+    : new Date().getHours() < 6 || new Date().getHours() >= 20;
+  if (code === 0) return isNight ? '🌙' : '☀️';
+  if (code <= 2) return isNight ? '🌙' : '🌤';
   if (code === 3) return '☁️';
   if (code <= 48) return '🌫';
   if (code <= 67) return '🌧';
@@ -91,11 +95,49 @@ function DataRow({ label, value, valueColor }: { label: string; value: string; v
   );
 }
 
+function speciesActivityColor(activity: 'HIGH' | 'MODERATE' | 'LOW'): string {
+  if (activity === 'HIGH') return C.green;
+  if (activity === 'MODERATE') return C.orange;
+  return C.textMuted;
+}
+
+function SpeciesRow({ species }: { species: { name: string; activity: 'HIGH' | 'MODERATE' | 'LOW'; reason: string } }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderTop: `1px solid ${C.border}` }}>
+      <div style={{ marginTop: 2, width: 8, height: 8, borderRadius: 4, flexShrink: 0, backgroundColor: speciesActivityColor(species.activity) }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{species.name}</span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: speciesActivityColor(species.activity), letterSpacing: 0.5 }}>{species.activity}</span>
+        </div>
+        <div style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.4 }}>{species.reason}</div>
+      </div>
+    </div>
+  );
+}
+
+async function geocodeZip(zip: string): Promise<{ lat: number; lon: number } | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&postalcode=${encodeURIComponent(zip)}&country=US&limit=1`,
+      { headers: { Accept: 'application/json' } },
+    );
+    const json = await res.json();
+    if (!json[0]) return null;
+    return { lat: parseFloat(json[0].lat), lon: parseFloat(json[0].lon) };
+  } catch {
+    return null;
+  }
+}
+
 export default function FishingIntelligencePage() {
+  const [loggedIn, setLoggedIn] = useState(false);
   const [data, setData] = useState<FishingIntelResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'denied' | 'ok'>('idle');
+  const [zip, setZip] = useState('');
+  const [zipError, setZipError] = useState('');
 
   const fetchIntel = useCallback((lat: number, lon: number) => {
     setLoading(true);
@@ -124,12 +166,28 @@ export default function FishingIntelligencePage() {
     );
   }, [fetchIntel]);
 
+  async function handleZipSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const z = zip.trim();
+    if (!z) return;
+    setZipError('');
+    setLoading(true);
+    const coords = await geocodeZip(z);
+    if (!coords) {
+      setLoading(false);
+      setZipError('Zip code not found.');
+      return;
+    }
+    fetchIntel(coords.lat, coords.lon);
+  }
+
   useEffect(() => {
-    if (!isLoggedIn()) return;
-    requestLocation();
+    const li = isLoggedIn();
+    setLoggedIn(li);
+    if (li) requestLocation();
   }, [requestLocation]);
 
-  if (!isLoggedIn()) {
+  if (!loggedIn) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
         <Nav active="forecast" />
@@ -160,6 +218,33 @@ export default function FishingIntelligencePage() {
           </p>
         </div>
 
+        {/* Zip code input — always visible */}
+        <form onSubmit={handleZipSubmit} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+          <input
+            value={zip}
+            onChange={e => { setZip(e.target.value); setZipError(''); }}
+            placeholder="Enter zip code…"
+            maxLength={10}
+            style={{ flex: '1 1 160px', maxWidth: 200, backgroundColor: C.surface, border: `1px solid ${zipError ? C.error : C.border}`, borderRadius: 8, padding: '8px 12px', color: C.text, fontSize: 14, outline: 'none' }}
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', letterSpacing: 0.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}
+          >
+            Get Forecast
+          </button>
+          <button
+            type="button"
+            onClick={requestLocation}
+            disabled={loading}
+            style={{ background: 'none', border: `1px solid ${C.border}`, color: C.textSub, borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
+          >
+            📍 Use My Location
+          </button>
+          {zipError && <span style={{ color: C.error, fontSize: 12, width: '100%' }}>{zipError}</span>}
+        </form>
+
         {/* Loading */}
         {loading && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: C.textMuted }}>
@@ -172,14 +257,8 @@ export default function FishingIntelligencePage() {
 
         {/* Error */}
         {!loading && error && (
-          <div style={{ backgroundColor: C.errorBg, border: `1px solid ${C.error}50`, borderRadius: 14, padding: '24px 20px', textAlign: 'center' }}>
-            <div style={{ color: C.error, fontSize: 15, marginBottom: 16 }}>{error}</div>
-            <button
-              onClick={requestLocation}
-              style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer', letterSpacing: 1, textTransform: 'uppercase' }}
-            >
-              Retry
-            </button>
+          <div style={{ backgroundColor: C.errorBg, border: `1px solid ${C.error}50`, borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
+            <div style={{ color: C.error, fontSize: 14 }}>{error}</div>
           </div>
         )}
 
@@ -191,12 +270,6 @@ export default function FishingIntelligencePage() {
               <span>📍</span>
               <span style={{ flex: 1 }}>{data.locationLabel}</span>
               <span style={{ color: C.textMuted }}>{data.conditions.localTime}</span>
-              <button
-                onClick={requestLocation}
-                style={{ background: 'none', border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 6, padding: '3px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginLeft: 8 }}
-              >
-                ↻ Refresh
-              </button>
             </div>
 
             <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
@@ -205,7 +278,7 @@ export default function FishingIntelligencePage() {
               <Card>
                 <CardTitle>Conditions</CardTitle>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-                  <span style={{ fontSize: 44 }}>{weatherEmoji(data.conditions.weatherCode)}</span>
+                  <span style={{ fontSize: 44 }}>{weatherEmoji(data.conditions.weatherCode, data.sunriseIso, data.sunsetIso)}</span>
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 6 }}>{data.conditions.weatherDesc}</div>
                     <div style={{ display: 'inline-block', backgroundColor: C.accent + '20', border: `1px solid ${C.accent}50`, borderRadius: 6, padding: '2px 10px', fontSize: 11, fontWeight: 800, color: C.accent, letterSpacing: 0.5, textTransform: 'uppercase' }}>
@@ -266,6 +339,73 @@ export default function FishingIntelligencePage() {
                       </div>
                       <div style={{ border: `1px solid ${qualityColor(w.quality)}`, borderRadius: 6, padding: '3px 10px' }}>
                         <span style={{ fontSize: 11, fontWeight: 800, color: qualityColor(w.quality), letterSpacing: 0.5 }}>{w.quality}</span>
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+              )}
+
+              {/* Active Species card — full width */}
+              {data.activeSpecies && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <Card>
+                    <CardTitle>🐟 Active Species</CardTitle>
+                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: -10, marginBottom: 18 }}>
+                      Based on water temp · season · pressure · {data.tides ? 'coastal proximity' : 'inland location'}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+                      {/* Freshwater */}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: 16 }}>🏞</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: C.textSub, letterSpacing: 1, textTransform: 'uppercase' }}>Freshwater</span>
+                        </div>
+                        {data.activeSpecies.freshwater.map((s) => (
+                          <SpeciesRow key={s.name} species={s} />
+                        ))}
+                      </div>
+                      {/* Saltwater */}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: 16 }}>🌊</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: C.textSub, letterSpacing: 1, textTransform: 'uppercase' }}>Saltwater</span>
+                          {!data.tides && <span style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>(offshore / travel)</span>}
+                        </div>
+                        {data.activeSpecies.saltwater.map((s) => (
+                          <SpeciesRow key={s.name} species={s} />
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Tides card */}
+              {data.tides && (
+                <Card>
+                  <CardTitle>🌊 Tides — {data.tides.stationName}</CardTitle>
+                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: -10, marginBottom: 14 }}>
+                    NOAA station · {data.tides.distanceMi} mi away
+                  </div>
+                  {data.tides.predictions.map((t, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 16, flexShrink: 0,
+                        backgroundColor: t.type === 'H' ? '#0A2A4A' : '#1A1A3A',
+                        border: `1px solid ${t.type === 'H' ? '#1A6090' : '#3A3A7A'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14,
+                      }}>
+                        {t.type === 'H' ? '▲' : '▼'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          {t.type === 'H' ? 'High Tide' : 'Low Tide'}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.textMuted }}>{t.time}</div>
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: t.type === 'H' ? '#5BB8F5' : '#8BA88B' }}>
+                        {t.heightFt} ft
                       </div>
                     </div>
                   ))}

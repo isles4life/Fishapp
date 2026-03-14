@@ -63,6 +63,18 @@ export interface FishingSpot {
   lon: number;
 }
 
+export interface TidePrediction {
+  time: string;   // e.g. "6:23 AM"
+  heightFt: number;
+  type: 'H' | 'L';
+}
+
+export interface TideInfo {
+  stationName: string;
+  distanceMi: number;
+  predictions: TidePrediction[];
+}
+
 export interface FishingIntelResponse {
   conditions: FishingConditions;
   activity: ActivityLevel;
@@ -70,6 +82,21 @@ export interface FishingIntelResponse {
   windows: BiteWindow[];
   locationLabel: string;
   spots: FishingSpot[];
+  sunriseIso: string;
+  sunsetIso: string;
+  tides: TideInfo | null;
+  activeSpecies: ActiveSpeciesReport;
+}
+
+export interface SpeciesActivity {
+  name: string;
+  activity: 'HIGH' | 'MODERATE' | 'LOW';
+  reason: string;
+}
+
+export interface ActiveSpeciesReport {
+  freshwater: SpeciesActivity[];
+  saltwater: SpeciesActivity[];
 }
 
 // ── WMO weather code descriptions ────────────────────────────────────────────
@@ -389,6 +416,102 @@ function getDepthRecommendation(
   return base;
 }
 
+// ── Active species by conditions ─────────────────────────────────────────────
+
+function getActiveSpecies(
+  tempF: number,
+  season: string,
+  pressureTrend: 'rising' | 'falling' | 'stable',
+  isCoastal: boolean,
+  windMph: number,
+): ActiveSpeciesReport {
+  const act = (
+    name: string,
+    activity: 'HIGH' | 'MODERATE' | 'LOW',
+    reason: string,
+  ): SpeciesActivity => ({ name, activity, reason });
+
+  // ── Freshwater ──────────────────────────────────────────────────────────────
+  const fw: SpeciesActivity[] = [];
+
+  if (season === 'spring') {
+    if (tempF >= 55 && tempF <= 72) {
+      fw.push(act('Largemouth Bass', 'HIGH', 'Active pre-spawn feeding'));
+      fw.push(act('Crappie', 'HIGH', 'Spawning in shallow brush'));
+    } else {
+      fw.push(act('Largemouth Bass', pressureTrend === 'rising' ? 'LOW' : 'MODERATE', pressureTrend === 'rising' ? 'Rising pressure pushes fish deep' : 'Transitional feeding'));
+      fw.push(act('Crappie', 'MODERATE', 'Moving toward structure'));
+    }
+    if (tempF >= 48 && tempF <= 65) fw.push(act('Walleye', 'HIGH', 'Post-spawn feeding binge'));
+    if (pressureTrend !== 'rising') fw.push(act('White Bass', 'HIGH', 'Spring run active'));
+    fw.push(act('Bluegill', 'MODERATE', 'Warming shallow water'));
+  } else if (season === 'summer') {
+    if (tempF >= 80) {
+      fw.push(act('Catfish', 'HIGH', 'Night feeders most active in heat'));
+      fw.push(act('Carp', 'HIGH', 'Surface feeding in warm shallows'));
+      fw.push(act('Largemouth Bass', pressureTrend === 'falling' ? 'HIGH' : 'LOW', pressureTrend === 'falling' ? 'Pre-storm feeding surge' : 'Lethargic — deep structure only'));
+      fw.push(act('Bluegill', 'MODERATE', 'Active near beds'));
+    } else {
+      fw.push(act('Largemouth Bass', pressureTrend === 'falling' ? 'HIGH' : 'MODERATE', pressureTrend === 'falling' ? 'Pre-storm feeding surge' : 'Dawn/dusk bite'));
+      fw.push(act('Smallmouth Bass', 'HIGH', 'Active in cool, moving water'));
+      fw.push(act('Bluegill', 'HIGH', 'Peak spawn activity'));
+      fw.push(act('Catfish', 'MODERATE', 'Feeding on bottom structure'));
+    }
+  } else if (season === 'fall') {
+    fw.push(act('Largemouth Bass', pressureTrend === 'falling' ? 'HIGH' : 'MODERATE', pressureTrend === 'falling' ? 'Pre-front feeding frenzy' : 'Chasing baitfish to structure'));
+    fw.push(act('Smallmouth Bass', 'HIGH', 'Aggressive fall feed-up'));
+    if (tempF < 58) {
+      fw.push(act('Walleye', 'HIGH', 'Fall transition — top of the food chain'));
+      fw.push(act('Muskie', 'HIGH', 'Trophy season peak activity'));
+    } else {
+      fw.push(act('Crappie', 'MODERATE', 'Suspending near main lake structure'));
+      fw.push(act('Striped Bass', 'MODERATE', 'Chasing shad schools'));
+    }
+  } else {
+    // winter
+    fw.push(act('Walleye', tempF > 38 ? 'MODERATE' : 'LOW', tempF > 38 ? 'Feeding at twilight on flats' : 'Ice/cold bite — very slow'));
+    fw.push(act('Yellow Perch', 'MODERATE', 'Schools tight to deep structure'));
+    if (tempF > 42) fw.push(act('Largemouth Bass', 'LOW', 'Lethargic — finesse only, 15–25 ft'));
+    fw.push(act('Chain Pickerel', 'MODERATE', 'Most active species in cold water'));
+  }
+
+  // ── Saltwater ───────────────────────────────────────────────────────────────
+  const sw: SpeciesActivity[] = [];
+
+  // Coastal proximity modulates activity
+  const coastalActivity = (base: 'HIGH' | 'MODERATE') =>
+    isCoastal ? base : base === 'HIGH' ? 'MODERATE' : 'LOW';
+
+  if (season === 'spring') {
+    sw.push(act('Striped Bass', coastalActivity('HIGH'), isCoastal ? 'Migration run in full swing' : 'Migratory — best near coast'));
+    sw.push(act('Flounder', coastalActivity('HIGH'), 'Moving into estuaries'));
+    if (tempF >= 58) sw.push(act('Cobia', coastalActivity('MODERATE'), 'Following rays into bays'));
+    sw.push(act('Speckled Trout', coastalActivity('MODERATE'), 'Flats and grass beds warming up'));
+  } else if (season === 'summer') {
+    if (tempF >= 72) {
+      sw.push(act('Red Drum', coastalActivity('HIGH'), isCoastal ? 'Tailing on flats at low tide' : 'Nearshore structure'));
+      sw.push(act('Snook', coastalActivity('HIGH'), 'Feeding aggressively on structure'));
+      sw.push(act('Tarpon', coastalActivity('MODERATE'), 'Rolling in passes and inlets'));
+    }
+    sw.push(act('Flounder', coastalActivity('MODERATE'), 'Holding in inlets and channels'));
+    if (pressureTrend === 'falling') sw.push(act('Bluefish', 'HIGH', 'Pre-storm blitz feeding'));
+    sw.push(act('Spanish Mackerel', coastalActivity('HIGH'), 'Schooling near surface in warm water'));
+  } else if (season === 'fall') {
+    sw.push(act('Striped Bass', coastalActivity('HIGH'), 'Fall migration — trophy fish feeding hard'));
+    sw.push(act('Bluefish', coastalActivity('HIGH'), 'Blitzing schools on the surface'));
+    sw.push(act('Red Drum', coastalActivity('MODERATE'), 'Post-spawn moving to nearshore structure'));
+    if (windMph > 10) sw.push(act('Flounder', 'HIGH', 'Wind creates current — flounder active in cuts'));
+  } else {
+    // winter
+    sw.push(act('Speckled Trout', coastalActivity('MODERATE'), 'Coldwater grass flats'));
+    sw.push(act('Striped Bass', coastalActivity('MODERATE'), 'Wintering in deep channels'));
+    sw.push(act('Sheepshead', coastalActivity('HIGH'), 'Pier/dock pilings in winter'));
+    sw.push(act('Red Drum', tempF < 50 ? 'LOW' : coastalActivity('MODERATE'), tempF < 50 ? 'Very lethargic below 50°F' : 'Slow retrieve near structure'));
+  }
+
+  return { freshwater: fw.slice(0, 5), saltwater: sw.slice(0, 5) };
+}
+
 // ── Activity-level headline generator ────────────────────────────────────────
 
 function buildHeadline(
@@ -539,6 +662,85 @@ async function getLocationLabel(lat: number, lon: number): Promise<string> {
   }
 }
 
+// ── NOAA tide predictions ─────────────────────────────────────────────────────
+
+interface NoaaStation { id: string; name: string; lat: number; lng: number; }
+
+// Cache the full stations list for 24 h to avoid re-fetching on every request
+let noaaStationsCache: { stations: NoaaStation[]; ts: number } | null = null;
+
+async function getNearestTideStation(
+  lat: number,
+  lon: number,
+): Promise<{ stationId: string; stationName: string; distanceMi: number } | null> {
+  const now = Date.now();
+  if (!noaaStationsCache || now - noaaStationsCache.ts > 24 * 60 * 60 * 1000) {
+    try {
+      const res = await fetch(
+        'https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions',
+        { signal: AbortSignal.timeout(10000) },
+      );
+      if (!res.ok) return null;
+      const json = (await res.json()) as { stations?: NoaaStation[] };
+      noaaStationsCache = { stations: json.stations ?? [], ts: now };
+    } catch {
+      return null;
+    }
+  }
+
+  let nearest: { stationId: string; stationName: string; distanceMi: number } | null = null;
+  let minDist = Infinity;
+  for (const s of noaaStationsCache.stations) {
+    const d = haversineDistanceMi(lat, lon, s.lat, s.lng);
+    if (d < minDist) {
+      minDist = d;
+      nearest = { stationId: s.id, stationName: s.name, distanceMi: Math.round(d * 10) / 10 };
+    }
+  }
+  return nearest;
+}
+
+async function fetchTidePredictions(stationId: string): Promise<TidePrediction[]> {
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  const url =
+    `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter` +
+    `?product=predictions&application=fishleague` +
+    `&begin_date=${dateStr}&end_date=${dateStr}` +
+    `&datum=MLLW&station=${stationId}&time_zone=lst_ldt&interval=hilo&units=english&format=json`;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { predictions?: Array<{ t: string; v: string; type: string }> };
+    if (!json.predictions) return [];
+    return json.predictions.map(p => {
+      const timePart = p.t.split(' ')[1] ?? '00:00';
+      const [hh, mm] = timePart.split(':').map(Number);
+      const ampm = hh >= 12 ? 'PM' : 'AM';
+      const h12 = hh % 12 === 0 ? 12 : hh % 12;
+      return {
+        time: `${h12}:${String(mm).padStart(2, '0')} ${ampm}`,
+        heightFt: Math.round(parseFloat(p.v) * 10) / 10,
+        type: p.type as 'H' | 'L',
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function getTidesForLocation(lat: number, lon: number): Promise<TideInfo | null> {
+  try {
+    const station = await getNearestTideStation(lat, lon);
+    if (!station || station.distanceMi > 100) return null; // too far inland
+    const predictions = await fetchTidePredictions(station.stationId);
+    if (predictions.length === 0) return null;
+    return { stationName: station.stationName, distanceMi: station.distanceMi, predictions };
+  } catch {
+    return null;
+  }
+}
+
 // ── Main service ──────────────────────────────────────────────────────────────
 
 @Injectable()
@@ -556,15 +758,17 @@ export class FishingIntelligenceService {
     let raw: OpenMeteoResponse;
     let spots: FishingSpot[];
     let locationLabel: string;
+    let tides: TideInfo | null;
 
     try {
-      [raw, spots, locationLabel] = await Promise.all([
+      [raw, spots, locationLabel, tides] = await Promise.all([
         fetch(weatherUrl).then(r => {
           if (!r.ok) throw new Error(`Open-Meteo returned ${r.status}`);
           return r.json() as Promise<OpenMeteoResponse>;
         }),
         getNearbySpots(lat, lon),
         getLocationLabel(lat, lon),
+        getTidesForLocation(lat, lon),
       ]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -653,6 +857,10 @@ export class FishingIntelligenceService {
       windows,
       locationLabel,
       spots,
+      sunriseIso: sunrise.toISOString(),
+      sunsetIso: sunset.toISOString(),
+      tides,
+      activeSpecies: getActiveSpecies(tempF, season, pressureTrend, tides !== null, windMph),
     };
   }
 }

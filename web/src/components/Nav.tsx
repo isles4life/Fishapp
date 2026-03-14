@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { api, clearToken, isLoggedIn } from '../lib/api';
+import { api, clearToken, isLoggedIn, fixS3Url } from '../lib/api';
 import type { AnglerProfile } from '../lib/api';
 
 const C = {
@@ -137,7 +137,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
                 }}>
                   {profile?.profilePhotoUrl
                     // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={profile.profilePhotoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ? <img src={fixS3Url(profile.profilePhotoUrl) ?? ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{initials(profile?.user?.displayName)}</span>
                   }
                 </div>

@@ -1,5 +1,11 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app';
 
+/** Rewrite internal Docker hostnames to browser-accessible equivalents for local dev. */
+export function fixS3Url(url: string | null | undefined): string | null | undefined {
+  if (!url) return url;
+  return url.replace('http://localstack:', 'http://localhost:');
+}
+
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('fl_token');
@@ -143,6 +149,8 @@ export interface FishingSpot {
   lon: number;
 }
 
+export interface TidePrediction { time: string; heightFt: number; type: 'H' | 'L'; }
+
 export interface FishingIntelResponse {
   conditions: {
     temperatureF: number;
@@ -159,6 +167,13 @@ export interface FishingIntelResponse {
   windows: { label: string; start: string; end: string; quality: string }[];
   locationLabel: string;
   spots: FishingSpot[];
+  sunriseIso: string;
+  sunsetIso: string;
+  tides: { stationName: string; distanceMi: number; predictions: TidePrediction[] } | null;
+  activeSpecies: {
+    freshwater: { name: string; activity: 'HIGH' | 'MODERATE' | 'LOW'; reason: string }[];
+    saltwater: { name: string; activity: 'HIGH' | 'MODERATE' | 'LOW'; reason: string }[];
+  };
 }
 
 export const api = {

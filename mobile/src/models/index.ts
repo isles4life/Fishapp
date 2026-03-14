@@ -154,6 +154,18 @@ export interface FishingSpot {
   lon: number;
 }
 
+export interface TidePrediction {
+  time: string;
+  heightFt: number;
+  type: 'H' | 'L';
+}
+
+export interface SpeciesActivity {
+  name: string;
+  activity: 'HIGH' | 'MODERATE' | 'LOW';
+  reason: string;
+}
+
 export interface FishingIntelResponse {
   conditions: {
     temperatureF: number;
@@ -163,12 +175,20 @@ export interface FishingIntelResponse {
     weatherDesc: string;
     season: string;
     localTime: string;
+    weatherCode?: number;
   };
   activity: { level: string; headline: string; reason: string };
   recommendations: { lure: string; altLure: string; depth: string; technique: string };
   windows: { label: string; start: string; end: string; quality: string }[];
   locationLabel: string;
   spots: FishingSpot[];
+  sunriseIso: string;
+  sunsetIso: string;
+  tides: { stationName: string; distanceMi: number; predictions: TidePrediction[] } | null;
+  activeSpecies: {
+    freshwater: SpeciesActivity[];
+    saltwater: SpeciesActivity[];
+  };
 }
 
 export interface UpdateProfilePayload {

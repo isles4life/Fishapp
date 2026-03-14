@@ -7,18 +7,27 @@ import {
   SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as api from '../../services/api';
-import type { FishingIntelResponse, FishingSpot } from '../../models';
+import type { FishingIntelResponse, FishingSpot, SpeciesActivity } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
-// ── Weather emoji lookup by WMO code ─────────────────────────────────────────
+// ── Weather emoji — day/night aware ──────────────────────────────────────────
 
-function weatherEmoji(code: number): string {
-  if (code === 0) return '☀️';
-  if (code <= 2) return '🌤';
+function weatherEmoji(code?: number, sunriseIso?: string, sunsetIso?: string): string {
+  if (code === undefined || code === null) return '🌡';
+  const now = Date.now();
+  const isNight =
+    sunriseIso && sunsetIso
+      ? now < new Date(sunriseIso).getTime() || now > new Date(sunsetIso).getTime()
+      : new Date().getHours() < 6 || new Date().getHours() >= 20;
+  if (code === 0) return isNight ? '🌙' : '☀️';
+  if (code <= 2) return isNight ? '🌙' : '🌤';
   if (code === 3) return '☁️';
   if (code <= 48) return '🌫';
   if (code <= 67) return '🌧';
@@ -35,46 +44,74 @@ function trendArrow(trend: 'rising' | 'falling' | 'stable'): string {
   return '→';
 }
 
-// ── Activity level color ──────────────────────────────────────────────────────
+// ── Color helpers ─────────────────────────────────────────────────────────────
 
 function activityColor(level: string): string {
   switch (level) {
-    case 'EXCELLENT': return colors.accent;        // gold
-    case 'HIGH':      return '#3DAF5A';             // green
-    case 'MODERATE':  return '#E67E22';             // orange
-    default:          return colors.textMuted;      // muted
+    case 'EXCELLENT': return colors.accent;
+    case 'HIGH':      return '#3DAF5A';
+    case 'MODERATE':  return '#E67E22';
+    default:          return colors.textMuted;
   }
 }
-
-// ── Quality badge color ───────────────────────────────────────────────────────
 
 function qualityColor(quality: string): string {
   return quality === 'EXCELLENT' ? colors.accent : '#3DAF5A';
 }
 
+function speciesActivityColor(activity: 'HIGH' | 'MODERATE' | 'LOW'): string {
+  if (activity === 'HIGH') return '#3DAF5A';
+  if (activity === 'MODERATE') return '#E67E22';
+  return colors.textMuted;
+}
+
+// ── Geocode a US zip code via Nominatim ───────────────────────────────────────
+
+async function geocodeZip(zip: string): Promise<{ lat: number; lon: number } | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&postalcode=${encodeURIComponent(zip)}&country=US&limit=1`,
+      { headers: { Accept: 'application/json' } },
+    );
+    const json = await res.json();
+    if (!json[0]) return null;
+    return { lat: parseFloat(json[0].lat), lon: parseFloat(json[0].lon) };
+  } catch {
+    return null;
+  }
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionCard({ children, style }: { children: React.ReactNode; style?: object }) {
-  return (
-    <View style={[styles.card, style]}>
-      {children}
-    </View>
-  );
+  return <View style={[styles.card, style]}>{children}</View>;
 }
 
-function DataRow({
-  label,
-  value,
-  valueStyle,
-}: {
-  label: string;
-  value: string;
-  valueStyle?: object;
-}) {
+function CardTitle({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.cardTitle}>{children}</Text>;
+}
+
+function DataRow({ label, value, valueStyle }: { label: string; value: string; valueStyle?: object }) {
   return (
     <View style={styles.dataRow}>
       <Text style={styles.dataLabel}>{label}</Text>
       <Text style={[styles.dataValue, valueStyle]}>{value}</Text>
+    </View>
+  );
+}
+
+function SpeciesRow({ species }: { species: SpeciesActivity }) {
+  const color = speciesActivityColor(species.activity);
+  return (
+    <View style={styles.speciesRow}>
+      <View style={[styles.speciesDot, { backgroundColor: color }]} />
+      <View style={{ flex: 1 }}>
+        <View style={styles.speciesNameRow}>
+          <Text style={styles.speciesName}>{species.name}</Text>
+          <Text style={[styles.speciesActivityBadge, { color }]}>{species.activity}</Text>
+        </View>
+        <Text style={styles.speciesReason}>{species.reason}</Text>
+      </View>
     </View>
   );
 }
@@ -85,202 +122,311 @@ export default function FishingIntelligenceScreen() {
   const [data, setData] = useState<FishingIntelResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'ok'>('idle');
+  const [zip, setZip] = useState('');
+  const [zipError, setZipError] = useState('');
 
-  const fetchIntel = useCallback(async () => {
+  const fetchIntel = useCallback((lat: number, lon: number) => {
+    setLoading(true);
+    setError(null);
+    api.getFishingIntel(lat, lon)
+      .then(result => { setData(result); setLocationStatus('ok'); })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load fishing intelligence'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const requestLocation = useCallback(async () => {
+    setLocationStatus('requesting');
     setLoading(true);
     setError(null);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setError('Location permission denied. Please enable location access in Settings.');
+        setLoading(false);
         return;
       }
       const loc = await Location.getCurrentPositionAsync({});
-      const result = await api.getFishingIntel(loc.coords.latitude, loc.coords.longitude);
-      setData(result);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Unknown error';
-      setError(msg);
-    } finally {
+      fetchIntel(loc.coords.latitude, loc.coords.longitude);
+    } catch {
+      setError('Could not get your location. Try entering a zip code.');
       setLoading(false);
     }
-  }, []);
+  }, [fetchIntel]);
+
+  const handleZipSubmit = useCallback(async () => {
+    const z = zip.trim();
+    if (!z) return;
+    setZipError('');
+    setLoading(true);
+    const coords = await geocodeZip(z);
+    if (!coords) {
+      setLoading(false);
+      setZipError('Zip code not found.');
+      return;
+    }
+    fetchIntel(coords.lat, coords.lon);
+  }, [zip, fetchIntel]);
 
   useEffect(() => {
-    fetchIntel();
-  }, [fetchIntel]);
+    requestLocation();
+  }, [requestLocation]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>FISH INTEL</Text>
-        <Text style={styles.headerSub}>Weather-based fishing forecast</Text>
-      </View>
-
-      {/* Loading */}
-      {loading && (
-        <View style={styles.centerWrap}>
-          <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={styles.loadingText}>Analyzing conditions…</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>⚡ FISH INTEL</Text>
+          <Text style={styles.headerSub}>Weather-based fishing forecast · Nearby spots</Text>
         </View>
-      )}
 
-      {/* Error */}
-      {!loading && error && (
-        <View style={styles.centerWrap}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchIntel} activeOpacity={0.8}>
-            <Text style={styles.retryBtnText}>RETRY</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Content */}
-      {!loading && !error && data && (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Location status */}
-          <View style={styles.locationRow}>
-            <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.locationText}>{data.locationLabel}</Text>
-            <Text style={styles.localTime}>{data.conditions.localTime}</Text>
-          </View>
-
-          {/* ── Conditions card ──────────────────────────────────────────── */}
-          <SectionCard>
-            <Text style={styles.cardTitle}>CONDITIONS</Text>
-            <View style={styles.weatherRow}>
-              <Text style={styles.weatherEmoji}>
-                {weatherEmoji(data.conditions.weatherCode)}
-              </Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.weatherDesc}>{data.conditions.weatherDesc}</Text>
-                <View style={styles.seasonBadge}>
-                  <Text style={styles.seasonBadgeText}>
-                    {data.conditions.season.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-            </View>
-            <DataRow label="Temperature" value={`${data.conditions.temperatureF}°F`} />
-            <DataRow label="Wind" value={`${data.conditions.windMph} mph`} />
-            <DataRow
-              label="Pressure"
-              value={`${data.conditions.pressureHpa} hPa  ${trendArrow(data.conditions.pressureTrend)}`}
-              valueStyle={{
-                color:
-                  data.conditions.pressureTrend === 'falling'
-                    ? colors.accent
-                    : data.conditions.pressureTrend === 'rising'
-                    ? '#E67E22'
-                    : colors.text,
-              }}
+        {/* Zip code input — always visible */}
+        <View style={styles.zipContainer}>
+          <View style={styles.zipRow}>
+            <TextInput
+              style={[styles.zipInput, zipError ? styles.zipInputError : null]}
+              value={zip}
+              onChangeText={t => { setZip(t); setZipError(''); }}
+              placeholder="Enter zip code…"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              maxLength={10}
+              returnKeyType="search"
+              onSubmitEditing={handleZipSubmit}
             />
-          </SectionCard>
-
-          {/* ── Activity card ────────────────────────────────────────────── */}
-          <SectionCard style={{ borderLeftWidth: 4, borderLeftColor: activityColor(data.activity.level) }}>
-            <View style={styles.activityHeader}>
-              <Text style={[styles.activityLevel, { color: activityColor(data.activity.level) }]}>
-                {data.activity.level}
-              </Text>
-              <Text style={styles.cardTitle}>ACTIVITY</Text>
-            </View>
-            <Text style={styles.activityHeadline}>{data.activity.headline}</Text>
-            <Text style={styles.activityReason}>{data.activity.reason}</Text>
-          </SectionCard>
-
-          {/* ── Recommendations card ─────────────────────────────────────── */}
-          <SectionCard>
-            <Text style={styles.cardTitle}>RECOMMENDATIONS</Text>
-            <View style={styles.recRow}>
-              <Text style={styles.recIcon}>🎣</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.recSubLabel}>LURE</Text>
-                <Text style={styles.recPrimary}>{data.recommendations.lure}</Text>
-                <Text style={styles.recAlt}>Alt: {data.recommendations.altLure}</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.recRow}>
-              <Text style={styles.recIcon}>📏</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.recSubLabel}>DEPTH</Text>
-                <Text style={styles.recPrimary}>{data.recommendations.depth}</Text>
-              </View>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.recRow}>
-              <Text style={styles.recIcon}>🎯</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.recSubLabel}>TECHNIQUE</Text>
-                <Text style={styles.recPrimary}>{data.recommendations.technique}</Text>
-              </View>
-            </View>
-          </SectionCard>
-
-          {/* ── Bite windows ─────────────────────────────────────────────── */}
-          {data.windows.length > 0 && (
-            <SectionCard>
-              <Text style={styles.cardTitle}>BITE WINDOWS</Text>
-              {data.windows.map((w, i) => (
-                <View key={i} style={[styles.windowRow, i < data.windows.length - 1 && styles.windowRowBorder]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.windowLabel}>{w.label}</Text>
-                    <Text style={styles.windowTime}>{w.start} – {w.end}</Text>
-                  </View>
-                  <View style={[styles.qualityBadge, { borderColor: qualityColor(w.quality) }]}>
-                    <Text style={[styles.qualityText, { color: qualityColor(w.quality) }]}>
-                      {w.quality}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-              {data.windows.length === 0 && (
-                <Text style={styles.noWindowsText}>No upcoming bite windows today.</Text>
-              )}
-            </SectionCard>
-          )}
-
-          {/* ── Nearby fishing spots ─────────────────────────────────────── */}
-          {data.spots.length > 0 && (
-            <SectionCard>
-              <Text style={styles.cardTitle}>NEARBY FISHING SPOTS</Text>
-              <Text style={styles.spotsSubtitle}>Within 20 miles · Powered by OpenStreetMap</Text>
-              {data.spots.map((spot: FishingSpot, i: number) => (
-                <View
-                  key={`${spot.name}-${i}`}
-                  style={[styles.spotRow, i < data.spots.length - 1 && styles.spotRowBorder]}
-                >
-                  <View style={styles.spotIcon}>
-                    <Text style={styles.spotIconText}>
-                      {spot.type === 'River' || spot.type === 'Stream' ? '🌊' :
-                       spot.type === 'Fishing Access' ? '🎣' :
-                       spot.type === 'Reservoir' ? '💧' : '🏞'}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.spotName}>{spot.name}</Text>
-                    <Text style={styles.spotType}>{spot.type}</Text>
-                  </View>
-                  <View style={styles.spotDistanceBadge}>
-                    <Text style={styles.spotDistanceText}>{spot.distanceMi} mi</Text>
-                  </View>
-                </View>
-              ))}
-            </SectionCard>
-          )}
-
-          {/* ── Refresh button ───────────────────────────────────────────── */}
-          <TouchableOpacity style={styles.refreshBtn} onPress={fetchIntel} activeOpacity={0.8}>
-            <Text style={styles.refreshBtnText}>↻  REFRESH CONDITIONS</Text>
+            <TouchableOpacity
+              style={[styles.zipBtn, loading && styles.btnDisabled]}
+              onPress={handleZipSubmit}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.zipBtnText}>GET FORECAST</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={[styles.locationBtn, loading && styles.btnDisabled]}
+            onPress={requestLocation}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.locationBtnText}>📍 Use My Location</Text>
           </TouchableOpacity>
-        </ScrollView>
-      )}
+          {zipError ? <Text style={styles.zipErrorText}>{zipError}</Text> : null}
+        </View>
+
+        {/* Loading */}
+        {loading && (
+          <View style={styles.centerWrap}>
+            <ActivityIndicator size="large" color={colors.accent} />
+            <Text style={styles.loadingText}>
+              {locationStatus === 'requesting' ? 'Requesting location…' : 'Analyzing conditions…'}
+            </Text>
+          </View>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <View style={styles.centerWrap}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={requestLocation} activeOpacity={0.8}>
+              <Text style={styles.retryBtnText}>RETRY</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Content */}
+        {!loading && !error && data && (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Location bar */}
+            <View style={styles.locationRow}>
+              <Text style={styles.locationIcon}>📍</Text>
+              <Text style={styles.locationText}>{data.locationLabel}</Text>
+              <Text style={styles.localTime}>{data.conditions.localTime}</Text>
+            </View>
+
+            {/* ── Conditions ──────────────────────────────────────────────── */}
+            <SectionCard>
+              <CardTitle>CONDITIONS</CardTitle>
+              <View style={styles.weatherRow}>
+                <Text style={styles.weatherEmoji}>
+                  {weatherEmoji(data.conditions.weatherCode, data.sunriseIso, data.sunsetIso)}
+                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.weatherDesc}>{data.conditions.weatherDesc}</Text>
+                  <View style={styles.seasonBadge}>
+                    <Text style={styles.seasonBadgeText}>
+                      {data.conditions.season.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <DataRow label="Temperature" value={`${data.conditions.temperatureF}°F`} />
+              <DataRow label="Wind" value={`${data.conditions.windMph} mph`} />
+              <DataRow
+                label="Pressure"
+                value={`${data.conditions.pressureHpa} hPa  ${trendArrow(data.conditions.pressureTrend)}`}
+                valueStyle={{
+                  color:
+                    data.conditions.pressureTrend === 'falling' ? colors.accent :
+                    data.conditions.pressureTrend === 'rising' ? '#E67E22' :
+                    colors.text,
+                }}
+              />
+            </SectionCard>
+
+            {/* ── Activity ────────────────────────────────────────────────── */}
+            <SectionCard style={{ borderLeftWidth: 4, borderLeftColor: activityColor(data.activity.level) }}>
+              <View style={styles.activityHeader}>
+                <Text style={[styles.activityLevel, { color: activityColor(data.activity.level) }]}>
+                  {data.activity.level}
+                </Text>
+                <CardTitle>ACTIVITY</CardTitle>
+              </View>
+              <Text style={styles.activityHeadline}>{data.activity.headline}</Text>
+              <Text style={styles.activityReason}>{data.activity.reason}</Text>
+            </SectionCard>
+
+            {/* ── Recommendations ─────────────────────────────────────────── */}
+            <SectionCard>
+              <CardTitle>RECOMMENDATIONS</CardTitle>
+              {[
+                { icon: '🎣', label: 'LURE', primary: data.recommendations.lure, alt: `Alt: ${data.recommendations.altLure}` },
+                { icon: '📏', label: 'DEPTH', primary: data.recommendations.depth },
+                { icon: '🎯', label: 'TECHNIQUE', primary: data.recommendations.technique },
+              ].map((rec, i) => (
+                <View key={i}>
+                  {i > 0 && <View style={styles.divider} />}
+                  <View style={styles.recRow}>
+                    <Text style={styles.recIcon}>{rec.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.recSubLabel}>{rec.label}</Text>
+                      <Text style={styles.recPrimary}>{rec.primary}</Text>
+                      {rec.alt && <Text style={styles.recAlt}>{rec.alt}</Text>}
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </SectionCard>
+
+            {/* ── Bite windows ────────────────────────────────────────────── */}
+            {data.windows.length > 0 && (
+              <SectionCard>
+                <CardTitle>BITE WINDOWS</CardTitle>
+                {data.windows.map((w, i) => (
+                  <View key={i} style={[styles.windowRow, i < data.windows.length - 1 && styles.windowRowBorder]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.windowLabel}>{w.label}</Text>
+                      <Text style={styles.windowTime}>{w.start} – {w.end}</Text>
+                    </View>
+                    <View style={[styles.qualityBadge, { borderColor: qualityColor(w.quality) }]}>
+                      <Text style={[styles.qualityText, { color: qualityColor(w.quality) }]}>
+                        {w.quality}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </SectionCard>
+            )}
+
+            {/* ── Active Species ───────────────────────────────────────────── */}
+            {data.activeSpecies && (
+              <SectionCard>
+                <CardTitle>🐟 ACTIVE SPECIES</CardTitle>
+                <Text style={styles.speciesSubtitle}>
+                  Based on water temp · season · pressure · {data.tides ? 'coastal proximity' : 'inland location'}
+                </Text>
+
+                {/* Freshwater */}
+                <View style={styles.speciesSection}>
+                  <View style={styles.speciesSectionHeader}>
+                    <Text style={styles.speciesSectionIcon}>🏞</Text>
+                    <Text style={styles.speciesSectionLabel}>FRESHWATER</Text>
+                  </View>
+                  {data.activeSpecies.freshwater.map((s) => (
+                    <SpeciesRow key={s.name} species={s} />
+                  ))}
+                </View>
+
+                {/* Saltwater */}
+                <View style={[styles.speciesSection, { marginTop: 16 }]}>
+                  <View style={styles.speciesSectionHeader}>
+                    <Text style={styles.speciesSectionIcon}>🌊</Text>
+                    <Text style={styles.speciesSectionLabel}>SALTWATER</Text>
+                    {!data.tides && (
+                      <Text style={styles.speciesOffshoreNote}>(offshore / travel)</Text>
+                    )}
+                  </View>
+                  {data.activeSpecies.saltwater.map((s) => (
+                    <SpeciesRow key={s.name} species={s} />
+                  ))}
+                </View>
+              </SectionCard>
+            )}
+
+            {/* ── Tides ───────────────────────────────────────────────────── */}
+            {data.tides && (
+              <SectionCard>
+                <CardTitle>🌊 TIDES — {data.tides.stationName}</CardTitle>
+                <Text style={styles.tidesSubtitle}>NOAA station · {data.tides.distanceMi} mi away</Text>
+                {data.tides.predictions.map((t, i) => (
+                  <View key={i} style={styles.tideRow}>
+                    <View style={[styles.tideIcon, { backgroundColor: t.type === 'H' ? '#0A2A4A' : '#1A1A3A', borderColor: t.type === 'H' ? '#1A6090' : '#3A3A7A' }]}>
+                      <Text style={styles.tideArrow}>{t.type === 'H' ? '▲' : '▼'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.tideLabel}>{t.type === 'H' ? 'High Tide' : 'Low Tide'}</Text>
+                      <Text style={styles.tideTime}>{t.time}</Text>
+                    </View>
+                    <Text style={[styles.tideHeight, { color: t.type === 'H' ? '#5BB8F5' : '#8BA88B' }]}>
+                      {t.heightFt} ft
+                    </Text>
+                  </View>
+                ))}
+              </SectionCard>
+            )}
+
+            {/* ── Nearby spots ────────────────────────────────────────────── */}
+            {data.spots.length > 0 && (
+              <SectionCard>
+                <CardTitle>NEARBY FISHING SPOTS</CardTitle>
+                <Text style={styles.spotsSubtitle}>Within 20 miles · Powered by OpenStreetMap</Text>
+                {data.spots.map((spot: FishingSpot, i: number) => (
+                  <View key={`${spot.name}-${i}`} style={[styles.spotRow, i < data.spots.length - 1 && styles.spotRowBorder]}>
+                    <View style={styles.spotIcon}>
+                      <Text style={styles.spotIconText}>
+                        {spot.type === 'River' || spot.type === 'Stream' ? '🌊' :
+                         spot.type === 'Fishing Access' ? '🎣' :
+                         spot.type === 'Reservoir' ? '💧' : '🏞'}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.spotName}>{spot.name}</Text>
+                      <Text style={styles.spotType}>{spot.type}</Text>
+                    </View>
+                    <View style={styles.spotDistanceBadge}>
+                      <Text style={styles.spotDistanceText}>{spot.distanceMi} mi</Text>
+                    </View>
+                  </View>
+                ))}
+              </SectionCard>
+            )}
+
+            {/* ── Refresh ─────────────────────────────────────────────────── */}
+            <TouchableOpacity style={styles.refreshBtn} onPress={requestLocation} activeOpacity={0.8}>
+              <Text style={styles.refreshBtnText}>↻  REFRESH CONDITIONS</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -309,6 +455,65 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
+  // Zip input
+  zipContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: 8,
+  },
+  zipRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  zipInput: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    color: colors.text,
+    fontSize: 14,
+  },
+  zipInputError: {
+    borderColor: colors.error,
+  },
+  zipBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  zipBtnText: {
+    ...typography.button,
+    color: colors.bg,
+    fontSize: 12,
+  },
+  locationBtn: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingVertical: 9,
+    alignItems: 'center',
+  },
+  locationBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSub,
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  zipErrorText: {
+    ...typography.caption,
+    color: colors.error,
+  },
+  // States
   centerWrap: {
     flex: 1,
     alignItems: 'center',
@@ -338,9 +543,7 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: colors.bg,
   },
-  scroll: {
-    flex: 1,
-  },
+  scroll: { flex: 1 },
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
@@ -354,9 +557,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingHorizontal: 2,
   },
-  locationIcon: {
-    fontSize: 13,
-  },
+  locationIcon: { fontSize: 13 },
   locationText: {
     ...typography.caption,
     color: colors.textSub,
@@ -366,7 +567,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
   },
-  // Card base
+  // Card
   card: {
     backgroundColor: colors.surface,
     borderRadius: 14,
@@ -386,9 +587,7 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 14,
   },
-  weatherEmoji: {
-    fontSize: 40,
-  },
+  weatherEmoji: { fontSize: 40 },
   weatherDesc: {
     fontSize: 16,
     fontWeight: '600',
@@ -456,10 +655,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'flex-start',
   },
-  recIcon: {
-    fontSize: 20,
-    marginTop: 2,
-  },
+  recIcon: { fontSize: 20, marginTop: 2 },
   recSubLabel: {
     ...typography.labelSm,
     color: colors.textMuted,
@@ -511,11 +707,107 @@ const styles = StyleSheet.create({
     ...typography.labelSm,
     fontSize: 10,
   },
-  noWindowsText: {
-    ...typography.bodyMd,
+  // Active species
+  speciesSubtitle: {
+    ...typography.caption,
     color: colors.textMuted,
-    textAlign: 'center',
-    paddingVertical: 8,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  speciesSection: {},
+  speciesSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  speciesSectionIcon: { fontSize: 14 },
+  speciesSectionLabel: {
+    ...typography.labelSm,
+    color: colors.textSub,
+    letterSpacing: 1,
+  },
+  speciesOffshoreNote: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginLeft: 4,
+  },
+  speciesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 9,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  speciesDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 4,
+    flexShrink: 0,
+  },
+  speciesNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  speciesName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  speciesActivityBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  speciesReason: {
+    ...typography.caption,
+    color: colors.textMuted,
+    lineHeight: 18,
+  },
+  // Tides
+  tidesSubtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  tideRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  tideIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  tideArrow: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  tideLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  tideTime: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  tideHeight: {
+    fontSize: 15,
+    fontWeight: '800',
   },
   // Spots
   spotsSubtitle: {
@@ -545,9 +837,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     flexShrink: 0,
   },
-  spotIconText: {
-    fontSize: 16,
-  },
+  spotIconText: { fontSize: 16 },
   spotName: {
     fontSize: 14,
     fontWeight: '700',
