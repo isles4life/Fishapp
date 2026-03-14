@@ -92,17 +92,17 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
       <div style={{
         maxWidth: 900,
         margin: '0 auto',
-        padding: '0 20px 0 0',
+        padding: '0 20px',
         height: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
         {/* Logo — always left */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: 0, flexShrink: 0, marginLeft: -20 }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: 0, flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="FishLeague" style={{ height: 56, width: 'auto', display: 'block' }} />
-          <span style={{ fontWeight: 900, fontSize: 19, letterSpacing: 1, lineHeight: 1, marginLeft: -15 }}>
+          <span style={{ fontWeight: 900, fontSize: 19, letterSpacing: 1, lineHeight: 1, marginLeft: 4 }}>
             <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
           </span>
         </Link>
