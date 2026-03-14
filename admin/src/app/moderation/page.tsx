@@ -23,7 +23,7 @@ interface Submission {
   photo2Key: string;
   flagDuplicateHash: boolean;
   flagDuplicateGps: boolean;
-  matSerial: { serialCode: string };
+  matSerial: { serialCode: string } | null;
   status: string;
 }
 
@@ -89,7 +89,7 @@ export default function ModerationPage() {
               {[
                 ['Email', selected.user.email],
                 ['Tournament', selected.tournament.name],
-                ['Mat Serial', selected.matSerial.serialCode],
+                ['Mat Serial', selected.matSerial?.serialCode ?? '— mat-free submission'],
                 ['Captured', new Date(selected.capturedAt).toLocaleString()],
                 ['GPS', `${selected.gpsLat.toFixed(5)}, ${selected.gpsLng.toFixed(5)}`],
               ].map(([k, v]) => (
@@ -108,13 +108,18 @@ export default function ModerationPage() {
             )}
 
             <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-              {[['Photo 1 – Fish on mat', selected.photo1Key], ['Photo 2 – Angler holding', selected.photo2Key]].map(([label, key]) => (
-                <div key={label}>
-                  <p style={{ margin: '0 0 8px', color: C.textSub, fontSize: 13, fontWeight: 600 }}>{label}</p>
+              {selected.photo1Key && (
+                <div>
+                  <p style={{ margin: '0 0 8px', color: C.textSub, fontSize: 13, fontWeight: 600 }}>Photo 1 – Mat</p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`${S3_BASE}/${key}`} alt={label} style={{ width: 260, borderRadius: 8, border: `1px solid ${C.border}` }} />
+                  <img src={`${S3_BASE}/${selected.photo1Key}`} alt="Mat photo" style={{ width: 260, borderRadius: 8, border: `1px solid ${C.border}` }} />
                 </div>
-              ))}
+              )}
+              <div>
+                <p style={{ margin: '0 0 8px', color: C.textSub, fontSize: 13, fontWeight: 600 }}>Fish Photo</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${S3_BASE}/${selected.photo2Key}`} alt="Fish photo" style={{ width: 260, borderRadius: 8, border: `1px solid ${C.border}` }} />
+              </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>

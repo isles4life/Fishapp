@@ -121,7 +121,7 @@ model Submission {
   id               String           @id @default(uuid())
   userId           String
   tournamentId     String
-  matSerialId      String
+  matSerialId      String?
   status           SubmissionStatus @default(PENDING)
 
   fishLengthCm     Float
@@ -130,9 +130,9 @@ model Submission {
   capturedAt       DateTime         // client timestamp
   serverReceivedAt DateTime         @default(now())
 
-  photo1Key        String           // S3 key – fish on mat
-  photo2Key        String           // S3 key – angler holding fish
-  imageHash1       String
+  photo1Key        String?          // S3 key – mat photo (optional, mat-free submissions omit this)
+  photo2Key        String           // S3 key – fish photo with credit card
+  imageHash1       String?
   imageHash2       String
 
   speciesName      String?
@@ -146,7 +146,7 @@ model Submission {
 
   user             User       @relation(fields: [userId], references: [id])
   tournament       Tournament @relation(fields: [tournamentId], references: [id])
-  matSerial        MatSerial  @relation(fields: [matSerialId], references: [id])
+  matSerial        MatSerial? @relation(fields: [matSerialId], references: [id])
   moderationActions ModerationAction[]
   leaderboardEntry  LeaderboardEntry?
   props            CatchProp[]

@@ -32,14 +32,14 @@ export class SubmissionsController {
     @Body() dto: CreateSubmissionDto,
     @UploadedFiles() files: { photo1?: Express.Multer.File[]; photo2?: Express.Multer.File[] },
   ) {
-    if (!files.photo1?.[0] || !files.photo2?.[0]) {
-      throw new BadRequestException('Both photo1 and photo2 are required');
+    if (!files.photo2?.[0]) {
+      throw new BadRequestException('photo2 is required');
     }
 
     return this.submissionsService.create(
       req.user.id,
       dto,
-      files.photo1[0].buffer,
+      files.photo1?.[0]?.buffer ?? null,
       files.photo2[0].buffer,
     );
   }

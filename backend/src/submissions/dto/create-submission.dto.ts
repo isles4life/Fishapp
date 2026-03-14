@@ -4,8 +4,9 @@ export class CreateSubmissionDto {
   @IsUUID()
   tournamentId: string;
 
+  @IsOptional()
   @IsString()
-  matSerialCode: string;
+  matSerialCode?: string;
 
   @IsNumber()
   @Min(10)

@@ -94,27 +94,24 @@ export function getMySubmissions(tournamentId: string): Promise<MySubmission[]> 
 
 export async function uploadSubmission(fields: {
   tournamentId: string;
-  matSerialCode: string;
   fishLengthCm: string;
   gpsLat: string;
   gpsLng: string;
   capturedAt: string;
-  photo1Uri: string;
-  photo2Uri: string;
+  photoUri: string;
   speciesName?: string;
 }): Promise<SubmissionResult> {
   const token = await storage.getToken();
   const form = new FormData();
 
   Object.entries(fields).forEach(([key, value]) => {
-    if (key !== 'photo1Uri' && key !== 'photo2Uri') {
+    if (key !== 'photoUri' && value !== undefined) {
       form.append(key, value);
     }
   });
 
-  // Append photos as blobs
-  form.append('photo1', { uri: fields.photo1Uri, name: 'photo1.jpg', type: 'image/jpeg' } as any);
-  form.append('photo2', { uri: fields.photo2Uri, name: 'photo2.jpg', type: 'image/jpeg' } as any);
+  // Fish photo (with credit card for measurement reference)
+  form.append('photo2', { uri: fields.photoUri, name: 'photo2.jpg', type: 'image/jpeg' } as any);
 
   const res = await fetch(`${BASE_URL}/submissions`, {
     method: 'POST',
