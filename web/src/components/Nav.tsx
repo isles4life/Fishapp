@@ -226,7 +226,7 @@ function MobileBottomNav({ active }: { active?: string }) {
             {item.icon
               // eslint-disable-next-line @next/next/no-img-element
               ? <span style={{ fontSize: 20 }}>{item.icon}</span>
-              : <img src="/icon.png" alt="Compete" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+              : <img src="/icon.png" alt="Compete" style={{ height: 22, width: 'auto' }} />
             }
             <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.5 }}>{item.label.toUpperCase()}</span>
           </a>

@@ -100,7 +100,7 @@ export default function HomePage() {
     <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
       <Nav active="home" />
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 20px' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 88px' }}>
 
         {/* ── Hero / Tournament Banner ─────────────────────────────── */}
         {loading && (
@@ -124,17 +124,17 @@ export default function HomePage() {
         {!loading && !error && tournament && (
           <div style={{
             backgroundColor: C.surface,
-            borderRadius: 20,
+            borderRadius: 16,
             border: `1px solid ${C.border}`,
             borderLeft: `4px solid ${C.accent}`,
-            padding: '28px 32px',
-            marginBottom: 40,
+            padding: '20px 16px',
+            marginBottom: 24,
             textAlign: 'center',
           }}>
             <div style={{ fontSize: 11, fontWeight: 800, color: C.accent, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
               Active Tournament
             </div>
-            <h1 style={{ fontSize: 32, fontWeight: 900, color: C.text, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: -0.5 }}>
+            <h1 style={{ fontSize: 'clamp(20px, 5vw, 30px)', fontWeight: 900, color: C.text, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: -0.5 }}>
               {tournament.name}
             </h1>
             <p style={{ color: C.textSub, fontSize: 15, margin: '0 0 24px' }}>
@@ -164,8 +164,8 @@ export default function HomePage() {
                 <div key={entry.userId} style={{
                   backgroundColor: C.surface,
                   border: `1px solid ${entry.rank <= 3 ? C.accent + '40' : C.border}`,
-                  borderRadius: 16,
-                  padding: 20,
+                  borderRadius: 12,
+                  padding: '14px 12px',
                   overflow: 'hidden',
                 }}>
                   {/* Top row: rank + avatar + name + verified */}
@@ -248,7 +248,7 @@ export default function HomePage() {
 
         {/* ── CTA (non-logged-in) ──────────────────────────────────── */}
         {!loggedIn && !loading && (
-          <div style={{ marginTop: 48, backgroundColor: C.surface, borderRadius: 16, padding: 32, textAlign: 'center', border: `1px solid ${C.border}` }}>
+          <div style={{ marginTop: 32, backgroundColor: C.surface, borderRadius: 16, padding: '20px 16px', textAlign: 'center', border: `1px solid ${C.border}` }}>
             <h3 style={{ margin: '0 0 8px', color: C.text, fontSize: 20, fontWeight: 700 }}>Download the app to compete</h3>
             <p style={{ margin: '0 0 20px', color: C.textSub, fontSize: 15 }}>
               Submit catches from your phone with GPS verification and real-time leaderboard updates.
