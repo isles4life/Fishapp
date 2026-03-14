@@ -110,7 +110,7 @@ export class SubmissionsService {
     const photo1Key = photo1 ? `submissions/${submissionId}/photo1.jpg` : null;
     const photo2Key = `submissions/${submissionId}/photo2.jpg`;
 
-    const uploads: Promise<void>[] = [this.s3.uploadBuffer(photo2Key, photo2, 'image/jpeg')];
+    const uploads = [this.s3.uploadBuffer(photo2Key, photo2, 'image/jpeg')];
     if (photo1 && photo1Key) uploads.push(this.s3.uploadBuffer(photo1Key, photo1, 'image/jpeg'));
     await Promise.all(uploads);
 
