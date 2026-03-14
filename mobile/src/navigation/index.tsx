@@ -12,7 +12,7 @@ import ProfileScreen from '../screens/Profile/ProfileScreen';
 import PublicProfileScreen from '../screens/Profile/PublicProfileScreen';
 import SubmissionFlowScreen from '../screens/Submission/SubmissionFlowScreen';
 import FishingIntelligenceScreen from '../screens/FishingIntelligence/FishingIntelligenceScreen';
-import { HomeIcon, LeaderboardIcon, TrophyIcon, ProfileIcon } from '../components/icons/TabIcons';
+import { HomeIcon, LeaderboardIcon, TrophyIcon, ProfileIcon, CameraIcon } from '../components/icons/TabIcons';
 import { colors } from '../theme/colors';
 
 // Tournament context — lets leaderboard/submission know the active tournamentId
@@ -65,7 +65,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           return (
             <TouchableOpacity key={route.key} onPress={onPress} style={tabStyles.submitBtn} activeOpacity={0.8}>
               <View style={tabStyles.submitCircle}>
-                <Text style={{ fontSize: 22 }}>📷</Text>
+                <CameraIcon color={colors.bg} size={24} />
               </View>
             </TouchableOpacity>
           );

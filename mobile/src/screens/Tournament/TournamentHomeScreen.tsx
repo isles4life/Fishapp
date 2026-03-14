@@ -49,7 +49,7 @@ export default function TournamentHomeScreen({ navigation }: Props) {
   }
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={colors.green} /></View>;
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.accent} /></View>;
   }
 
   if (!tournament) {
@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
   logoutText: { color: colors.textSecondary, fontSize: 13 },
   actions: { padding: 16, gap: 10 },
   primaryButton: {
-    backgroundColor: colors.green, borderRadius: 12,
+    backgroundColor: colors.accent, borderRadius: 12,
     padding: 16, alignItems: 'center',
-    shadowColor: colors.green, shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+    shadowColor: colors.accent, shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
   },
   primaryButtonText: { color: colors.bg, fontSize: 16, fontWeight: '700' },
   secondaryButton: {

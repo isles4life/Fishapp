@@ -763,16 +763,8 @@ function FLInput({ label, value, onChangeText, placeholder, multiline }: {
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-// Light/cream palette for profile view
-const CREAM = '#F0EAD0';
-const CREAM_CARD = '#FFFFFF';
-const CREAM_BORDER = '#C8BEA0';
-const DARK_TEXT = '#1A2A1A';
-const DARK_SUB = '#2E4A2E';
-const DARK_MUTED = '#5A7A5A';
-
 const s = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.surface },
+  safeArea: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: 32 },
 
   // Header — stays dark green
@@ -905,22 +897,22 @@ const s = StyleSheet.create({
     fontSize: 12,
   },
 
-  // Stats grid — cream bg, white cards
+  // Stats grid
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 12,
     gap: 8,
     marginTop: 0,
-    backgroundColor: CREAM,
+    backgroundColor: colors.bg,
   },
   statCard: {
     width: '47%',
-    backgroundColor: CREAM_CARD,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: CREAM_BORDER,
+    borderColor: colors.border,
     alignItems: 'center',
   },
   statValueRow: {
@@ -930,33 +922,33 @@ const s = StyleSheet.create({
   },
   statValue: {
     ...typography.numMd,
-    color: DARK_TEXT,
+    color: colors.text,
   },
   statUnit: {
     ...typography.labelSm,
-    color: DARK_MUTED,
+    color: colors.textMuted,
   },
   statLabel: {
     ...typography.labelSm,
-    color: DARK_MUTED,
+    color: colors.textMuted,
     marginTop: 4,
     textAlign: 'center',
   },
 
-  // Sections — white cards on cream
+  // Sections
   section: {
     marginHorizontal: 12,
     marginTop: 10,
-    backgroundColor: CREAM_CARD,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: CREAM_BORDER,
+    borderColor: colors.border,
     marginBottom: 2,
   },
   sectionTitle: {
     ...typography.label,
-    color: DARK_MUTED,
+    color: colors.textMuted,
     marginBottom: 12,
   },
   badgeGrid: {
@@ -971,15 +963,15 @@ const s = StyleSheet.create({
   },
   badgeLabel: {
     ...typography.labelSm,
-    color: DARK_MUTED,
+    color: colors.textMuted,
     textAlign: 'center',
   },
 
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tagChip: { backgroundColor: '#EDE8D0', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: CREAM_BORDER },
-  tagText: { color: DARK_SUB, fontSize: 12 },
-  infoLine: { fontSize: 13, color: DARK_SUB, marginBottom: 6 },
-  infoLabel: { color: DARK_MUTED, fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  tagChip: { backgroundColor: colors.surfaceHigh, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: colors.border },
+  tagText: { color: colors.textSub, fontSize: 12 },
+  infoLine: { fontSize: 13, color: colors.textSub, marginBottom: 6 },
+  infoLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4 },
 
   // Buttons
   goldBtn: {
