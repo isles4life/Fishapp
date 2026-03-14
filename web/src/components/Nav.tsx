@@ -99,7 +99,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         justifyContent: 'space-between',
       }}>
         {/* Logo — always left */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 0, flexShrink: 0 }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", gap: 0, flexShrink: 0, marginLeft: -20 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="FishLeague" style={{ height: 56, width: 'auto', display: 'block' }} />
           <span style={{ fontWeight: 900, fontSize: 19, letterSpacing: 1, lineHeight: 1, marginLeft: -15 }}>
