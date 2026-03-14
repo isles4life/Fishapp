@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, SafeAreaView, Modal,
+  ActivityIndicator, SafeAreaView, Modal, Alert,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +12,7 @@ import { typography } from '../../theme/typography';
 import { FishLeagueLogoFull } from '../../components/icons/Logo';
 import { TournamentContext } from '../../navigation';
 import type { RootStackParamList } from '../../navigation';
+import { storage } from '../../services/storage';
 
 function getInitials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -245,6 +246,19 @@ export default function HomeScreen() {
 
   const region = tournament?.region?.name ?? 'Pacific Northwest';
 
+  function handleSignOut() {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out', style: 'destructive',
+        onPress: async () => {
+          await storage.deleteToken();
+          navigation.replace('Login');
+        },
+      },
+    ]);
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       {pendingWarnings.length > 0 && (
@@ -257,6 +271,9 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <FishLeagueLogoFull width={240} />
+          <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn} activeOpacity={0.7}>
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
 
         {loading ? (
@@ -320,12 +337,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 52,
     paddingBottom: 16,
+    paddingHorizontal: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  signOutBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  signOutText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
   },
   loadingWrap: {
     paddingTop: 60,
