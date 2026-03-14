@@ -256,7 +256,7 @@ export default function HomeScreen() {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <FishLeagueLogoFull width={180} />
+          <FishLeagueLogoFull width={240} />
         </View>
 
         {loading ? (

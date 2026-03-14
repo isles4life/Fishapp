@@ -59,7 +59,7 @@ export default function RegisterScreen({ navigation }: Props) {
     >
       {/* Logo */}
       <View style={styles.logoWrap}>
-        <FishLeagueLogo size={80} />
+        <FishLeagueLogo size={120} />
         <Text style={styles.title}>CREATE ACCOUNT</Text>
         <Text style={styles.subtitle}>Join the competition</Text>
       </View>

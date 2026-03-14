@@ -75,7 +75,7 @@ export default function LoginScreen({ navigation }: Props) {
     >
       {/* Logo */}
       <View style={styles.logoWrap}>
-        <FishLeagueLogo size={100} />
+        <FishLeagueLogo size={140} />
         <Text style={styles.title}>FISHLEAGUE</Text>
         <Text style={styles.subtitle}>Sign in to compete</Text>
       </View>
