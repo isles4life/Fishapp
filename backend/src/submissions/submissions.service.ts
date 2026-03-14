@@ -148,4 +148,25 @@ export class SubmissionsService {
       },
     });
   }
+
+  async getHotSpots(tournamentId?: string) {
+    const submissions = await this.prisma.submission.findMany({
+      where: {
+        status: 'APPROVED',
+        ...(tournamentId ? { tournamentId } : {}),
+      },
+      select: {
+        gpsLat: true,
+        gpsLng: true,
+        speciesName: true,
+        fishLengthCm: true,
+      },
+    });
+    return submissions.map(s => ({
+      lat: s.gpsLat,
+      lng: s.gpsLng,
+      species: s.speciesName ?? 'Unknown',
+      lengthCm: s.fishLengthCm,
+    }));
+  }
 }

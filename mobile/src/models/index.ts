@@ -135,6 +135,15 @@ export interface AnglerProfile {
   user: { displayName: string; createdAt: string };
 }
 
+// ── Hot Spots ──────────────────────────────────────────────────────────────
+
+export interface HotSpot {
+  lat: number;
+  lng: number;
+  species: string;
+  lengthCm: number;
+}
+
 // ── Fishing Intelligence ───────────────────────────────────────────────────
 
 export interface FishingSpot {

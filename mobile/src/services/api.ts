@@ -13,6 +13,7 @@ import type {
   CatchComment,
   UserWarning,
   FishingIntelResponse,
+  HotSpot,
 } from '../models';
 
 const BASE_URL =
@@ -206,6 +207,11 @@ export function unfollowAngler(username: string): Promise<{ following: boolean }
 
 export function getFishingIntel(lat: number, lon: number): Promise<FishingIntelResponse> {
   return request<FishingIntelResponse>(`/fishing-intelligence?lat=${lat}&lon=${lon}`);
+}
+
+export function getHotSpots(tournamentId?: string): Promise<HotSpot[]> {
+  const qs = tournamentId ? `?tournamentId=${encodeURIComponent(tournamentId)}` : '';
+  return request<HotSpot[]>(`/submissions/hotspots${qs}`);
 }
 
 export async function uploadAvatar(uri: string, mimeType: string): Promise<{ avatarUrl: string }> {

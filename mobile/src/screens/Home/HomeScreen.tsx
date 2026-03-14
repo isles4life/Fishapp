@@ -324,6 +324,15 @@ export default function HomeScreen() {
               <Text style={styles.forecastArrow}>›</Text>
             </TouchableOpacity>
 
+            {/* Hot Spots Card */}
+            <TouchableOpacity style={styles.hotSpotsCard} onPress={() => navigation.navigate('HotSpots')} activeOpacity={0.85}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.hotSpotsLabel}>🗺️ CATCH HOT SPOTS</Text>
+                <Text style={styles.hotSpotsSub}>See where fish are being caught</Text>
+              </View>
+              <Text style={styles.forecastArrow}>›</Text>
+            </TouchableOpacity>
+
             {/* Recent Catches Section */}
             {entries.length > 0 && (
               <>
@@ -426,6 +435,26 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: colors.accent,
     marginLeft: 8,
+  },
+  hotSpotsCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hotSpotsLabel: {
+    ...typography.label,
+    color: colors.text,
+    marginBottom: 3,
+  },
+  hotSpotsSub: {
+    ...typography.caption,
+    color: colors.textMuted,
   },
   tournamentBanner: {
     margin: 16,

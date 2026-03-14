@@ -124,6 +124,15 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   return data;
 }
 
+// ── Hot Spots ──────────────────────────────────────────────────────────────
+
+export interface HotSpot {
+  lat: number;
+  lng: number;
+  species: string;
+  lengthCm: number;
+}
+
 // ── Fishing Intelligence ───────────────────────────────────────────────────
 
 export interface FishingSpot {
@@ -198,4 +207,8 @@ export const api = {
   },
   getFishingIntel: (lat: number, lon: number) =>
     apiFetch<FishingIntelResponse>(`/fishing-intelligence?lat=${lat}&lon=${lon}`, undefined, true),
+  getHotSpots: (tournamentId?: string) => {
+    const qs = tournamentId ? `?tournamentId=${encodeURIComponent(tournamentId)}` : '';
+    return apiFetch<HotSpot[]>(`/submissions/hotspots${qs}`, undefined, true);
+  },
 };

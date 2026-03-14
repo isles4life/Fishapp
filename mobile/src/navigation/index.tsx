@@ -12,6 +12,7 @@ import ProfileScreen from '../screens/Profile/ProfileScreen';
 import PublicProfileScreen from '../screens/Profile/PublicProfileScreen';
 import SubmissionFlowScreen from '../screens/Submission/SubmissionFlowScreen';
 import FishingIntelligenceScreen from '../screens/FishingIntelligence/FishingIntelligenceScreen';
+import HotSpotsScreen from '../screens/Map/HotSpotsScreen';
 import { HomeIcon, LeaderboardIcon, TrophyIcon, ProfileIcon, CameraIcon } from '../components/icons/TabIcons';
 import { colors } from '../theme/colors';
 
@@ -28,6 +29,7 @@ export type RootStackParamList = {
   Submission: { tournamentId: string };
   PublicProfile: { username: string };
   Forecast: undefined;
+  HotSpots: undefined;
 };
 
 export type TabParamList = {
@@ -182,6 +184,7 @@ export default function Navigation({ isAuthenticated }: { isAuthenticated: boole
           <Stack.Screen name="Submission" component={SubmissionFlowScreen} />
           <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
           <Stack.Screen name="Forecast" component={FishingIntelligenceScreen} />
+          <Stack.Screen name="HotSpots" component={HotSpotsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </TournamentContext.Provider>

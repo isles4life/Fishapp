@@ -21,7 +21,7 @@ function initials(name?: string | null) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
-export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tournaments' | 'profile' | 'forecast' }) {
+export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tournaments' | 'profile' | 'forecast' | 'map' }) {
   const [loggedIn, setLoggedIn] = useState(false);
   const [profile, setProfile] = useState<AnglerProfile | null>(null);
   const [navOpen, setNavOpen] = useState(false);
@@ -53,7 +53,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
     window.location.href = '/';
   }
 
-  function linkStyle(name: 'home' | 'leaderboard' | 'tournaments' | 'profile' | 'forecast'): React.CSSProperties {
+  function linkStyle(name: 'home' | 'leaderboard' | 'tournaments' | 'profile' | 'forecast' | 'map'): React.CSSProperties {
     const isActive = active === name;
     return {
       color: isActive ? C.accent : C.textSub,
@@ -113,6 +113,9 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
           <Link href="/leaderboard" style={linkStyle('leaderboard')}>Leaderboard</Link>
           {loggedIn && (
             <Link href="/fishing-intelligence" style={linkStyle('forecast')}>⚡ Forecast</Link>
+          )}
+          {loggedIn && (
+            <Link href="/map" style={linkStyle('map')}>🗺️ Map</Link>
           )}
           <Link href="/tournaments" style={linkStyle('tournaments')}>Tournaments</Link>
           {loggedIn && (
@@ -215,6 +218,7 @@ function MobileBottomNav({ active }: { active?: string }) {
           { href: '/tournaments', label: 'Compete', icon: null },
           ...(loggedIn ? [
             { href: '/fishing-intelligence', label: 'Forecast', icon: '⚡' },
+            { href: '/map', label: 'Map', icon: '🗺️' },
             { href: '/profile', label: 'Profile', icon: '👤' },
           ] : []),
         ].map(item => (
