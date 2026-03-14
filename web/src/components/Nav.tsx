@@ -202,36 +202,58 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
 function MobileBottomNav({ active }: { active?: string }) {
   const [loggedIn, setLoggedIn] = useState(false);
   useEffect(() => { setLoggedIn(isLoggedIn()); }, []);
+
+  const items = [
+    { href: '/',                       label: 'Home',     icon: '🏠',  activeKey: 'home' },
+    { href: '/leaderboard',            label: 'Board',    icon: '🏆',  activeKey: 'leaderboard' },
+    { href: '/tournaments',            label: 'Compete',  icon: null,  activeKey: 'tournaments' },
+    ...(loggedIn ? [
+      { href: '/fishing-intelligence', label: 'Forecast', icon: '⚡',  activeKey: 'forecast' },
+      { href: '/map',                  label: 'Map',       icon: '🗺️', activeKey: 'map' },
+    ] : []),
+  ];
+
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-      backgroundColor: '#152515', borderTop: '1px solid #2A4A2A',
-      padding: '8px 0 max(8px, env(safe-area-inset-bottom))',
+      backgroundColor: '#152515',
+      borderTop: '1px solid #2A4A2A',
+      paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
+      paddingTop: 10,
     }} id="mobile-bottom-nav">
-      <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-        {[
-          { href: '/',                      label: 'Home',     icon: '🏠',  activeKey: 'home' },
-          { href: '/leaderboard',           label: 'Board',    icon: '🏆',  activeKey: 'leaderboard' },
-          { href: '/tournaments',           label: 'Compete',  icon: null,  activeKey: 'tournaments' },
-          ...(loggedIn ? [
-            { href: '/fishing-intelligence', label: 'Forecast', icon: '⚡',  activeKey: 'forecast' },
-            { href: '/map',                  label: 'Map',      icon: '🗺️', activeKey: 'map' },
-            { href: '/profile',              label: 'Profile',  icon: '👤', activeKey: 'profile' },
-          ] : []),
-        ].map(item => (
-          <a key={item.href} href={item.href} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-            color: active === item.activeKey ? '#C9A450' : '#4A6A4A',
-            textDecoration: 'none', padding: '4px 8px', minWidth: 44,
-          }}>
-            {item.icon
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <span style={{ fontSize: 20 }}>{item.icon}</span>
-              : <img src="/icon.png" alt="Compete" style={{ height: 22, width: 'auto' }} />
-            }
-            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.5 }}>{item.label.toUpperCase()}</span>
-          </a>
-        ))}
+      <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start' }}>
+        {items.map(item => {
+          const isActive = active === item.activeKey;
+          return (
+            <a key={item.href} href={item.href} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              color: isActive ? '#C9A450' : '#4A6A4A',
+              textDecoration: 'none',
+              flex: 1,
+              paddingTop: 2,
+            }}>
+              {/* Active indicator bar */}
+              <div style={{
+                height: 2, width: 20, borderRadius: 1,
+                backgroundColor: isActive ? '#C9A450' : 'transparent',
+                marginBottom: 4,
+              }} />
+              {item.icon
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <span style={{ fontSize: 26, lineHeight: 1 }}>{item.icon}</span>
+                : <img src="/icon.png" alt="Compete" style={{ height: 26, width: 'auto' }} />
+              }
+              <span style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: 0.8,
+                color: isActive ? '#C9A450' : '#4A6A4A',
+                textTransform: 'uppercase',
+                marginTop: 2,
+              }}>
+                {item.label}
+              </span>
+            </a>
+          );
+        })}
       </div>
     </nav>
   );
