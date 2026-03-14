@@ -92,7 +92,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
       <div style={{
         maxWidth: 900,
         margin: '0 auto',
-        padding: '0 20px 0 6px',
+        padding: '0 20px 0 0',
         height: '100%',
         display: 'flex',
         alignItems: 'center',
