@@ -3,13 +3,15 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, SafeAreaView, Modal,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as api from '../../services/api';
 import type { Tournament, LeaderboardEntry, UserWarning } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { FishLeagueLogoFull } from '../../components/icons/Logo';
 import { TournamentContext } from '../../navigation';
+import type { RootStackParamList } from '../../navigation';
 
 function getInitials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -204,6 +206,7 @@ function WarningsModal({
 }
 
 export default function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { setTournamentId } = useContext(TournamentContext);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -271,6 +274,15 @@ export default function HomeScreen() {
               </View>
             )}
 
+            {/* Forecast Card */}
+            <TouchableOpacity style={styles.forecastCard} onPress={() => navigation.navigate('Forecast')} activeOpacity={0.85}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.forecastLabel}>⚡ FISHING INTELLIGENCE</Text>
+                <Text style={styles.forecastSub}>Weather, bite windows & recommendations</Text>
+              </View>
+              <Text style={styles.forecastArrow}>›</Text>
+            </TouchableOpacity>
+
             {/* Recent Catches Section */}
             {entries.length > 0 && (
               <>
@@ -318,6 +330,31 @@ const styles = StyleSheet.create({
   loadingWrap: {
     paddingTop: 60,
     alignItems: 'center',
+  },
+  forecastCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.accent + '50',
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  forecastLabel: {
+    ...typography.label,
+    color: colors.accent,
+    marginBottom: 3,
+  },
+  forecastSub: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  forecastArrow: {
+    fontSize: 22,
+    color: colors.accent,
+    marginLeft: 8,
   },
   tournamentBanner: {
     margin: 16,

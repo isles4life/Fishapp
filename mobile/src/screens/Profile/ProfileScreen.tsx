@@ -4,11 +4,15 @@ import {
   StyleSheet, ActivityIndicator, Switch, Alert, Image, Modal, FlatList, SafeAreaView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { getMyProfile, updateProfile, uploadAvatar } from '../../services/api';
+import { storage } from '../../services/storage';
 import type { AnglerProfile, UpdateProfilePayload, WaterType } from '../../models';
 import { GenericBadge, TournamentWinBadge, VerifiedAnglerBadge } from '../../components/icons/BadgeIcons';
+import type { RootStackParamList } from '../../navigation';
 
 const WATER_OPTIONS: { label: string; value: WaterType }[] = [
   { label: 'Freshwater', value: 'FRESHWATER' },
@@ -125,9 +129,15 @@ export function ProfileView({
   followLoading?: boolean;
   onAvatarUpdated?: (url: string) => void;
 }) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { stats } = profile;
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.profilePhotoUrl);
+
+  async function handleSignOut() {
+    await storage.deleteToken();
+    navigation.replace('Login');
+  }
 
   async function handleAvatarPress() {
     if (!isOwn) return;
@@ -303,6 +313,16 @@ export function ProfileView({
             })}
             {profile.sponsorTags.length > 0 && <TagRow label="Sponsors" tags={profile.sponsorTags} />}
           </View>
+        )}
+        {/* Sign Out */}
+        {isOwn && (
+          <TouchableOpacity
+            style={s.signOutBtn}
+            onPress={handleSignOut}
+            activeOpacity={0.8}
+          >
+            <Text style={s.signOutText}>SIGN OUT</Text>
+          </TouchableOpacity>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -989,6 +1009,21 @@ const s = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: colors.border,
+  },
+
+  signOutBtn: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.error + '60',
+    alignItems: 'center',
+  },
+  signOutText: {
+    ...typography.button,
+    color: colors.error,
   },
 
   // Empty state
