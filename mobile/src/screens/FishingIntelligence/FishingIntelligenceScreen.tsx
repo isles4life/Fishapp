@@ -337,6 +337,28 @@ export default function FishingIntelligenceScreen() {
               </SectionCard>
             )}
 
+            {/* ── Tides ───────────────────────────────────────────────────── */}
+            {data.tides && (
+              <SectionCard>
+                <CardTitle>🌊 TIDES — {data.tides.stationName}</CardTitle>
+                <Text style={styles.tidesSubtitle}>NOAA station · {data.tides.distanceMi} mi away</Text>
+                {data.tides.predictions.map((t, i) => (
+                  <View key={i} style={styles.tideRow}>
+                    <View style={[styles.tideIcon, { backgroundColor: t.type === 'H' ? '#0A2A4A' : '#1A1A3A', borderColor: t.type === 'H' ? '#1A6090' : '#3A3A7A' }]}>
+                      <Text style={styles.tideArrow}>{t.type === 'H' ? '▲' : '▼'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.tideLabel}>{t.type === 'H' ? 'High Tide' : 'Low Tide'}</Text>
+                      <Text style={styles.tideTime}>{t.time}</Text>
+                    </View>
+                    <Text style={[styles.tideHeight, { color: t.type === 'H' ? '#5BB8F5' : '#8BA88B' }]}>
+                      {t.heightFt} ft
+                    </Text>
+                  </View>
+                ))}
+              </SectionCard>
+            )}
+
             {/* ── Active Species ───────────────────────────────────────────── */}
             {data.activeSpecies && (
               <SectionCard>
@@ -369,28 +391,6 @@ export default function FishingIntelligenceScreen() {
                     <SpeciesRow key={s.name} species={s} />
                   ))}
                 </View>
-              </SectionCard>
-            )}
-
-            {/* ── Tides ───────────────────────────────────────────────────── */}
-            {data.tides && (
-              <SectionCard>
-                <CardTitle>🌊 TIDES — {data.tides.stationName}</CardTitle>
-                <Text style={styles.tidesSubtitle}>NOAA station · {data.tides.distanceMi} mi away</Text>
-                {data.tides.predictions.map((t, i) => (
-                  <View key={i} style={styles.tideRow}>
-                    <View style={[styles.tideIcon, { backgroundColor: t.type === 'H' ? '#0A2A4A' : '#1A1A3A', borderColor: t.type === 'H' ? '#1A6090' : '#3A3A7A' }]}>
-                      <Text style={styles.tideArrow}>{t.type === 'H' ? '▲' : '▼'}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.tideLabel}>{t.type === 'H' ? 'High Tide' : 'Low Tide'}</Text>
-                      <Text style={styles.tideTime}>{t.time}</Text>
-                    </View>
-                    <Text style={[styles.tideHeight, { color: t.type === 'H' ? '#5BB8F5' : '#8BA88B' }]}>
-                      {t.heightFt} ft
-                    </Text>
-                  </View>
-                ))}
               </SectionCard>
             )}
 

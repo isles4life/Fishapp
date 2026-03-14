@@ -345,6 +345,38 @@ export default function FishingIntelligencePage() {
                 </Card>
               )}
 
+              {/* Tides card */}
+              {data.tides && (
+                <Card>
+                  <CardTitle>🌊 Tides — {data.tides.stationName}</CardTitle>
+                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: -10, marginBottom: 14 }}>
+                    NOAA station · {data.tides.distanceMi} mi away
+                  </div>
+                  {data.tides.predictions.map((t, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 16, flexShrink: 0,
+                        backgroundColor: t.type === 'H' ? '#0A2A4A' : '#1A1A3A',
+                        border: `1px solid ${t.type === 'H' ? '#1A6090' : '#3A3A7A'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 14,
+                      }}>
+                        {t.type === 'H' ? '▲' : '▼'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          {t.type === 'H' ? 'High Tide' : 'Low Tide'}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.textMuted }}>{t.time}</div>
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: t.type === 'H' ? '#5BB8F5' : '#8BA88B' }}>
+                        {t.heightFt} ft
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+              )}
+
               {/* Active Species card — full width */}
               {data.activeSpecies && (
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -378,38 +410,6 @@ export default function FishingIntelligencePage() {
                     </div>
                   </Card>
                 </div>
-              )}
-
-              {/* Tides card */}
-              {data.tides && (
-                <Card>
-                  <CardTitle>🌊 Tides — {data.tides.stationName}</CardTitle>
-                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: -10, marginBottom: 14 }}>
-                    NOAA station · {data.tides.distanceMi} mi away
-                  </div>
-                  {data.tides.predictions.map((t, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: `1px solid ${C.border}` }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 16, flexShrink: 0,
-                        backgroundColor: t.type === 'H' ? '#0A2A4A' : '#1A1A3A',
-                        border: `1px solid ${t.type === 'H' ? '#1A6090' : '#3A3A7A'}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 14,
-                      }}>
-                        {t.type === 'H' ? '▲' : '▼'}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                          {t.type === 'H' ? 'High Tide' : 'Low Tide'}
-                        </div>
-                        <div style={{ fontSize: 12, color: C.textMuted }}>{t.time}</div>
-                      </div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: t.type === 'H' ? '#5BB8F5' : '#8BA88B' }}>
-                        {t.heightFt} ft
-                      </div>
-                    </div>
-                  ))}
-                </Card>
               )}
 
               {/* Nearby spots card — full width */}
