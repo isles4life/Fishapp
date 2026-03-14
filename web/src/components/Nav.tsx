@@ -99,9 +99,9 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         gap: 0,
       }}>
         {/* Logo */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 10, flexShrink: 0 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 6, flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="FishLeague" style={{ height: 48 }} />
+          <img src="/icon.png" alt="FishLeague" style={{ height: 44 }} />
           <span style={{ fontWeight: 900, fontSize: 17, letterSpacing: 1 }}>
             <span style={{ color: C.text }}>FISH</span><span style={{ color: C.accent }}>LEAGUE</span>
           </span>
@@ -120,7 +120,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         </div>
 
         {/* Right: auth */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0, marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
           {loggedIn ? (
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
