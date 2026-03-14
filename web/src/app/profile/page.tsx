@@ -321,7 +321,11 @@ export default function MyProfilePage() {
     e.preventDefault();
     setSaving(true); setError(''); setSuccess('');
     try {
-      const updated = await api.updateProfile(form);
+      // Strip empty strings so @IsUrl / @IsISO8601 validators don't reject them
+      const payload = Object.fromEntries(
+        Object.entries(form).filter(([, v]) => v !== '' && v !== undefined)
+      ) as UpdateProfilePayload;
+      const updated = await api.updateProfile(payload);
       setProfile(updated);
       setEditing(false);
       setSuccess('Profile saved!');
