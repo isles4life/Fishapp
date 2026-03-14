@@ -31,8 +31,11 @@ export class S3Service {
   }
 
   getPublicUrl(key: string): string {
-    if (process.env.AWS_ENDPOINT_URL) {
-      return `${process.env.AWS_ENDPOINT_URL}/${this.bucket}/${key}`;
+    // S3_PUBLIC_URL overrides the SDK endpoint for browser-accessible URLs
+    // (e.g. localhost:4566 instead of the internal Docker hostname localstack:4566)
+    const base = process.env.S3_PUBLIC_URL ?? process.env.AWS_ENDPOINT_URL;
+    if (base) {
+      return `${base}/${this.bucket}/${key}`;
     }
     return `https://${this.bucket}.s3.amazonaws.com/${key}`;
   }

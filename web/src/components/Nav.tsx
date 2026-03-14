@@ -200,7 +200,8 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
 }
 
 function MobileBottomNav({ active }: { active?: string }) {
-  const loggedIn = isLoggedIn();
+  const [loggedIn, setLoggedIn] = useState(false);
+  useEffect(() => { setLoggedIn(isLoggedIn()); }, []);
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
