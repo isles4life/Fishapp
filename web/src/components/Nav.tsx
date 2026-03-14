@@ -212,7 +212,7 @@ function MobileBottomNav({ active }: { active?: string }) {
         {[
           { href: '/', label: 'Home', icon: '🏠' },
           { href: '/leaderboard', label: 'Board', icon: '🏆' },
-          { href: '/tournaments', label: 'Compete', icon: '🎣' },
+          { href: '/tournaments', label: 'Compete', icon: null },
           ...(loggedIn ? [
             { href: '/fishing-intelligence', label: 'Forecast', icon: '⚡' },
             { href: '/profile', label: 'Profile', icon: '👤' },
@@ -223,7 +223,11 @@ function MobileBottomNav({ active }: { active?: string }) {
             color: active === item.label.toLowerCase() ? '#C9A450' : '#4A6A4A',
             textDecoration: 'none', padding: '4px 8px', minWidth: 48,
           }}>
-            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            {item.icon
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <span style={{ fontSize: 20 }}>{item.icon}</span>
+              : <img src="/icon.png" alt="Compete" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+            }
             <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.5 }}>{item.label.toUpperCase()}</span>
           </a>
         ))}
