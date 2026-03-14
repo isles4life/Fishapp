@@ -96,9 +96,9 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         height: '100%',
         display: 'flex',
         alignItems: 'center',
-        gap: 0,
+        justifyContent: 'space-between',
       }}>
-        {/* Logo */}
+        {/* Logo — always left */}
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: 0, flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="FishLeague" style={{ height: 56, width: 'auto', display: 'block' }} />
@@ -107,8 +107,8 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
           </span>
         </Link>
 
-        {/* Center nav links — hidden on narrow screens via inline style trick */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 28 }} className="nav-center-links">
+        {/* Center nav links — hidden on narrow screens */}
+        <div style={{ display: 'flex', gap: 28 }} className="nav-center-links">
           <Link href="/leaderboard" style={linkStyle('leaderboard')}>Leaderboard</Link>
           <Link href="/tournaments" style={linkStyle('tournaments')}>Tournaments</Link>
           {loggedIn && (
@@ -120,7 +120,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         </div>
 
         {/* Right: auth */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0, marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
           {loggedIn ? (
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
