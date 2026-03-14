@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, Image, TextInput, SafeAreaView,
+  ActivityIndicator, Alert, Image, TextInput, SafeAreaView, ScrollView,
 } from 'react-native';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import * as Location from 'expo-location';
@@ -14,7 +14,39 @@ import { typography } from '../../theme/typography';
 import { FishOnMatIcon, MouthClosedIcon, TailPinchedIcon } from '../../components/icons/VerificationIcons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Submission'>;
-type Step = 'photo1' | 'photo2' | 'details' | 'uploading' | 'success' | 'error';
+type Step = 'photo1' | 'photo2' | 'measure' | 'details' | 'uploading' | 'success' | 'error';
+type Point = { x: number; y: number };
+
+// Credit card ISO standard long edge = 85.6mm
+const CARD_LONG_EDGE_CM = 8.56;
+const DOT_R = 9;
+
+function ptDist(a: Point, b: Point) {
+  return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
+}
+
+function MeasureLine({ p1, p2, color }: { p1: Point; p2: Point; color: string }) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        left: (p1.x + p2.x) / 2 - len / 2,
+        top: (p1.y + p2.y) / 2 - 1.5,
+        width: len,
+        height: 3,
+        backgroundColor: color,
+        opacity: 0.9,
+        borderRadius: 2,
+        transform: [{ rotate: `${angle}deg` }],
+      }}
+    />
+  );
+}
 
 export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const { tournamentId } = route.params;
@@ -29,6 +61,12 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const [errorMessage, setErrorMessage] = useState('');
   const cameraRef = useRef<CameraView>(null);
   const qrScanned = useRef(false);
+
+  // Measure state
+  const [measurePhase, setMeasurePhase] = useState<'card' | 'fish' | 'done'>('card');
+  const [cardPoints, setCardPoints] = useState<Point[]>([]);
+  const [fishPoints, setFishPoints] = useState<Point[]>([]);
+  const [measuredCm, setMeasuredCm] = useState<number | null>(null);
 
   useEffect(() => {
     Location.requestForegroundPermissionsAsync().then(({ status }) => {
@@ -49,7 +87,11 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
       qrScanned.current = false;
     } else if (step === 'photo2') {
       setPhoto2Uri(photo.uri);
-      setStep('details');
+      setMeasurePhase('card');
+      setCardPoints([]);
+      setFishPoints([]);
+      setMeasuredCm(null);
+      setStep('measure');
     }
   }
 
@@ -60,6 +102,45 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
       qrScanned.current = true;
       setQrCode(validation.code);
     }
+  }
+
+  function handleMeasureTap(x: number, y: number) {
+    if (measurePhase === 'card') {
+      const next = [...cardPoints, { x, y }];
+      setCardPoints(next);
+      if (next.length === 2) setMeasurePhase('fish');
+    } else if (measurePhase === 'fish') {
+      const next = [...fishPoints, { x, y }];
+      setFishPoints(next);
+      if (next.length === 2) {
+        const cardPx = ptDist(cardPoints[0], cardPoints[1]);
+        const fishPx = ptDist(next[0], next[1]);
+        const cm = Math.round((fishPx / cardPx) * CARD_LONG_EDGE_CM * 10) / 10;
+        setMeasuredCm(cm);
+        setMeasurePhase('done');
+      }
+    }
+  }
+
+  function handleMeasureUndo() {
+    if (measurePhase === 'done' || fishPoints.length > 0) {
+      const next = fishPoints.slice(0, -1);
+      setFishPoints(next);
+      setMeasurePhase('fish');
+      setMeasuredCm(null);
+    } else if (measurePhase === 'fish') {
+      // No fish points yet, undo last card point
+      const next = cardPoints.slice(0, -1);
+      setCardPoints(next);
+      setMeasurePhase('card');
+    } else if (cardPoints.length > 0) {
+      setCardPoints(cardPoints.slice(0, -1));
+    }
+  }
+
+  function handleUseMeasurement() {
+    if (measuredCm !== null) setFishLength(String(measuredCm));
+    setStep('details');
   }
 
   async function handleSubmit() {
@@ -163,15 +244,119 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
     );
   }
 
+  // ── Measure ───────────────────────────────────────────────────────────────
+
+  if (step === 'measure') {
+    const done = measurePhase === 'done';
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <View style={styles.detailsHeader}>
+          <TouchableOpacity onPress={() => setStep('photo2')} style={styles.backBtn}>
+            <Text style={styles.backArrow}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.detailsTitle}>MEASURE FISH</Text>
+          <TouchableOpacity onPress={() => setStep('details')} style={styles.skipBtn}>
+            <Text style={styles.skipBtnText}>SKIP</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tappable photo area */}
+        <View
+          style={styles.measureImageWrap}
+          onTouchStart={!done ? (e) => handleMeasureTap(e.nativeEvent.locationX, e.nativeEvent.locationY) : undefined}
+        >
+          <Image
+            source={{ uri: photo2Uri! }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="contain"
+            pointerEvents="none"
+          />
+
+          {/* Card reference line */}
+          {cardPoints.length === 2 && (
+            <MeasureLine p1={cardPoints[0]} p2={cardPoints[1]} color="#4CAF50" />
+          )}
+          {/* Fish length line */}
+          {fishPoints.length === 2 && (
+            <MeasureLine p1={fishPoints[0]} p2={fishPoints[1]} color={colors.accent} />
+          )}
+
+          {/* Card dots */}
+          {cardPoints.map((pt, i) => (
+            <View
+              key={`c${i}`}
+              pointerEvents="none"
+              style={[styles.measureDot, { left: pt.x - DOT_R, top: pt.y - DOT_R, backgroundColor: '#4CAF50' }]}
+            />
+          ))}
+          {/* Fish dots */}
+          {fishPoints.map((pt, i) => (
+            <View
+              key={`f${i}`}
+              pointerEvents="none"
+              style={[styles.measureDot, { left: pt.x - DOT_R, top: pt.y - DOT_R, backgroundColor: colors.accent }]}
+            />
+          ))}
+        </View>
+
+        {/* Instruction / result panel */}
+        <View style={styles.measurePanel}>
+          {done ? (
+            <>
+              <Text style={styles.measureResultNum}>📏 {measuredCm} CM</Text>
+              <Text style={styles.measureResultSub}>Measured via credit card (85.6 mm reference)</Text>
+              <TouchableOpacity style={[styles.goldBtn, { marginTop: 16 }]} onPress={handleUseMeasurement}>
+                <Text style={styles.goldBtnText}>USE {measuredCm} CM</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.outlineBtn, { marginTop: 10 }]}
+                onPress={() => { setMeasurePhase('card'); setCardPoints([]); setFishPoints([]); setMeasuredCm(null); }}
+              >
+                <Text style={styles.outlineBtnText}>RETAP</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.measureSteps}>
+                <View style={[styles.measureStepPill, measurePhase === 'card' && styles.measureStepPillActive]}>
+                  <View style={[styles.measureStepDot, { backgroundColor: '#4CAF50' }]} />
+                  <Text style={[styles.measureStepText, measurePhase === 'card' && { color: colors.text }]}>
+                    {cardPoints.length < 2
+                      ? `Tap card long edge  ${cardPoints.length}/2`
+                      : '✓ Card set'}
+                  </Text>
+                </View>
+                <View style={[styles.measureStepPill, measurePhase === 'fish' && styles.measureStepPillActive]}>
+                  <View style={[styles.measureStepDot, { backgroundColor: colors.accent }]} />
+                  <Text style={[styles.measureStepText, measurePhase === 'fish' && { color: colors.text }]}>
+                    {`Tap fish nose & tail  ${fishPoints.length}/2`}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[styles.outlineBtn, { marginTop: 12, opacity: (cardPoints.length === 0) ? 0.3 : 1 }]}
+                onPress={handleMeasureUndo}
+                disabled={cardPoints.length === 0}
+              >
+                <Text style={styles.outlineBtnText}>UNDO LAST TAP</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // ── Details form ──────────────────────────────────────────────────────────
 
   if (step === 'details') {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.detailsContainer}>
+        <ScrollView style={styles.detailsContainer} contentContainerStyle={{ paddingBottom: 40 }}>
           {/* Header */}
           <View style={styles.detailsHeader}>
-            <TouchableOpacity onPress={() => setStep('photo1')} style={styles.backBtn}>
+            <TouchableOpacity onPress={() => setStep('measure')} style={styles.backBtn}>
               <Text style={styles.backArrow}>←</Text>
             </TouchableOpacity>
             <Text style={styles.detailsTitle}>REVIEW CATCH</Text>
@@ -216,6 +401,9 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             {fishLength !== '' && !isNaN(Number(fishLength)) && (
               <Text style={styles.lengthPreview}>{fishLength} CM</Text>
             )}
+            {measuredCm !== null && (
+              <Text style={styles.measuredBadge}>📏 Auto-measured via credit card</Text>
+            )}
           </View>
 
           {/* Species */}
@@ -241,14 +429,15 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.goldBtn} onPress={handleSubmit}>
-            <Text style={styles.goldBtnText}>SUBMIT CATCH</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setStep('photo1')} style={styles.retakeLink}>
-            <Text style={styles.retakeLinkText}>Retake photos</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+            <TouchableOpacity style={styles.goldBtn} onPress={handleSubmit}>
+              <Text style={styles.goldBtnText}>SUBMIT CATCH</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setStep('photo1')} style={styles.retakeLink}>
+              <Text style={styles.retakeLinkText}>Retake photos</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -264,9 +453,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={step === 'photo1' ? handleBarcode : undefined}
       >
-        {/* Dark overlay with camera UI */}
         <View style={styles.cameraOverlay}>
-          {/* Camera header */}
           <View style={styles.cameraHeader}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cameraBackBtn}>
               <Text style={styles.cameraBackText}>←</Text>
@@ -277,16 +464,14 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             <View style={{ width: 44 }} />
           </View>
 
-          {/* Fish guide rectangle */}
           <View style={styles.guideContainer}>
             <View style={styles.guideDashed}>
               <Text style={styles.guideLabel}>
-                {step === 'photo1' ? 'FISH ON MAT + QR CODE' : 'FULL FISH VISIBLE'}
+                {step === 'photo1' ? 'FISH ON MAT + QR CODE' : 'FISH + CREDIT CARD VISIBLE'}
               </Text>
             </View>
           </View>
 
-          {/* Verification checklist (photo1 only) */}
           {step === 'photo1' && (
             <View style={styles.checklistSide}>
               <View style={styles.checklistItem}>
@@ -306,7 +491,15 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             </View>
           )}
 
-          {/* QR status badge */}
+          {step === 'photo2' && (
+            <View style={styles.checklistSide}>
+              <View style={styles.checklistItem}>
+                <Text style={{ fontSize: 22 }}>💳</Text>
+                <Text style={styles.checklistText}>Credit card in frame</Text>
+              </View>
+            </View>
+          )}
+
           {step === 'photo1' && (
             <View style={[styles.qrBadge, qrCode && styles.qrBadgeDetected]}>
               <Text style={[styles.qrBadgeText, qrCode && { color: colors.verified }]}>
@@ -315,7 +508,6 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             </View>
           )}
 
-          {/* Gold shutter button */}
           <TouchableOpacity style={styles.shutterBtn} onPress={takePicture} activeOpacity={0.8}>
             <View style={styles.shutterInner} />
           </TouchableOpacity>
@@ -337,18 +529,8 @@ const styles = StyleSheet.create({
   },
 
   // Permission
-  permTitle: {
-    ...typography.displaySm,
-    color: colors.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  permText: {
-    ...typography.bodyMd,
-    color: colors.textSub,
-    textAlign: 'center',
-    marginBottom: 28,
-  },
+  permTitle: { ...typography.displaySm, color: colors.text, marginBottom: 12, textAlign: 'center' },
+  permText: { ...typography.bodyMd, color: colors.textSub, textAlign: 'center', marginBottom: 28 },
 
   // Buttons
   goldBtn: {
@@ -360,73 +542,83 @@ const styles = StyleSheet.create({
     marginTop: 8,
     alignSelf: 'stretch',
   },
-  goldBtnText: {
-    ...typography.button,
-    color: colors.bg,
+  goldBtnText: { ...typography.button, color: colors.bg },
+  outlineBtn: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
+  outlineBtnText: { ...typography.button, color: colors.textSub },
 
   // Success
   successCheckWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 80, height: 80, borderRadius: 40,
     backgroundColor: colors.verifiedBg,
-    borderWidth: 2,
-    borderColor: colors.verified,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
+    borderWidth: 2, borderColor: colors.verified,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
-  successTitle: {
-    ...typography.displayMd,
-    color: colors.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  successSub: {
-    ...typography.bodyMd,
-    color: colors.textSub,
-    textAlign: 'center',
-    marginBottom: 28,
-  },
+  successTitle: { ...typography.displayMd, color: colors.text, marginBottom: 8, textAlign: 'center' },
+  successSub: { ...typography.bodyMd, color: colors.textSub, textAlign: 'center', marginBottom: 28 },
 
   // Error
-  errorIcon: {
-    fontSize: 48,
-    color: colors.error,
-    marginBottom: 16,
-  },
-  errorTitle: {
-    ...typography.displayMd,
-    color: colors.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  errorSub: {
-    ...typography.bodyMd,
-    color: colors.textSub,
-    textAlign: 'center',
-    marginBottom: 28,
-  },
+  errorIcon: { fontSize: 48, color: colors.error, marginBottom: 16 },
+  errorTitle: { ...typography.displayMd, color: colors.text, marginBottom: 8, textAlign: 'center' },
+  errorSub: { ...typography.bodyMd, color: colors.textSub, textAlign: 'center', marginBottom: 28 },
 
   // Uploading
-  uploadingText: {
-    ...typography.displaySm,
-    color: colors.text,
-    marginTop: 20,
+  uploadingText: { ...typography.displaySm, color: colors.text, marginTop: 20 },
+  uploadingSub: { ...typography.bodyMd, color: colors.textSub, marginTop: 8 },
+
+  // Measure step
+  measureImageWrap: {
+    flex: 1,
+    backgroundColor: '#000',
   },
-  uploadingSub: {
-    ...typography.bodyMd,
-    color: colors.textSub,
-    marginTop: 8,
+  measureDot: {
+    position: 'absolute',
+    width: DOT_R * 2,
+    height: DOT_R * 2,
+    borderRadius: DOT_R,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
+  measurePanel: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+  measureSteps: { gap: 10 },
+  measureStepPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
+  },
+  measureStepPillActive: {
+    borderColor: colors.borderGold,
+    backgroundColor: 'rgba(201,164,80,0.08)',
+  },
+  measureStepDot: { width: 10, height: 10, borderRadius: 5 },
+  measureStepText: { ...typography.bodyMd, color: colors.textMuted, flex: 1 },
+  measureResultNum: { ...typography.numLg, color: colors.accent, textAlign: 'center', fontSize: 32 },
+  measureResultSub: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: 4 },
+  skipBtn: { width: 44, alignItems: 'flex-end', justifyContent: 'center' },
+  skipBtnText: { ...typography.labelSm, color: colors.textSub },
 
   // Details
-  detailsContainer: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    paddingBottom: 24,
-  },
+  detailsContainer: { flex: 1, backgroundColor: colors.bg },
   detailsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -438,41 +630,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    fontSize: 22,
-    color: colors.accent,
-    fontWeight: '600',
-  },
-  detailsTitle: {
-    ...typography.displaySm,
-    color: colors.text,
-  },
-  photoRow: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-  },
-  thumbWrap: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 6,
-  },
-  thumbnail: {
-    width: '100%',
-    aspectRatio: 4 / 3,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-  },
-  thumbLabel: {
-    ...typography.labelSm,
-    color: colors.textMuted,
-  },
+  backBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  backArrow: { fontSize: 22, color: colors.accent, fontWeight: '600' },
+  detailsTitle: { ...typography.displaySm, color: colors.text },
+  photoRow: { flexDirection: 'row', gap: 12, padding: 16 },
+  thumbWrap: { flex: 1, alignItems: 'center', gap: 6 },
+  thumbnail: { width: '100%', aspectRatio: 4 / 3, borderRadius: 10, backgroundColor: colors.surface },
+  thumbLabel: { ...typography.labelSm, color: colors.textMuted },
   detailsCard: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -482,16 +646,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 14,
   },
-  detailsFieldLabel: {
-    ...typography.label,
-    color: colors.textMuted,
-    marginBottom: 6,
-  },
-  detailsFieldValue: {
-    ...typography.bodyMd,
-    color: colors.verified,
-    fontWeight: '600',
-  },
+  detailsFieldLabel: { ...typography.label, color: colors.textMuted, marginBottom: 6 },
+  detailsFieldValue: { ...typography.bodyMd, color: colors.verified, fontWeight: '600' },
   lengthInput: {
     ...typography.numMd,
     color: colors.accent,
@@ -499,30 +655,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderGold,
     paddingVertical: 4,
   },
-  lengthPreview: {
-    ...typography.numLg,
-    color: colors.accent,
-    marginTop: 8,
-  },
-  gpsValue: {
-    ...typography.bodyMd,
-    color: colors.textSub,
-  },
-  retakeLink: {
-    marginTop: 12,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  retakeLinkText: {
-    ...typography.bodyMd,
-    color: colors.textSub,
-  },
+  lengthPreview: { ...typography.numLg, color: colors.accent, marginTop: 8 },
+  measuredBadge: { ...typography.caption, color: colors.textMuted, marginTop: 6 },
+  gpsValue: { ...typography.bodyMd, color: colors.textSub },
+  retakeLink: { marginTop: 12, alignItems: 'center', paddingVertical: 8 },
+  retakeLinkText: { ...typography.bodyMd, color: colors.textSub },
 
   // Camera overlay
-  cameraOverlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
+  cameraOverlay: { flex: 1, backgroundColor: 'transparent' },
   cameraHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -532,27 +672,10 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: 'rgba(13,26,13,0.8)',
   },
-  cameraBackBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraBackText: {
-    fontSize: 22,
-    color: colors.accent,
-    fontWeight: '600',
-  },
-  cameraTitle: {
-    ...typography.displaySm,
-    color: colors.text,
-  },
-  guideContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
+  cameraBackBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  cameraBackText: { fontSize: 22, color: colors.accent, fontWeight: '600' },
+  cameraTitle: { ...typography.displaySm, color: colors.text },
+  guideContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   guideDashed: {
     width: '100%',
     height: 180,
@@ -572,12 +695,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
   },
-  checklistSide: {
-    position: 'absolute',
-    left: 16,
-    top: 130,
-    gap: 16,
-  },
+  checklistSide: { position: 'absolute', left: 16, top: 130, gap: 16 },
   checklistItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -589,10 +707,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(201,164,80,0.3)',
   },
-  checklistText: {
-    ...typography.caption,
-    color: colors.accent,
-  },
+  checklistText: { ...typography.caption, color: colors.accent },
   qrBadge: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -603,14 +718,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(201,164,80,0.4)',
     alignItems: 'center',
   },
-  qrBadgeDetected: {
-    backgroundColor: colors.verifiedBg,
-    borderColor: colors.verified + '60',
-  },
-  qrBadgeText: {
-    ...typography.caption,
-    color: colors.accent,
-  },
+  qrBadgeDetected: { backgroundColor: colors.verifiedBg, borderColor: colors.verified + '60' },
+  qrBadgeText: { ...typography.caption, color: colors.accent },
   shutterBtn: {
     alignSelf: 'center',
     marginBottom: 40,
@@ -623,10 +732,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(201,164,80,0.15)',
   },
-  shutterInner: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: colors.accent,
-  },
+  shutterInner: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.accent },
 });
