@@ -120,7 +120,7 @@ export default function Nav({ active }: { active?: 'home' | 'leaderboard' | 'tou
         </div>
 
         {/* Right: auth */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0, marginLeft: 'auto' }}>
           {loggedIn ? (
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
@@ -210,19 +210,19 @@ function MobileBottomNav({ active }: { active?: string }) {
     }} id="mobile-bottom-nav">
       <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
         {[
-          { href: '/', label: 'Home', icon: '🏠' },
-          { href: '/leaderboard', label: 'Board', icon: '🏆' },
-          { href: '/tournaments', label: 'Compete', icon: null },
+          { href: '/',                      label: 'Home',     icon: '🏠',  activeKey: 'home' },
+          { href: '/leaderboard',           label: 'Board',    icon: '🏆',  activeKey: 'leaderboard' },
+          { href: '/tournaments',           label: 'Compete',  icon: null,  activeKey: 'tournaments' },
           ...(loggedIn ? [
-            { href: '/fishing-intelligence', label: 'Forecast', icon: '⚡' },
-            { href: '/map', label: 'Map', icon: '🗺️' },
-            { href: '/profile', label: 'Profile', icon: '👤' },
+            { href: '/fishing-intelligence', label: 'Forecast', icon: '⚡',  activeKey: 'forecast' },
+            { href: '/map',                  label: 'Map',      icon: '🗺️', activeKey: 'map' },
+            { href: '/profile',              label: 'Profile',  icon: '👤', activeKey: 'profile' },
           ] : []),
         ].map(item => (
           <a key={item.href} href={item.href} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-            color: active === item.label.toLowerCase() ? '#C9A450' : '#4A6A4A',
-            textDecoration: 'none', padding: '4px 8px', minWidth: 48,
+            color: active === item.activeKey ? '#C9A450' : '#4A6A4A',
+            textDecoration: 'none', padding: '4px 8px', minWidth: 44,
           }}>
             {item.icon
               // eslint-disable-next-line @next/next/no-img-element
