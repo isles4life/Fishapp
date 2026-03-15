@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Nav from '../../../components/Nav';
-import { api, isLoggedIn } from '../../../lib/api';
+import { api, isLoggedIn, fixS3Url } from '../../../lib/api';
 import type { AnglerProfile } from '../../../lib/api';
 
 const C = {
@@ -112,7 +112,7 @@ export default function PublicProfilePage() {
             <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 28 }}>
               <div style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: C.surfaceHigh, border: `3px solid ${C.borderGold}`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
                 {profile.profilePhotoUrl
-                  ? <img src={profile.profilePhotoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ? <img src={fixS3Url(profile.profilePhotoUrl) ?? ''} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : '🎣'}
               </div>
               <div style={{ flex: 1 }}>

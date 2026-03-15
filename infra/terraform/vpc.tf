@@ -19,7 +19,7 @@ resource "aws_subnet" "public" {
   tags                    = merge(local.tags, { Name = "${local.name}-public-${count.index + 1}" })
 }
 
-# ── Private subnets (ECS tasks + RDS) ─────────────────────────────────────────
+# ── Private subnets (RDS) ─────────────────────────────────────────────────────
 resource "aws_subnet" "private" {
   count             = 2
   vpc_id            = aws_vpc.main.id
@@ -32,19 +32,6 @@ resource "aws_subnet" "private" {
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags   = merge(local.tags, { Name = "${local.name}-igw" })
-}
-
-# ── NAT Gateway (single AZ — acceptable for MVP) ─────────────────────────────
-resource "aws_eip" "nat" {
-  domain = "vpc"
-  tags   = merge(local.tags, { Name = "${local.name}-nat-eip" })
-}
-
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-  tags          = merge(local.tags, { Name = "${local.name}-nat" })
-  depends_on    = [aws_internet_gateway.main]
 }
 
 # ── Route tables ───────────────────────────────────────────────────────────────
@@ -65,10 +52,7 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
-  }
+  # No default route — RDS has no outbound internet access needed
   tags = merge(local.tags, { Name = "${local.name}-private-rt" })
 }
 
