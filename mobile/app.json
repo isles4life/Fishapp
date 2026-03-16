@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourcompany.fishleague",
+      "bundleIdentifier": "app.fishleague",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Take a photo of your catch and scan the mat QR code",
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.yourcompany.fishleague",
+      "package": "app.fishleague",
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#152515"
