@@ -45,6 +45,12 @@ async function request<T>(
   return data;
 }
 
+// ── Push ──────────────────────────────────────────────────────────────────────
+
+export function savePushToken(token: string): Promise<{ ok: boolean }> {
+  return request('/users/me/push-token', { method: 'PATCH', body: JSON.stringify({ token }) });
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 export function getRegions(): Promise<Region[]> {

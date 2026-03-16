@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../common/prisma.service';
 import { LeaderboardService } from '../leaderboard/leaderboard.service';
 import { EmailService } from '../email/email.service';
+import { PushService } from '../push/push.service';
 import { ModerateSubmissionDto } from './dto/moderate-submission.dto';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class ModerationService {
     private readonly prisma: PrismaService,
     private readonly leaderboard: LeaderboardService,
     private readonly email: EmailService,
+    private readonly push: PushService,
   ) {}
 
   async getPendingSubmissions(tournamentId?: string) {
@@ -48,7 +50,7 @@ export class ModerationService {
     const submission = await this.prisma.submission.findUnique({
       where: { id: submissionId },
       include: {
-        user: { select: { id: true, email: true, displayName: true } },
+        user: { select: { id: true, email: true, displayName: true, pushToken: true } },
         tournament: { select: { name: true } },
       },
     });
@@ -84,6 +86,13 @@ export class ModerationService {
         submission.tournament.name,
         submission.fishLengthCm,
       );
+      if (submission.user.pushToken) {
+        this.push.sendToToken(
+          submission.user.pushToken,
+          'Catch Approved! 🎣',
+          `Your ${submission.fishLengthCm} cm catch in ${submission.tournament.name} has been approved.`,
+        );
+      }
     }
 
     // If rejected, notify user
@@ -94,6 +103,15 @@ export class ModerationService {
         submission.tournament.name,
         dto.note,
       );
+      if (submission.user.pushToken) {
+        this.push.sendToToken(
+          submission.user.pushToken,
+          'Catch Not Approved',
+          dto.note
+            ? `Your catch was not approved: ${dto.note}`
+            : 'Your catch submission was not approved.',
+        );
+      }
     }
 
     // If suspending user

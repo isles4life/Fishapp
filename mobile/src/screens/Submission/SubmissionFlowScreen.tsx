@@ -8,6 +8,7 @@ import * as Location from 'expo-location';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import { uploadSubmission } from '../../services/api';
+import { enqueue } from '../../services/submissionQueue';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
@@ -55,6 +56,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const [speciesName, setSpeciesName] = useState('');
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [failedFields, setFailedFields] = useState<Parameters<typeof uploadSubmission>[0] | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   // Measure state
@@ -141,6 +143,15 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
       setStep('success');
     } catch (e: any) {
       setErrorMessage(e.message);
+      setFailedFields({
+        tournamentId,
+        fishLengthCm: fishLength,
+        gpsLat: String(location!.latitude),
+        gpsLng: String(location!.longitude),
+        capturedAt: new Date().toISOString(),
+        photoUri: photoUri!,
+        speciesName: speciesName.trim() || undefined,
+      });
       setStep('error');
     }
   }
@@ -197,9 +208,21 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
           <Text style={styles.errorIcon}>✕</Text>
           <Text style={styles.errorTitle}>SUBMISSION FAILED</Text>
           <Text style={styles.errorSub}>{errorMessage}</Text>
-          <TouchableOpacity style={styles.goldBtn} onPress={() => setStep('photo')}>
+          <TouchableOpacity style={styles.goldBtn} onPress={() => setStep('details')}>
             <Text style={styles.goldBtnText}>TRY AGAIN</Text>
           </TouchableOpacity>
+          {failedFields && (
+            <TouchableOpacity
+              style={[styles.outlineBtn, { marginTop: 10 }]}
+              onPress={async () => {
+                await enqueue(failedFields);
+                Alert.alert('Saved', 'Your catch will be submitted automatically when you reconnect.');
+                navigation.goBack();
+              }}
+            >
+              <Text style={styles.outlineBtnText}>SAVE & RETRY LATER</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );

@@ -8,6 +8,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import * as api from '../../services/api';
 import { storage } from '../../services/storage';
+import { registerPushToken } from '../../services/notifications';
 import type { Region } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -38,6 +39,7 @@ export default function LoginScreen({ navigation }: Props) {
       const { token } = await api.login(email, password);
       await storage.setToken(token);
       navigation.replace('MainTabs');
+      registerPushToken().catch(() => {});
     } catch (e: any) {
       Alert.alert('Login failed', e.message);
     } finally {
@@ -60,6 +62,7 @@ export default function LoginScreen({ navigation }: Props) {
       const { token } = await api.appleLogin(cred.identityToken!, displayName, selectedRegion);
       await storage.setToken(token);
       navigation.replace('MainTabs');
+      registerPushToken().catch(() => {});
     } catch (e: any) {
       if (e.code !== 'ERR_REQUEST_CANCELED') Alert.alert('Apple Sign In failed', e.message);
     } finally {

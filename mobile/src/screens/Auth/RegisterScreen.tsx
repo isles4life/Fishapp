@@ -7,6 +7,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import * as api from '../../services/api';
 import { storage } from '../../services/storage';
+import { registerPushToken } from '../../services/notifications';
 import type { Region } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -39,6 +40,7 @@ export default function RegisterScreen({ navigation }: Props) {
       const { token } = await api.register(email, password, displayName, selectedRegion);
       await storage.setToken(token);
       navigation.replace('MainTabs');
+      registerPushToken().catch(() => {});
     } catch (e: any) {
       Alert.alert('Registration failed', e.message);
     } finally {

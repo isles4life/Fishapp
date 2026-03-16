@@ -21,6 +21,16 @@ export class UsersController {
     return { id, displayName, email, regionId, authProvider, role, suspended, createdAt };
   }
 
+  @Patch('me/push-token')
+  @UseGuards(JwtAuthGuard)
+  async savePushToken(@Body() body: { token: string }, @Request() req: any) {
+    await this.prisma.user.update({
+      where: { id: req.user.id },
+      data: { pushToken: body.token },
+    });
+    return { ok: true };
+  }
+
   @Get('regions')
   getRegions() {
     return this.prisma.region.findMany({

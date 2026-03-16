@@ -13,6 +13,7 @@ import { FishLeagueLogoFull } from '../../components/icons/Logo';
 import { TournamentContext } from '../../navigation';
 import type { RootStackParamList } from '../../navigation';
 import { storage } from '../../services/storage';
+import { drainQueue } from '../../services/submissionQueue';
 
 function getInitials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -221,6 +222,16 @@ export default function HomeScreen() {
       .catch(() => {});
     api.getMyProfile()
       .then(p => { if (p) setProfile(p); })
+      .catch(() => {});
+    drainQueue()
+      .then(({ succeeded }) => {
+        if (succeeded > 0) {
+          Alert.alert(
+            'Catch Submitted',
+            `${succeeded} queued catch${succeeded > 1 ? 'es' : ''} submitted successfully.`,
+          );
+        }
+      })
       .catch(() => {});
   }, []);
 
