@@ -47,6 +47,8 @@ export default function TournamentsPage() {
         ...form,
         weekNumber: parseInt(form.weekNumber),
         year: parseInt(form.year),
+        startsAt: new Date(form.startsAt).toISOString(),
+        endsAt: new Date(form.endsAt).toISOString(),
         entryFeeCents: form.entryFee ? Math.round(parseFloat(form.entryFee) * 100) : 0,
         prizePoolCents: form.prizePool ? Math.round(parseFloat(form.prizePool) * 100) : 0,
       });
