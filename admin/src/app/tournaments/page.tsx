@@ -27,7 +27,12 @@ export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(), startsAt: '', endsAt: '', entryFee: '', prizePool: '' });
+  const [form, setForm] = useState({
+    regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
+    startsDate: '', startsTime: '08:00',
+    endsDate: '', endsTime: '20:00',
+    entryFee: '', prizePool: '',
+  });
 
   async function load() {
     try {
@@ -44,16 +49,17 @@ export default function TournamentsPage() {
     setError('');
     try {
       await api.createTournament({
-        ...form,
+        regionId: form.regionId,
+        name: form.name,
         weekNumber: parseInt(form.weekNumber),
         year: parseInt(form.year),
-        startsAt: new Date(form.startsAt).toISOString(),
-        endsAt: new Date(form.endsAt).toISOString(),
+        startsAt: new Date(`${form.startsDate}T${form.startsTime}:00`).toISOString(),
+        endsAt: new Date(`${form.endsDate}T${form.endsTime}:00`).toISOString(),
         entryFeeCents: form.entryFee ? Math.round(parseFloat(form.entryFee) * 100) : 0,
         prizePoolCents: form.prizePool ? Math.round(parseFloat(form.prizePool) * 100) : 0,
       });
       await load();
-      setForm(f => ({ ...f, name: '', weekNumber: '', startsAt: '', endsAt: '', entryFee: '', prizePool: '' }));
+      setForm(f => ({ ...f, name: '', weekNumber: '', startsDate: '', startsTime: '08:00', endsDate: '', endsTime: '20:00', entryFee: '', prizePool: '' }));
     } catch (e: any) { setError(e.message); }
   }
 
@@ -86,11 +92,21 @@ export default function TournamentsPage() {
           </div>
         </div>
 
-        <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Start</label>
-        <input type="datetime-local" value={form.startsAt} onChange={e => setForm(f => ({ ...f, startsAt: e.target.value }))} required style={inputStyle} />
+        <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Start Date &amp; Time</label>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <input type="date" value={form.startsDate} onChange={e => setForm(f => ({ ...f, startsDate: e.target.value }))} required
+            style={{ ...inputStyle, marginBottom: 0, flex: 2 }} />
+          <input type="time" value={form.startsTime} onChange={e => setForm(f => ({ ...f, startsTime: e.target.value }))} required
+            style={{ ...inputStyle, marginBottom: 0, flex: 1 }} />
+        </div>
 
-        <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>End</label>
-        <input type="datetime-local" value={form.endsAt} onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))} required style={inputStyle} />
+        <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>End Date &amp; Time</label>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <input type="date" value={form.endsDate} onChange={e => setForm(f => ({ ...f, endsDate: e.target.value }))} required
+            style={{ ...inputStyle, marginBottom: 0, flex: 2 }} />
+          <input type="time" value={form.endsTime} onChange={e => setForm(f => ({ ...f, endsTime: e.target.value }))} required
+            style={{ ...inputStyle, marginBottom: 0, flex: 1 }} />
+        </div>
 
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1 }}>
