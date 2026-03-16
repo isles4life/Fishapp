@@ -28,6 +28,12 @@ export const api = {
       body: JSON.stringify({ action, note }),
     }),
 
+  moderateBulk: (submissionIds: string[], action: string, note?: string) =>
+    apiFetch<{ succeeded: number; failed: number }>('/admin/moderation/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ submissionIds, action, note }),
+    }),
+
   getTournaments: () => apiFetch<any[]>('/tournaments'),
 
   getRegions: () => apiFetch<any[]>('/users/regions'),

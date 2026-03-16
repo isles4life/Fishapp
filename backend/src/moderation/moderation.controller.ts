@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../common/jwt.guard';
 import { AdminGuard } from '../common/admin.guard';
 import { ModerationService } from './moderation.service';
 import { ModerateSubmissionDto } from './dto/moderate-submission.dto';
+import { BulkModerateDto } from './dto/bulk-moderate.dto';
 
 @Controller('admin/moderation')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -31,6 +32,14 @@ export class ModerationController {
   @Get(':id')
   getDetail(@Param('id') id: string) {
     return this.moderationService.getSubmissionDetail(id);
+  }
+
+  @Post('bulk')
+  moderateBulk(@Body() dto: BulkModerateDto, @Request() req: any) {
+    return this.moderationService.moderateBulk(dto.submissionIds, req.user.id, {
+      action: dto.action,
+      note: dto.note,
+    });
   }
 
   @Post(':id/action')

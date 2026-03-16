@@ -112,6 +112,16 @@ export class ModerationService {
     return { ok: true, newStatus };
   }
 
+  async moderateBulk(submissionIds: string[], moderatorId: string, dto: ModerateSubmissionDto) {
+    const results = await Promise.allSettled(
+      submissionIds.map(id => this.moderate(id, moderatorId, dto)),
+    );
+    return {
+      succeeded: results.filter(r => r.status === 'fulfilled').length,
+      failed: results.filter(r => r.status === 'rejected').length,
+    };
+  }
+
   async getFlaggedSubmissions() {
     return this.prisma.submission.findMany({
       where: { OR: [{ flagDuplicateHash: true }, { flagDuplicateGps: true }] },
