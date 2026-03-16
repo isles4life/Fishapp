@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { S3Service } from './s3.service';
+import { EmailService } from '../email/email.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { v4 as uuid } from 'uuid';
 
@@ -14,6 +15,7 @@ export class SubmissionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
+    private readonly email: EmailService,
   ) {}
 
   async create(
@@ -136,6 +138,9 @@ export class SubmissionsService {
         speciesCategory: dto.speciesCategory,
       },
     });
+
+    // Fire-and-forget confirmation email
+    this.email.sendSubmissionReceived(user.email, user.displayName, tournament.name);
 
     return { submissionId: submission.id, status: 'PENDING' };
   }

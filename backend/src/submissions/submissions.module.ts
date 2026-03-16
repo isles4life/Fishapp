@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { SubmissionsService } from './submissions.service';
 import { SubmissionsController } from './submissions.controller';
 import { S3Service } from './s3.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
+  imports: [EmailModule],
   providers: [SubmissionsService, S3Service],
   controllers: [SubmissionsController],
   exports: [SubmissionsService],

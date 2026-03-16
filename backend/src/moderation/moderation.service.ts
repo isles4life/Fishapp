@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { LeaderboardService } from '../leaderboard/leaderboard.service';
+import { EmailService } from '../email/email.service';
 import { ModerateSubmissionDto } from './dto/moderate-submission.dto';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class ModerationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly leaderboard: LeaderboardService,
+    private readonly email: EmailService,
   ) {}
 
   async getPendingSubmissions(tournamentId?: string) {
@@ -45,6 +47,10 @@ export class ModerationService {
   async moderate(submissionId: string, moderatorId: string, dto: ModerateSubmissionDto) {
     const submission = await this.prisma.submission.findUnique({
       where: { id: submissionId },
+      include: {
+        user: { select: { id: true, email: true, displayName: true } },
+        tournament: { select: { name: true } },
+      },
     });
     if (!submission) throw new NotFoundException('Submission not found');
     if (submission.status !== 'PENDING' && submission.status !== 'FLAGGED') {
@@ -72,6 +78,22 @@ export class ModerationService {
     // If approved, update leaderboard
     if (dto.action === 'APPROVE') {
       await this.leaderboard.onSubmissionApproved(submissionId);
+      this.email.sendSubmissionApproved(
+        submission.user.email,
+        submission.user.displayName,
+        submission.tournament.name,
+        submission.fishLengthCm,
+      );
+    }
+
+    // If rejected, notify user
+    if (dto.action === 'REJECT') {
+      this.email.sendSubmissionRejected(
+        submission.user.email,
+        submission.user.displayName,
+        submission.tournament.name,
+        dto.note,
+      );
     }
 
     // If suspending user
@@ -80,6 +102,11 @@ export class ModerationService {
         where: { id: submission.userId },
         data: { suspended: true },
       });
+      this.email.sendAccountSuspended(
+        submission.user.email,
+        submission.user.displayName,
+        dto.note,
+      );
     }
 
     return { ok: true, newStatus };

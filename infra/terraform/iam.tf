@@ -45,6 +45,21 @@ resource "aws_iam_role" "ecs_task" {
   tags               = local.tags
 }
 
+# SES access for sending transactional emails
+resource "aws_iam_role_policy" "ecs_task_ses" {
+  name = "${local.name}-ecs-task-ses"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["ses:SendEmail", "ses:SendRawEmail"]
+      Resource = "*"
+    }]
+  })
+}
+
 # S3 access for photo uploads
 resource "aws_iam_role_policy" "ecs_task_s3" {
   name = "${local.name}-ecs-task-s3"

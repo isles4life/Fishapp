@@ -45,8 +45,9 @@ resource "aws_ecs_task_definition" "backend" {
       { name = "PORT",            value = "3000" },
       { name = "AWS_REGION",      value = var.aws_region },
       { name = "S3_BUCKET",       value = aws_s3_bucket.submissions.bucket },
-      { name = "APPLE_BUNDLE_ID", value = var.apple_bundle_id },
-      { name = "ALLOWED_ORIGINS", value = "https://admin.fishleague.app,https://fishleague.app,https://www.fishleague.app,null" },
+      { name = "APPLE_BUNDLE_ID",  value = var.apple_bundle_id },
+      { name = "ALLOWED_ORIGINS",  value = "https://admin.fishleague.app,https://fishleague.app,https://www.fishleague.app,null" },
+      { name = "SES_FROM_ADDRESS", value = "noreply@fishleague.app" },
     ]
 
     secrets = [
