@@ -95,17 +95,17 @@ export default function TournamentsPage() {
         <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Start Date &amp; Time</label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <input type="date" value={form.startsDate} onChange={e => setForm(f => ({ ...f, startsDate: e.target.value }))} required
-            style={{ ...inputStyle, marginBottom: 0, flex: 2 }} />
+            style={{ ...inputStyle, marginBottom: 0, flex: 2, color: C.accent, borderColor: C.accent + '80', colorScheme: 'dark' }} />
           <input type="time" value={form.startsTime} onChange={e => setForm(f => ({ ...f, startsTime: e.target.value }))} required
-            style={{ ...inputStyle, marginBottom: 0, flex: 1 }} />
+            style={{ ...inputStyle, marginBottom: 0, flex: 1, color: C.accent, borderColor: C.accent + '80', colorScheme: 'dark' }} />
         </div>
 
         <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>End Date &amp; Time</label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <input type="date" value={form.endsDate} onChange={e => setForm(f => ({ ...f, endsDate: e.target.value }))} required
-            style={{ ...inputStyle, marginBottom: 0, flex: 2 }} />
+            style={{ ...inputStyle, marginBottom: 0, flex: 2, color: C.accent, borderColor: C.accent + '80', colorScheme: 'dark' }} />
           <input type="time" value={form.endsTime} onChange={e => setForm(f => ({ ...f, endsTime: e.target.value }))} required
-            style={{ ...inputStyle, marginBottom: 0, flex: 1 }} />
+            style={{ ...inputStyle, marginBottom: 0, flex: 1, color: C.accent, borderColor: C.accent + '80', colorScheme: 'dark' }} />
         </div>
 
         <div style={{ display: 'flex', gap: 12 }}>
