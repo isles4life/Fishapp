@@ -1,21 +1,29 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Expo, { ExpoPushMessage } from 'expo-server-sdk';
+
+const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+
+function isExpoPushToken(token: string): boolean {
+  return token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[');
+}
 
 @Injectable()
 export class PushService {
-  private readonly expo = new Expo();
   private readonly logger = new Logger(PushService.name);
 
   async sendToToken(token: string, title: string, body: string, data?: Record<string, any>) {
-    if (!Expo.isExpoPushToken(token)) {
+    if (!isExpoPushToken(token)) {
       this.logger.warn(`Invalid Expo push token: ${token}`);
       return;
     }
-    const message: ExpoPushMessage = { to: token, title, body, data, sound: 'default' };
     try {
-      const [ticket] = await this.expo.sendPushNotificationsAsync([message]);
-      if (ticket.status === 'error') {
-        this.logger.warn(`Push failed: ${ticket.message}`);
+      const res = await fetch(EXPO_PUSH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ to: token, title, body, data, sound: 'default' }),
+      });
+      const json = await res.json() as any;
+      if (json?.data?.status === 'error') {
+        this.logger.warn(`Push failed: ${json.data.message}`);
       }
     } catch (err) {
       this.logger.error('Push notification error', err);
