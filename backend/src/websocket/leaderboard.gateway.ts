@@ -8,10 +8,12 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
+@Injectable()
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: { origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '*' },
   namespace: '/leaderboard',
 })
 export class LeaderboardGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -20,8 +22,27 @@ export class LeaderboardGateway implements OnGatewayConnection, OnGatewayDisconn
 
   private readonly logger = new Logger(LeaderboardGateway.name);
 
+  constructor(private readonly jwtService: JwtService) {}
+
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    const token =
+      client.handshake.auth?.token as string | undefined ||
+      (client.handshake.headers.authorization as string | undefined)?.replace('Bearer ', '');
+
+    if (token) {
+      try {
+        const payload = this.jwtService.verify(token);
+        client.data.userId = payload.sub;
+        this.logger.log(`Client connected: ${client.id} (user: ${payload.sub})`);
+      } catch {
+        this.logger.warn(`Client ${client.id} sent invalid token — disconnecting`);
+        client.disconnect();
+        return;
+      }
+    } else {
+      // No token — allow read-only public leaderboard access
+      this.logger.log(`Client connected: ${client.id} (unauthenticated)`);
+    }
   }
 
   handleDisconnect(client: Socket) {

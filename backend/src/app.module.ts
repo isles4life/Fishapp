@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './common/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -18,6 +20,8 @@ import { FishingIntelligenceModule } from './fishing-intelligence/fishing-intell
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    // Global rate limit: 100 requests per minute per IP
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -33,5 +37,6 @@ import { FishingIntelligenceModule } from './fishing-intelligence/fishing-intell
     WarningsModule,
     FishingIntelligenceModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

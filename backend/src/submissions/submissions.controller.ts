@@ -10,6 +10,7 @@ import {
   Request,
   BadRequestException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { SubmissionsService } from './submissions.service';
@@ -20,6 +21,8 @@ import { CreateSubmissionDto } from './dto/create-submission.dto';
 export class SubmissionsController {
   constructor(private readonly submissionsService: SubmissionsService) {}
 
+  // Max 10 submissions per minute per IP
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post()
   @UseInterceptors(
     FileFieldsInterceptor([
