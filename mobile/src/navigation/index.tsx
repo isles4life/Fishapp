@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -159,7 +159,11 @@ function MainTabs() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            if (tournamentId) navigation.navigate('Submission', { tournamentId });
+            if (tournamentId) {
+              navigation.navigate('Submission', { tournamentId });
+            } else {
+              Alert.alert('No Active Tournament', 'There is no active tournament right now. Check back when a new week opens.');
+            }
           },
         })}
       />

@@ -95,6 +95,7 @@ jobs:
           service: fishleague-backend
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+          wait-for-minutes: 10
 
   # ─── Admin: build → deploy (no tests needed) ────────────────────────────────
   admin:
@@ -154,6 +155,7 @@ jobs:
           service: fishleague-admin
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+          wait-for-minutes: 10
 
   # ─── Web: deploy to Vercel AFTER backend is stable ──────────────────────────
   web:
