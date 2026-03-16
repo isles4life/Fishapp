@@ -43,23 +43,23 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   listAll() {
     return this.prisma.user.findMany({
-      select: { id: true, displayName: true, email: true, role: true, suspended: true, authProvider: true, createdAt: true, region: { select: { name: true } } },
+      select: { id: true, displayName: true, email: true, role: true, suspended: true, authProvider: true, createdAt: true, regionId: true, region: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  // Admin-only: update role or suspended status
+  // Admin-only: update role, suspended status, or region
   @Patch(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async updateUser(
     @Param('id') id: string,
-    @Body() body: { role?: 'USER' | 'ADMIN'; suspended?: boolean },
+    @Body() body: { role?: 'USER' | 'ADMIN'; suspended?: boolean; regionId?: string },
     @Request() req: any,
   ) {
     const updated = await this.prisma.user.update({
       where: { id },
       data: body,
-      select: { id: true, displayName: true, email: true, role: true, suspended: true },
+      select: { id: true, displayName: true, email: true, role: true, suspended: true, region: { select: { name: true } } },
     });
 
     if (body.role !== undefined) {
@@ -74,6 +74,13 @@ export class UsersController {
         body.suspended ? 'USER_SUSPENDED' : 'USER_UNSUSPENDED',
         req.user.id, req.user.displayName, id,
         { targetName: updated.displayName, targetEmail: updated.email },
+      );
+    }
+    if (body.regionId !== undefined) {
+      await this.auditService.log(
+        'USER_REGION_CHANGED',
+        req.user.id, req.user.displayName, id,
+        { targetName: updated.displayName, targetEmail: updated.email, newRegion: updated.region?.name },
       );
     }
 

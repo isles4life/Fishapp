@@ -50,7 +50,7 @@ export const api = {
 
   getUsers: () => apiFetch<any[]>('/users'),
 
-  updateUser: (id: string, data: { role?: 'USER' | 'ADMIN'; suspended?: boolean }) =>
+  updateUser: (id: string, data: { role?: 'USER' | 'ADMIN'; suspended?: boolean; regionId?: string }) =>
     apiFetch(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   resetPassword: (id: string, password: string) =>

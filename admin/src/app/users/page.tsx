@@ -21,7 +21,8 @@ interface User {
   suspended: boolean;
   authProvider: string;
   createdAt: string;
-  region: { name: string };
+  regionId: string;
+  region: { id: string; name: string };
 }
 
 function Initials({ name }: { name: string }) {
@@ -59,6 +60,7 @@ interface WarningForm {
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState<string | null>(null);
@@ -74,8 +76,9 @@ export default function UsersPage() {
 
   async function load() {
     try {
-      const us = await api.getUsers();
+      const [us, rs] = await Promise.all([api.getUsers(), api.getRegions()]);
       setUsers(us);
+      setRegions(Array.isArray(rs) ? rs : []);
       // Load warning counts in parallel
       const counts = await Promise.all(
         us.map(u => api.getUserWarnings(u.id).then(ws => ({ id: u.id, count: ws.length })).catch(() => ({ id: u.id, count: 0 })))
@@ -258,8 +261,26 @@ export default function UsersPage() {
                 </td>
 
                 {/* Region */}
-                <td style={{ padding: '14px 20px', color: C.textSub, fontSize: 13, whiteSpace: 'nowrap' }}>
-                  {u.region?.name ?? '—'}
+                <td style={{ padding: '14px 20px' }}>
+                  <select
+                    value={u.regionId}
+                    disabled={loading === u.id}
+                    onChange={async e => {
+                      setLoading(u.id);
+                      try { await api.updateUser(u.id, { regionId: e.target.value }); await load(); }
+                      catch (err: any) { setError(err.message); }
+                      finally { setLoading(null); }
+                    }}
+                    style={{
+                      padding: '4px 8px', fontSize: 12,
+                      backgroundColor: C.bg, border: `1px solid ${C.border}`,
+                      borderRadius: 6, color: C.textSub, cursor: 'pointer',
+                    }}
+                  >
+                    {regions.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
                 </td>
 
                 {/* Role */}
