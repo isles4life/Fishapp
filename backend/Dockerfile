@@ -27,8 +27,12 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# Schema needed for db push / migrate at runtime
+# Prisma CLI (needed to run migrate deploy at startup)
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+
+# Schema + migrations needed at runtime
 COPY prisma ./prisma
 
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/seed.js || true && node dist/src/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && (node dist/seed.js || true) && node dist/src/main"]
