@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app-icon.png",
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
@@ -23,6 +23,10 @@
     },
     "android": {
       "package": "com.yourcompany.fishleague",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon.png",
+        "backgroundColor": "#152515"
+      },
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
