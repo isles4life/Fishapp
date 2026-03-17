@@ -66,14 +66,14 @@ export default function TournamentHomeScreen({ navigation }: Props) {
   }
 
   const statusColor = (status: string) => {
-    if (status === 'approved') return colors.green;
-    if (status === 'rejected') return colors.red;
+    if (status === 'APPROVED') return colors.green;
+    if (status === 'REJECTED') return colors.red;
     return colors.orange;
   };
 
   const statusLabel = (status: string) => {
-    if (status === 'approved') return '✓ Approved';
-    if (status === 'rejected') return '✕ Rejected';
+    if (status === 'APPROVED') return '✓ Approved';
+    if (status === 'REJECTED') return '✕ Rejected';
     return '⏳ Pending';
   };
 
