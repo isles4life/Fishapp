@@ -22,6 +22,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body style={{ margin: 0, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', backgroundColor: '#0D1A0D', color: '#F0EDE4' }}>
         {children}
+        <footer style={{ borderTop: '1px solid #2A4A2A', padding: '16px 24px', textAlign: 'center' }}>
+          <a href="/legal" style={{ color: '#4A6A4A', fontSize: 12, textDecoration: 'none' }}>Terms of Service &amp; Privacy Policy</a>
+          <span style={{ color: '#2A4A2A', margin: '0 10px' }}>·</span>
+          <span style={{ color: '#4A6A4A', fontSize: 12 }}>© 2026 FishLeague</span>
+        </footer>
       </body>
     </html>
   );
