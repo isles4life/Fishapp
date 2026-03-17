@@ -13,6 +13,16 @@ import { TournamentContext } from '../../navigation';
 
 type Tab = 'largest' | 'season';
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 const SPECIES_FILTERS = ['All', 'Bass', 'Walleye', 'Trout', 'Pike', 'Catfish', 'Panfish', 'Other'];
 
 function rankColor(rank: number): string {
@@ -105,7 +115,10 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
           )}
           {comments.map(c => (
             <View key={c.id} style={styles.commentRow}>
-              <Text style={styles.commentAuthor}>{c.user.displayName}</Text>
+              <View style={styles.commentMeta}>
+                <Text style={styles.commentAuthor}>{c.user.displayName}</Text>
+                <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
+              </View>
               <Text style={styles.commentBody}>{c.body}</Text>
             </View>
           ))}
@@ -565,11 +578,20 @@ const styles = StyleSheet.create({
   commentRow: {
     marginBottom: 8,
   },
+  commentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   commentAuthor: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.textSub,
-    marginBottom: 2,
+  },
+  commentTime: {
+    fontSize: 11,
+    color: colors.textMuted,
   },
   commentBody: {
     fontSize: 13,

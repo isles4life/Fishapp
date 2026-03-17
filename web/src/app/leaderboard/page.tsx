@@ -4,6 +4,16 @@ import Nav from '../../components/Nav';
 import { api } from '../../lib/api';
 import type { Tournament, LeaderboardEntry, CatchComment } from '../../lib/api';
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 const C = {
   bg:          '#3A4C44',
   surface:     '#2E3D38',
@@ -153,8 +163,11 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
           )}
           {comments.map(c => (
             <div key={c.id} style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{c.user.displayName}</span>
-              <span style={{ fontSize: 13, color: C.text, marginLeft: 8 }}>{c.body}</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{c.user.displayName}</span>
+                <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
+              </div>
+              <span style={{ fontSize: 13, color: C.text }}>{c.body}</span>
             </div>
           ))}
         </>
