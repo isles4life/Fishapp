@@ -187,15 +187,36 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Backend logs `USER_TERMS_ACCEPTED` audit event on registration with `termsAcceptedAt` timestamp
 - Admin history audit log shows `USER_TERMS_ACCEPTED` events
 
+## Design System (as of 2026-03-17)
+### Color Palette
+- `mobile/src/theme/colors.ts` — single source of truth for mobile
+- Dark surfaces: bg `#3A4C44`, surface `#2E3D38`, surfaceHigh `#445C54`
+- Gold accent: `#CFC29C` (muted), accentDark `#B8A882`
+- Light surfaces: cream `#F2EFE8`, white `#FFFFFF`, charcoal `#1A1D1A`
+- Text on dark: text `#F0EDE4`, textSub `#9DB5A8`, textMuted `#6B7D73`
+- Text on light: textDark `#1A1D1A`, textDarkSub `#4A5A52`, textDarkMuted `#6B7D73`
+- Semantic: verified `#3DAF5A`, error `#C0392B`, warning `#D4820A`
+- Each web/admin page has its own `const C = { ... }` with these same values (no shared module — intentional for MVP)
+
+### Fonts
+- Display/labels: `Oswald_700Bold`, `Oswald_600SemiBold` (loaded via `@expo-google-fonts/oswald`)
+- Body: `Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold` (loaded via `@expo-google-fonts/inter`)
+- Web: loaded via Google Fonts CDN in `web/src/app/layout.tsx`; `globals.css` `.display` class uses Oswald
+- Mobile: `useFonts` in `mobile/App.tsx` blocks render until all 5 variants are loaded
+
+### Screen-level design decisions
+- **HomeScreen**: cream/white — `safeArea` + `scroll` bg = `colors.cream`; header = deep green; feed cards = `colors.white` with shadow; section labels use `textDarkMuted`
+- **ProfileScreen**: split — header + profileHero = deep green; everything below (stats grid, sections, tags, buttons) wrapped in `lightSection` view with `colors.cream` bg; stat cards and sections use `colors.white` with light borders `#E8E3D8`
+- **LeaderboardScreen**: all dark green; rank numbers and measurements use `Oswald_700Bold`
+- **TournamentScreen**: all dark green
+- **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
+- **Auth screens (Login/Register)**: all dark green, fully using theme tokens
+
 ## Current Status (as of 2026-03-17)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS build submitted to TestFlight; needs to be added to external group once Apple processes it
-- End-to-end submission flow confirmed working (photo → S3 → moderation queue → approve → push notification)
-- All fish length displays converted to inches across mobile, web, and admin (DB remains cm)
-- Profile save 500 fixed (birthday DateTime conversion)
-- Comma input fixed for profile array fields
-- Submission status display fixed (uppercase enum comparison in TournamentScreen)
-- Admin history page has Submissions tab (in addition to Audit Log)
-- ToS & Privacy Policy pages added (web: `/legal`, mobile: `LegalScreen`); acceptance checkbox on both register screens; `USER_TERMS_ACCEPTED` audit event logged
-- Region selection on register is now a dropdown on web (`<select>`) and mobile (custom modal picker) instead of a button grid
-- **New iOS build required** to ship: submission status fix, inches conversion, ToS checkbox, legal link in profile, region dropdown
+- iOS TestFlight build (March 16) is stale — **new EAS build required** to ship all recent changes
+- Changes needing new build: app icon, region dropdown, inch fix, ToS checkbox, Oswald/Inter fonts, design overhaul, profile split, cream shutter button
+- Admin: pagination added to Users (PAGE_SIZE 50), Tournaments (PAGE_SIZE 20), and History (server-side paging for both Audit Log + Submissions tabs)
+- CI/CD: deploy workflow now has `concurrency: cancel-in-progress: true` — prevents race conditions on rapid pushes
+- All old color tokens (`#0D1A0D`, `#152515`, `#C9A450`, etc.) eliminated from entire codebase
+- Design system fully implemented: Oswald/Inter fonts, new palette, light/dark split screens across mobile + web + admin
