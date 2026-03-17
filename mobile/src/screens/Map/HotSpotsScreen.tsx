@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...typography.body,
-    color: '#E05050',
+    color: colors.error,
     textAlign: 'center',
   },
   emptyIcon: {
@@ -245,13 +245,13 @@ const styles = StyleSheet.create({
   calloutSpecies: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#111',
+    color: colors.charcoal,
     marginBottom: 2,
   },
   calloutLength: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#555',
+    color: colors.textDarkSub,
   },
   legend: {
     flexDirection: 'row',

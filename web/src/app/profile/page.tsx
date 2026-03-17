@@ -180,10 +180,10 @@ function TagList({ label, tags }: { label: string; tags: string[] }) {
   if (!tags.length) return null;
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ color: '#5A7A5A', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+      <div style={{ color: '#6B7D73', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {tags.map(t => (
-          <span key={t} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 13, backgroundColor: '#EDE8D0', color: '#2E4A2E', border: '1px solid #C8BEA0' }}>{t}</span>
+          <span key={t} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 13, backgroundColor: '#F2EFE8', color: '#1A1D1A', border: '1px solid #CFC29C' }}>{t}</span>
         ))}
       </div>
     </div>
@@ -192,9 +192,9 @@ function TagList({ label, tags }: { label: string; tags: string[] }) {
 
 function StatCard({ label, value }: { label: string; value: string | number | null }) {
   return (
-    <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: '18px 16px', border: '1px solid #C8BEA0', textAlign: 'center' }}>
-      <div style={{ fontSize: 28, fontWeight: 900, color: '#1A2A1A' }}>{value ?? '—'}</div>
-      <div style={{ fontSize: 11, color: '#5A7A5A', marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
+    <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: '18px 16px', border: '1px solid #CFC29C', textAlign: 'center' }}>
+      <div style={{ fontSize: 28, fontWeight: 900, color: '#1A1D1A' }}>{value ?? '—'}</div>
+      <div style={{ fontSize: 11, color: '#6B7D73', marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
     </div>
   );
 }
@@ -510,8 +510,8 @@ export default function MyProfilePage() {
 
           {/* Badges */}
           {profile.badges.length > 0 && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #C8BEA0', marginBottom: 14 }}>
-              <h4 style={{ color: '#5A7A5A', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 12px' }}>Earned Achievements</h4>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #CFC29C', marginBottom: 14 }}>
+              <h4 style={{ color: '#6B7D73', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 12px' }}>Earned Achievements</h4>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {profile.badges.map(b => (
                   <span key={b} style={{ padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, backgroundColor: C.accent + '20', color: '#7A4A00', border: `1px solid ${C.accent}60` }}>🏆 {b}</span>
@@ -522,23 +522,23 @@ export default function MyProfilePage() {
 
           {/* Fishing preferences */}
           {(profile.primarySpecies.length > 0 || profile.favoriteTechniques.length > 0 || profile.favoriteBaits.length > 0 || profile.preferredWaterType) && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #C8BEA0', marginBottom: 14 }}>
-              <h4 style={{ color: '#5A7A5A', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>Fishing Preferences</h4>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #CFC29C', marginBottom: 14 }}>
+              <h4 style={{ color: '#6B7D73', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>Fishing Preferences</h4>
               <TagList label="Species" tags={profile.primarySpecies} />
               <TagList label="Techniques" tags={profile.favoriteTechniques} />
               <TagList label="Baits" tags={profile.favoriteBaits} />
               {profile.preferredWaterType && (
-                <div><span style={{ color: '#5A7A5A', fontSize: 12 }}>Water: </span><span style={{ color: '#2E4A2E', fontSize: 14 }}>{WATER_LABELS[profile.preferredWaterType]}</span></div>
+                <div><span style={{ color: '#6B7D73', fontSize: 12 }}>Water: </span><span style={{ color: '#1A1D1A', fontSize: 14 }}>{WATER_LABELS[profile.preferredWaterType]}</span></div>
               )}
             </div>
           )}
 
           {/* Gear */}
           {(profile.favoriteRod || profile.favoriteReel || profile.favoriteLine || profile.favoriteBoat || profile.sponsorTags.length > 0) && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #C8BEA0' }}>
-              <h4 style={{ color: '#5A7A5A', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>Gear</h4>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #CFC29C' }}>
+              <h4 style={{ color: '#6B7D73', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>Gear</h4>
               {([['Rod', profile.favoriteRod], ['Reel', profile.favoriteReel], ['Line', profile.favoriteLine], ['Boat', profile.favoriteBoat]] as [string, string | null][]).map(([label, val]) =>
-                val ? <div key={label} style={{ marginBottom: 6 }}><span style={{ color: '#5A7A5A', fontSize: 12 }}>{label}: </span><span style={{ color: '#2E4A2E', fontSize: 14 }}>{val}</span></div> : null
+                val ? <div key={label} style={{ marginBottom: 6 }}><span style={{ color: '#6B7D73', fontSize: 12 }}>{label}: </span><span style={{ color: '#1A1D1A', fontSize: 14 }}>{val}</span></div> : null
               )}
               <TagList label="Sponsors" tags={profile.sponsorTags} />
             </div>
