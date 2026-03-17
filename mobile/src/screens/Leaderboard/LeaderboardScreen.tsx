@@ -179,9 +179,8 @@ function LeaderboardRow({
         {/* Measurement + prop */}
         <View style={styles.measureWrap}>
           <Text style={[styles.measurement, isFirst && { color: colors.accent }]}>
-            {(item.fishLengthCm / 2.54).toFixed(1)}
+            {(item.fishLengthCm / 2.54).toFixed(1)}{'"'}
           </Text>
-          <Text style={styles.measureUnit}>"</Text>
           {item.submissionId && (
             <PropButton submissionId={item.submissionId} />
           )}
@@ -520,11 +519,6 @@ const styles = StyleSheet.create({
   measurement: {
     ...typography.numMd,
     color: colors.text,
-  },
-  measureUnit: {
-    ...typography.labelSm,
-    color: colors.textMuted,
-    marginTop: -2,
   },
   propBtn: {
     flexDirection: 'row',

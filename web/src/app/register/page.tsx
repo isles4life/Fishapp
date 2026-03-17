@@ -116,18 +116,15 @@ export default function RegisterPage() {
           {regions.length > 0 && (
             <div style={{ marginBottom: 12 }}>
               <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 8, letterSpacing: 1.2, textTransform: 'uppercase' }}>Your Region</label>
-              {regions.map(r => (
-                <button key={r.id} type="button" onClick={() => setRegionId(r.id)} style={{
-                  width: '100%', padding: '10px 14px', marginBottom: 8,
-                  backgroundColor: regionId === r.id ? C.accentDark : C.bg,
-                  border: `1px solid ${regionId === r.id ? C.accent : C.border}`,
-                  borderRadius: 8, color: regionId === r.id ? C.accent : C.textSub,
-                  fontSize: 15, cursor: 'pointer', textAlign: 'left',
-                  fontWeight: regionId === r.id ? 600 : 400,
-                }}>
-                  {r.name}
-                </button>
-              ))}
+              <select
+                value={regionId}
+                onChange={e => setRegionId(e.target.value)}
+                style={{ width: '100%', padding: '14px', marginBottom: 0, backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 16, boxSizing: 'border-box', outline: 'none', cursor: 'pointer', colorScheme: 'dark' }}
+              >
+                {regions.map(r => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
             </div>
           )}
 

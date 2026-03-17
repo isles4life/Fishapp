@@ -98,8 +98,7 @@ function FeedCard({ entry, region }: { entry: LeaderboardEntry; region: string }
       <View style={styles.feedPhotoPlaceholder}>
         <View style={styles.feedFishInfo}>
           <Text style={styles.feedFishLengthLabel}>CATCH LENGTH</Text>
-          <Text style={styles.feedFishLength}>{lengthIn}</Text>
-          <Text style={styles.feedFishUnit}>"</Text>
+          <Text style={styles.feedFishLength}>{lengthIn}{'"'}</Text>
         </View>
         {entry.rank === 1 && (
           <View style={styles.feedRankBadge}>
@@ -604,11 +603,6 @@ const styles = StyleSheet.create({
   feedFishLength: {
     ...typography.numLg,
     color: colors.accent,
-  },
-  feedFishUnit: {
-    ...typography.label,
-    color: colors.textMuted,
-    marginTop: -4,
   },
   feedFishLengthIn: {
     ...typography.bodyMd,

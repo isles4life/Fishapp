@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert, ScrollView, Switch,
+  StyleSheet, ActivityIndicator, Alert, ScrollView, Switch, Modal, FlatList,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
@@ -24,6 +24,7 @@ export default function RegisterScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [regionPickerOpen, setRegionPickerOpen] = useState(false);
 
   useEffect(() => {
     api.getRegions().then(r => {
@@ -113,20 +114,35 @@ export default function RegisterScreen({ navigation }: Props) {
       {regions.length > 0 && (
         <>
           <Text style={styles.fieldLabel}>SELECT REGION</Text>
-          <View style={styles.regionGrid}>
-            {regions.map(r => (
-              <TouchableOpacity
-                key={r.id}
-                style={[styles.regionBtn, selectedRegion === r.id && styles.regionBtnActive]}
-                onPress={() => setSelectedRegion(r.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.regionBtnText, selectedRegion === r.id && styles.regionBtnTextActive]}>
-                  {r.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TouchableOpacity style={styles.regionDropdown} onPress={() => setRegionPickerOpen(true)} activeOpacity={0.8}>
+            <Text style={styles.regionDropdownText}>
+              {regions.find(r => r.id === selectedRegion)?.name ?? 'Select a region'}
+            </Text>
+            <Text style={styles.regionDropdownChevron}>▾</Text>
+          </TouchableOpacity>
+          <Modal visible={regionPickerOpen} transparent animationType="fade" onRequestClose={() => setRegionPickerOpen(false)}>
+            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setRegionPickerOpen(false)}>
+              <View style={styles.modalSheet}>
+                <Text style={styles.modalTitle}>SELECT REGION</Text>
+                <FlatList
+                  data={regions}
+                  keyExtractor={r => r.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[styles.modalOption, selectedRegion === item.id && styles.modalOptionActive]}
+                      onPress={() => { setSelectedRegion(item.id); setRegionPickerOpen(false); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.modalOptionText, selectedRegion === item.id && styles.modalOptionTextActive]}>
+                        {item.name}
+                      </Text>
+                      {selectedRegion === item.id && <Text style={styles.modalOptionCheck}>✓</Text>}
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </>
       )}
 
@@ -209,30 +225,71 @@ const styles = StyleSheet.create({
   inputFocused: {
     borderColor: colors.accent,
   },
-  regionGrid: {
+  regionDropdown: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  regionBtn: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
     backgroundColor: colors.surface,
   },
-  regionBtnActive: {
-    borderColor: colors.accent,
+  regionDropdownText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  regionDropdownChevron: {
+    fontSize: 16,
+    color: colors.textMuted,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalSheet: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    maxHeight: 360,
+  },
+  modalTitle: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    padding: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalOptionActive: {
     backgroundColor: colors.greenMuted,
   },
-  regionBtnText: {
-    ...typography.caption,
+  modalOptionText: {
+    fontSize: 16,
     color: colors.textSub,
   },
-  regionBtnTextActive: {
+  modalOptionTextActive: {
     color: colors.accent,
+    fontWeight: '700',
+  },
+  modalOptionCheck: {
+    color: colors.accent,
+    fontSize: 16,
     fontWeight: '700',
   },
   termsRow: {

@@ -196,3 +196,6 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Comma input fixed for profile array fields
 - Submission status display fixed (uppercase enum comparison in TournamentScreen)
 - Admin history page has Submissions tab (in addition to Audit Log)
+- ToS & Privacy Policy pages added (web: `/legal`, mobile: `LegalScreen`); acceptance checkbox on both register screens; `USER_TERMS_ACCEPTED` audit event logged
+- Region selection on register is now a dropdown on web (`<select>`) and mobile (custom modal picker) instead of a button grid
+- **New iOS build required** to ship: submission status fix, inches conversion, ToS checkbox, legal link in profile, region dropdown
