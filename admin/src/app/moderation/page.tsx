@@ -221,7 +221,7 @@ export default function ModerationPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>{s.user.displayName}</div>
                   <div style={{ color: C.textMuted, fontSize: 11, marginTop: 1 }}>{s.tournament.name}</div>
-                  <div style={{ color: C.accent, fontWeight: 700, fontSize: 13, marginTop: 3 }}>{s.fishLengthCm} cm</div>
+                  <div style={{ color: C.accent, fontWeight: 700, fontSize: 13, marginTop: 3 }}>{(s.fishLengthCm / 2.54).toFixed(1)}"</div>
                   <div style={{ marginTop: 5, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     {s.status !== 'PENDING' && <span style={{ fontSize: 10, color: C.textMuted, background: C.bg, padding: '1px 6px', borderRadius: 4 }}>{s.status}</span>}
                     {s.flagDuplicateHash && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>⚠ Dup Hash</span>}
@@ -236,7 +236,7 @@ export default function ModerationPage() {
         {/* Detail panel */}
         {selected && (
           <div style={{ flex: 1, backgroundColor: C.surface, borderRadius: 12, padding: 24, border: `1px solid ${C.border}` }}>
-            <h3 style={{ color: C.text, margin: '0 0 16px' }}>{selected.user.displayName} — {selected.fishLengthCm} cm</h3>
+            <h3 style={{ color: C.text, margin: '0 0 16px' }}>{selected.user.displayName} — {(selected.fishLengthCm / 2.54).toFixed(1)}"</h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px', marginBottom: 20, fontSize: 14 }}>
               {([

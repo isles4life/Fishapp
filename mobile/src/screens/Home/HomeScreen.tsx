@@ -98,9 +98,8 @@ function FeedCard({ entry, region }: { entry: LeaderboardEntry; region: string }
       <View style={styles.feedPhotoPlaceholder}>
         <View style={styles.feedFishInfo}>
           <Text style={styles.feedFishLengthLabel}>CATCH LENGTH</Text>
-          <Text style={styles.feedFishLength}>{entry.fishLengthCm}</Text>
-          <Text style={styles.feedFishUnit}>CM</Text>
-          <Text style={styles.feedFishLengthIn}>{lengthIn}"</Text>
+          <Text style={styles.feedFishLength}>{lengthIn}</Text>
+          <Text style={styles.feedFishUnit}>"</Text>
         </View>
         {entry.rank === 1 && (
           <View style={styles.feedRankBadge}>
@@ -114,7 +113,7 @@ function FeedCard({ entry, region }: { entry: LeaderboardEntry; region: string }
         <Text style={styles.feedCaptionText}>
           <Text style={{ color: colors.text, fontWeight: '700' }}>{firstName} </Text>
           <Text>CAUGHT A </Text>
-          <Text style={{ color: colors.accent, fontWeight: '800' }}>{entry.fishLengthCm} CM</Text>
+          <Text style={{ color: colors.accent, fontWeight: '800' }}>{lengthIn}"</Text>
           <Text> FISH.</Text>
         </Text>
         <View style={styles.feedMeta}>

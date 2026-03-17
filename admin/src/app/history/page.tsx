@@ -244,7 +244,7 @@ export default function HistoryPage() {
                         <div style={{ color: C.textMuted, fontSize: 11 }}>{s.user.email}</div>
                       </td>
                       <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>{s.tournament.name}</td>
-                      <td style={{ padding: '12px 16px', color: C.accent, fontWeight: 700, fontSize: 15 }}>{s.fishLengthCm} cm</td>
+                      <td style={{ padding: '12px 16px', color: C.accent, fontWeight: 700, fontSize: 15 }}>{(s.fishLengthCm / 2.54).toFixed(1)}"</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{ color: sm.color, background: sm.color + '18', border: `1px solid ${sm.color}40`, padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
                           {sm.label}

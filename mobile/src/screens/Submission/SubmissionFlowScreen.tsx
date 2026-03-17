@@ -20,6 +20,14 @@ type Point = { x: number; y: number };
 const CARD_LONG_EDGE_CM = 8.56;
 const DOT_R = 9;
 
+function cmToIn(cm: number): string {
+  return (cm / 2.54).toFixed(1);
+}
+
+function inToCm(inches: number): number {
+  return Math.round(inches * 2.54 * 10) / 10;
+}
+
 function ptDist(a: Point, b: Point) {
   return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
 }
@@ -98,7 +106,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         const cardPx = ptDist(cardPoints[0], cardPoints[1]);
         const fishPx = ptDist(next[0], next[1]);
         const cm = Math.round((fishPx / cardPx) * CARD_LONG_EDGE_CM * 10) / 10;
-        setMeasuredCm(cm);
+        setMeasuredCm(cm); // stored internally as cm for conversion
         setMeasurePhase('done');
       }
     }
@@ -118,7 +126,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   }
 
   function handleUseMeasurement() {
-    if (measuredCm !== null) setFishLength(String(measuredCm));
+    if (measuredCm !== null) setFishLength(cmToIn(measuredCm));
     setStep('details');
   }
 
@@ -127,13 +135,14 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
       return Alert.alert('Missing data', 'Ensure photo is taken and GPS is available.');
     }
     if (!fishLength || isNaN(Number(fishLength))) {
-      return Alert.alert('Missing data', 'Enter a valid fish length in cm.');
+      return Alert.alert('Missing data', 'Enter a valid fish length in inches.');
     }
+    const fishLengthCm = String(inToCm(Number(fishLength)));
     setStep('uploading');
     try {
       await uploadSubmission({
         tournamentId,
-        fishLengthCm: fishLength,
+        fishLengthCm,
         gpsLat: String(location.latitude),
         gpsLng: String(location.longitude),
         capturedAt: new Date().toISOString(),
@@ -145,7 +154,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
       setErrorMessage(e.message);
       setFailedFields({
         tournamentId,
-        fishLengthCm: fishLength,
+        fishLengthCm,
         gpsLat: String(location!.latitude),
         gpsLng: String(location!.longitude),
         capturedAt: new Date().toISOString(),
@@ -353,17 +362,17 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
           {/* Fish Length */}
           <View style={styles.detailsCard}>
-            <Text style={styles.detailsFieldLabel}>FISH LENGTH (CM)</Text>
+            <Text style={styles.detailsFieldLabel}>FISH LENGTH (INCHES)</Text>
             <TextInput
               style={styles.lengthInput}
-              placeholder="e.g. 42.5"
+              placeholder="e.g. 16.5"
               placeholderTextColor={colors.textMuted}
               keyboardType="decimal-pad"
               value={fishLength}
               onChangeText={setFishLength}
             />
             {fishLength !== '' && !isNaN(Number(fishLength)) && (
-              <Text style={styles.lengthPreview}>{fishLength} CM</Text>
+              <Text style={styles.lengthPreview}>{fishLength}"</Text>
             )}
             {measuredCm !== null && (
               <Text style={styles.measuredBadge}>📏 Auto-measured via credit card</Text>

@@ -165,7 +165,7 @@ export default function TournamentHomeScreen({ navigation }: Props) {
           renderItem={({ item }) => (
             <View style={styles.submissionRow}>
               <View style={styles.submissionLeft}>
-                <Text style={styles.submissionLength}>{item.fishLengthCm} cm</Text>
+                <Text style={styles.submissionLength}>{(item.fishLengthCm / 2.54).toFixed(1)}"</Text>
                 <Text style={styles.submissionDate}>
                   {new Date(item.capturedAt).toLocaleDateString()}
                 </Text>

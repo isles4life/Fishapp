@@ -33,7 +33,7 @@ function SubmissionRow({ item }: { item: MySubmission }) {
   return (
     <View style={styles.submissionRow}>
       <View>
-        <Text style={styles.submissionLength}>{item.fishLengthCm} cm</Text>
+        <Text style={styles.submissionLength}>{(item.fishLengthCm / 2.54).toFixed(1)}"</Text>
         <Text style={styles.submissionDate}>
           {new Date(item.capturedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </Text>

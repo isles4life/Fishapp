@@ -179,9 +179,9 @@ function LeaderboardRow({
         {/* Measurement + prop */}
         <View style={styles.measureWrap}>
           <Text style={[styles.measurement, isFirst && { color: colors.accent }]}>
-            {item.fishLengthCm}
+            {(item.fishLengthCm / 2.54).toFixed(1)}
           </Text>
-          <Text style={styles.measureUnit}>CM</Text>
+          <Text style={styles.measureUnit}>"</Text>
           {item.submissionId && (
             <PropButton submissionId={item.submissionId} />
           )}
@@ -340,7 +340,7 @@ export default function LeaderboardScreen() {
           <Text style={styles.myRankLabel}>YOUR RANK</Text>
           <Text style={styles.myRankValue}>#{myRank.rank}</Text>
           {myRank.fishLengthCm != null && (
-            <Text style={styles.myRankLength}>{myRank.fishLengthCm} cm</Text>
+            <Text style={styles.myRankLength}>{(myRank.fishLengthCm / 2.54).toFixed(1)}"</Text>
           )}
         </View>
       )}
