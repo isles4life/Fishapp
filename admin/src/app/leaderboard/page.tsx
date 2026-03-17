@@ -66,7 +66,7 @@ export default function LeaderboardPage() {
                 {medal(e.rank)}
               </div>
               <div style={{ flex: 1, color: C.text, fontWeight: 600 }}>{e.displayName}</div>
-              <div style={{ color: C.accent, fontWeight: 800, fontSize: 18 }}>{e.fishLengthCm.toFixed(1)} cm</div>
+              <div style={{ color: C.accent, fontWeight: 800, fontSize: 18 }}>{(e.fishLengthCm / 2.54).toFixed(1)}"</div>
             </div>
           ))}
         </div>
