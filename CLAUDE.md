@@ -1,5 +1,7 @@
 # FishLeague – Claude Context
 
+> **ALWAYS DO AT END OF EVERY SESSION:** Update the `## Current Status` section of this file to reflect what changed, then `git add CLAUDE.md && git commit -m "Update CLAUDE.md" && git push`. No exceptions.
+
 ## Project Overview
 Competitive fishing league app (6-week MVP). Anglers submit catch photos with GPS + fish length, admin moderates, leaderboard ranks by length. Single region validation for MVP.
 
