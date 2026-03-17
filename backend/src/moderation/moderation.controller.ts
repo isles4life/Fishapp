@@ -19,6 +19,14 @@ import { BulkModerateDto } from './dto/bulk-moderate.dto';
 export class ModerationController {
   constructor(private readonly moderationService: ModerationService) {}
 
+  @Get('submissions')
+  getAllSubmissions(
+    @Query('tournamentId') tournamentId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.moderationService.getAllSubmissions(tournamentId, status);
+  }
+
   @Get('pending')
   getPending(@Query('tournamentId') tournamentId?: string) {
     return this.moderationService.getPendingSubmissions(tournamentId);

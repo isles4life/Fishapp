@@ -56,6 +56,9 @@ export const api = {
   resetPassword: (id: string, password: string) =>
     apiFetch(`/users/${id}/password`, { method: 'PATCH', body: JSON.stringify({ password }) }),
 
+  getSubmissionsHistory: (tournamentId?: string, status?: string) =>
+    apiFetch<any[]>(`/admin/moderation/submissions${tournamentId || status ? `?${new URLSearchParams({ ...(tournamentId ? { tournamentId } : {}), ...(status ? { status } : {}) })}` : ''}`),
+
   getAuditLog: () => apiFetch<any[]>('/admin/audit'),
 
   impersonateUser: (id: string) =>
