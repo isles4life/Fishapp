@@ -324,6 +324,15 @@ export function ProfileView({
             <Text style={s.signOutText}>SIGN OUT</Text>
           </TouchableOpacity>
         )}
+
+        {/* Legal */}
+        <TouchableOpacity
+          style={s.legalBtn}
+          onPress={() => navigation.navigate('Legal')}
+          activeOpacity={0.7}
+        >
+          <Text style={s.legalText}>Terms of Service &amp; Privacy Policy</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -1028,6 +1037,18 @@ const s = StyleSheet.create({
   signOutText: {
     ...typography.button,
     color: colors.error,
+  },
+  legalBtn: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 32,
+    padding: 12,
+    alignItems: 'center',
+  },
+  legalText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textDecorationLine: 'underline',
   },
 
   // Empty state
