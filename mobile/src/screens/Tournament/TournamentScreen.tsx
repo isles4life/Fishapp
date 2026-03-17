@@ -17,14 +17,14 @@ import type { RootStackParamList } from '../../navigation';
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
 function statusColor(status: string): string {
-  if (status === 'approved') return colors.verified;
-  if (status === 'rejected') return colors.error;
+  if (status === 'APPROVED') return colors.verified;
+  if (status === 'REJECTED') return colors.error;
   return colors.warning;
 }
 
 function statusLabel(status: string): string {
-  if (status === 'approved') return '✓ APPROVED';
-  if (status === 'rejected') return '✕ REJECTED';
+  if (status === 'APPROVED') return '✓ APPROVED';
+  if (status === 'REJECTED') return '✕ REJECTED';
   return '⏳ PENDING';
 }
 
