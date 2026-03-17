@@ -52,10 +52,13 @@ export class ProfileService {
       }
     }
 
+    const { birthday, ...rest } = dto;
+    const birthdayDate = birthday ? new Date(`${birthday}T00:00:00.000Z`) : undefined;
+
     const profile = await this.prisma.anglerProfile.upsert({
       where: { userId },
-      create: { userId, username: dto.username ?? `angler_${userId.slice(0, 8)}`, ...dto },
-      update: { ...dto, lastActiveAt: new Date() },
+      create: { userId, username: dto.username ?? `angler_${userId.slice(0, 8)}`, ...rest, ...(birthdayDate ? { birthday: birthdayDate } : {}) },
+      update: { ...rest, ...(birthdayDate ? { birthday: birthdayDate } : {}), lastActiveAt: new Date() },
       include: { achievements: true, user: { select: { displayName: true, createdAt: true } } },
     });
 
