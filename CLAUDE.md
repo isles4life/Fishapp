@@ -180,6 +180,13 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 2. **Stripe entry fees**: Stripe account, payment sheet in mobile, webhook handling, payout logic. First beta tournament free (`entryFeeCents: 0`).
 3. **Facebook Sign-In** (mobile + web only, skip admin): add `facebookId` to User + `FACEBOOK` to AuthProvider enum, `POST /auth/facebook` via Graph API token verification, `expo-auth-session` on mobile, OAuth redirect on web. Requires Facebook App Review (~1 day code, 1–5 days review).
 
+## Legal Pages
+- Web: `/legal` — full ToS + Privacy Policy with anchor links (`#terms`, `#privacy`, `#arbitration`)
+- Mobile: `LegalScreen` in `mobile/src/screens/Legal/LegalScreen.tsx`, accessible from Register screen
+- Both register screens require ToS checkbox before account creation (button disabled until checked)
+- Backend logs `USER_TERMS_ACCEPTED` audit event on registration with `termsAcceptedAt` timestamp
+- Admin history audit log shows `USER_TERMS_ACCEPTED` events
+
 ## Current Status (as of 2026-03-17)
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS build submitted to TestFlight; needs to be added to external group once Apple processes it
