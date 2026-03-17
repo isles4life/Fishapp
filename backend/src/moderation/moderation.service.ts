@@ -3,6 +3,7 @@ import { PrismaService } from '../common/prisma.service';
 import { LeaderboardService } from '../leaderboard/leaderboard.service';
 import { EmailService } from '../email/email.service';
 import { PushService } from '../push/push.service';
+import { S3Service } from '../submissions/s3.service';
 import { ModerateSubmissionDto } from './dto/moderate-submission.dto';
 
 @Injectable()
@@ -12,10 +13,11 @@ export class ModerationService {
     private readonly leaderboard: LeaderboardService,
     private readonly email: EmailService,
     private readonly push: PushService,
+    private readonly s3: S3Service,
   ) {}
 
   async getPendingSubmissions(tournamentId?: string) {
-    return this.prisma.submission.findMany({
+    const submissions = await this.prisma.submission.findMany({
       where: {
         status: 'PENDING',
         ...(tournamentId ? { tournamentId } : {}),
@@ -27,6 +29,12 @@ export class ModerationService {
         matSerial: { select: { serialCode: true } },
       },
     });
+
+    return Promise.all(submissions.map(async (s) => ({
+      ...s,
+      photo1Url: s.photo1Key ? await this.s3.getPresignedUrl(s.photo1Key) : null,
+      photo2Url: s.photo2Key ? await this.s3.getPresignedUrl(s.photo2Key) : null,
+    })));
   }
 
   async getSubmissionDetail(id: string) {

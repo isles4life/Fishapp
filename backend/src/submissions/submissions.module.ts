@@ -8,6 +8,6 @@ import { EmailModule } from '../email/email.module';
   imports: [EmailModule],
   providers: [SubmissionsService, S3Service],
   controllers: [SubmissionsController],
-  exports: [SubmissionsService],
+  exports: [SubmissionsService, S3Service],
 })
 export class SubmissionsModule {}

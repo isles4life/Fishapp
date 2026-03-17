@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash } from 'crypto';
 
@@ -28,6 +28,11 @@ export class S3Service {
 
   md5Hash(buffer: Buffer): string {
     return createHash('md5').update(buffer).digest('hex');
+  }
+
+  async getPresignedUrl(key: string, expiresInSeconds = 3600): Promise<string> {
+    const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });
+    return getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
   }
 
   getPublicUrl(key: string): string {

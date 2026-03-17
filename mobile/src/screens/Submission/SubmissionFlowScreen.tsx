@@ -215,9 +215,13 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             <TouchableOpacity
               style={[styles.outlineBtn, { marginTop: 10 }]}
               onPress={async () => {
-                await enqueue(failedFields);
-                Alert.alert('Saved', 'Your catch will be submitted automatically when you reconnect.');
-                navigation.goBack();
+                try {
+                  await enqueue(failedFields);
+                  Alert.alert('Saved', 'Your catch will be submitted automatically when you reconnect.');
+                  navigation.goBack();
+                } catch (e: any) {
+                  Alert.alert('Save Failed', e.message ?? 'Could not save catch. Please try submitting again.');
+                }
               }}
             >
               <Text style={styles.outlineBtnText}>SAVE & RETRY LATER</Text>

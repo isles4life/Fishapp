@@ -19,8 +19,10 @@ interface Submission {
   gpsLat: number;
   gpsLng: number;
   capturedAt: string;
-  photo1Key: string;
+  photo1Key: string | null;
   photo2Key: string;
+  photo1Url: string | null;
+  photo2Url: string | null;
   flagDuplicateHash: boolean;
   flagDuplicateGps: boolean;
   matSerial: { serialCode: string } | null;
@@ -34,7 +36,6 @@ interface ConfirmState {
   isBulk: boolean;
 }
 
-const S3_BASE = process.env.NEXT_PUBLIC_S3_BASE ?? 'https://fishleague-submissions.s3.amazonaws.com';
 
 const ACTIONS = [
   { action: 'APPROVE',      label: '✓ Approve',  color: '#1a4a1a',   text: C.green,    needsConfirm: false },
@@ -261,18 +262,20 @@ export default function ModerationPage() {
             )}
 
             <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-              {selected.photo1Key && (
+              {selected.photo1Url && (
                 <div>
                   <p style={{ margin: '0 0 8px', color: C.textSub, fontSize: 13, fontWeight: 600 }}>Photo 1 – Mat</p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`${S3_BASE}/${selected.photo1Key}`} alt="Mat photo" style={{ width: 260, borderRadius: 8, border: `1px solid ${C.border}` }} />
+                  <img src={selected.photo1Url} alt="Mat photo" style={{ width: 260, borderRadius: 8, border: `1px solid ${C.border}` }} />
                 </div>
               )}
-              <div>
-                <p style={{ margin: '0 0 8px', color: C.textSub, fontSize: 13, fontWeight: 600 }}>Fish Photo</p>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`${S3_BASE}/${selected.photo2Key}`} alt="Fish photo" style={{ width: 260, borderRadius: 8, border: `1px solid ${C.border}` }} />
-              </div>
+              {selected.photo2Url && (
+                <div>
+                  <p style={{ margin: '0 0 8px', color: C.textSub, fontSize: 13, fontWeight: 600 }}>Fish Photo</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={selected.photo2Url} alt="Fish photo" style={{ width: 260, borderRadius: 8, border: `1px solid ${C.border}` }} />
+                </div>
+              )}
             </div>
 
             <div style={{ marginBottom: 16 }}>

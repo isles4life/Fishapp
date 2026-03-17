@@ -4,9 +4,10 @@ import { ModerationController } from './moderation.controller';
 import { LeaderboardModule } from '../leaderboard/leaderboard.module';
 import { EmailModule } from '../email/email.module';
 import { PushModule } from '../push/push.module';
+import { SubmissionsModule } from '../submissions/submissions.module';
 
 @Module({
-  imports: [LeaderboardModule, EmailModule, PushModule],
+  imports: [LeaderboardModule, EmailModule, PushModule, SubmissionsModule],
   providers: [ModerationService],
   controllers: [ModerationController],
 })
