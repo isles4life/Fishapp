@@ -149,20 +149,27 @@ export class ModerationService {
     };
   }
 
-  async getAllSubmissions(tournamentId?: string, status?: string) {
-    return this.prisma.submission.findMany({
-      where: {
-        ...(tournamentId ? { tournamentId } : {}),
-        ...(status && status !== 'ALL' ? { status: status as SubmissionStatus } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: { select: { id: true, displayName: true, email: true } },
-        tournament: { select: { id: true, name: true } },
-        matSerial: { select: { serialCode: true } },
-      },
-      take: 500,
-    });
+  async getAllSubmissions(tournamentId?: string, status?: string, page = 1, limit = 50) {
+    const where = {
+      ...(tournamentId ? { tournamentId } : {}),
+      ...(status && status !== 'ALL' ? { status: status as SubmissionStatus } : {}),
+    };
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.submission.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, displayName: true, email: true } },
+          tournament: { select: { id: true, name: true } },
+          matSerial: { select: { serialCode: true } },
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.submission.count({ where }),
+    ]);
+    return { data, total };
   }
 
   async getFlaggedSubmissions() {

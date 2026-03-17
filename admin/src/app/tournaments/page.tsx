@@ -23,9 +23,41 @@ interface Tournament {
   region: { name: string };
 }
 
+const PAGE_SIZE = 20;
+
+function Pagination({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages <= 1) return null;
+  const btn = (active: boolean, disabled?: boolean): React.CSSProperties => ({
+    padding: '5px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: disabled ? 'default' : 'pointer',
+    background: active ? C.accent : C.surfaceHigh, color: active ? C.bg : disabled ? C.textMuted : C.textSub,
+    border: `1px solid ${active ? C.accent : C.border}`, opacity: disabled ? 0.4 : 1,
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 16, justifyContent: 'flex-end' }}>
+      <span style={{ color: C.textMuted, fontSize: 13, marginRight: 8 }}>
+        {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+      </span>
+      <button style={btn(false, page === 1)} disabled={page === 1} onClick={() => onChange(page - 1)}>← Prev</button>
+      {Array.from({ length: totalPages }, (_, i) => i + 1)
+        .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+        .reduce<(number | '...')[]>((acc, p, i, arr) => {
+          if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...');
+          acc.push(p); return acc;
+        }, [])
+        .map((p, i) => p === '...'
+          ? <span key={`e${i}`} style={{ color: C.textMuted, padding: '0 4px' }}>…</span>
+          : <button key={p} style={btn(p === page)} onClick={() => onChange(p as number)}>{p}</button>
+        )}
+      <button style={btn(false, page === totalPages)} disabled={page === totalPages} onClick={() => onChange(page + 1)}>Next →</button>
+    </div>
+  );
+}
+
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
@@ -62,6 +94,8 @@ export default function TournamentsPage() {
       setForm(f => ({ ...f, name: '', weekNumber: '', startsDate: '', startsTime: '08:00', endsDate: '', endsTime: '20:00', entryFee: '', prizePool: '' }));
     } catch (e: any) { setError(e.message); }
   }
+
+  const paginatedTournaments = tournaments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div>
@@ -135,10 +169,10 @@ export default function TournamentsPage() {
             </tr>
           </thead>
           <tbody>
-            {tournaments.length === 0 && (
+            {paginatedTournaments.length === 0 && (
               <tr><td colSpan={9} style={{ padding: 24, textAlign: 'center', color: C.textMuted }}>No tournaments yet.</td></tr>
             )}
-            {tournaments.map((t) => (
+            {paginatedTournaments.map((t) => (
               <tr key={t.id} style={{ borderBottom: `1px solid ${C.border}` }}>
                 <td style={{ padding: '12px 16px', color: C.text, fontWeight: 600 }}>{t.name}</td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 14 }}>{t.region?.name}</td>
@@ -174,6 +208,7 @@ export default function TournamentsPage() {
           </tbody>
         </table>
       </div>
+      <Pagination page={currentPage} total={tournaments.length} onChange={setCurrentPage} />
     </div>
   );
 }

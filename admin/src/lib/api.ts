@@ -56,10 +56,15 @@ export const api = {
   resetPassword: (id: string, password: string) =>
     apiFetch(`/users/${id}/password`, { method: 'PATCH', body: JSON.stringify({ password }) }),
 
-  getSubmissionsHistory: (tournamentId?: string, status?: string) =>
-    apiFetch<any[]>(`/admin/moderation/submissions${tournamentId || status ? `?${new URLSearchParams({ ...(tournamentId ? { tournamentId } : {}), ...(status ? { status } : {}) })}` : ''}`),
+  getSubmissionsHistory: (tournamentId?: string, status?: string, page = 1, limit = 50) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (tournamentId) params.set('tournamentId', tournamentId);
+    if (status) params.set('status', status);
+    return apiFetch<{ data: any[]; total: number }>(`/admin/moderation/submissions?${params}`);
+  },
 
-  getAuditLog: () => apiFetch<any[]>('/admin/audit'),
+  getAuditLog: (page = 1, limit = 50) =>
+    apiFetch<{ data: any[]; total: number }>(`/admin/audit?page=${page}&limit=${limit}`),
 
   impersonateUser: (id: string) =>
     apiFetch<{ token: string; userId: string }>(`/users/${id}/impersonate`, { method: 'POST' }),

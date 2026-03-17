@@ -9,7 +9,10 @@ export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 
   @Get()
-  list(@Query('limit') limit?: string) {
-    return this.auditService.list(limit ? parseInt(limit, 10) : 200);
+  list(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.auditService.list(
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 }

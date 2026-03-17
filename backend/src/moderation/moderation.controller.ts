@@ -23,8 +23,15 @@ export class ModerationController {
   getAllSubmissions(
     @Query('tournamentId') tournamentId?: string,
     @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.moderationService.getAllSubmissions(tournamentId, status);
+    return this.moderationService.getAllSubmissions(
+      tournamentId,
+      status,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 
   @Get('pending')

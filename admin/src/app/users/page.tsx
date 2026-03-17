@@ -58,10 +58,42 @@ interface WarningForm {
   submitting: boolean;
 }
 
+const PAGE_SIZE = 50;
+
+function Pagination({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages <= 1) return null;
+  const btn = (active: boolean, disabled?: boolean): React.CSSProperties => ({
+    padding: '5px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: disabled ? 'default' : 'pointer',
+    background: active ? C.accent : C.surfaceHigh, color: active ? C.bg : disabled ? C.textMuted : C.textSub,
+    border: `1px solid ${active ? C.accent : C.border}`, opacity: disabled ? 0.4 : 1,
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 16, justifyContent: 'flex-end' }}>
+      <span style={{ color: C.textMuted, fontSize: 13, marginRight: 8 }}>
+        {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+      </span>
+      <button style={btn(false, page === 1)} disabled={page === 1} onClick={() => onChange(page - 1)}>← Prev</button>
+      {Array.from({ length: totalPages }, (_, i) => i + 1)
+        .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+        .reduce<(number | '...')[]>((acc, p, i, arr) => {
+          if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...');
+          acc.push(p); return acc;
+        }, [])
+        .map((p, i) => p === '...'
+          ? <span key={`e${i}`} style={{ color: C.textMuted, padding: '0 4px' }}>…</span>
+          : <button key={p} style={btn(p === page)} onClick={() => onChange(p as number)}>{p}</button>
+        )}
+      <button style={btn(false, page === totalPages)} disabled={page === totalPages} onClick={() => onChange(page + 1)}>Next →</button>
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState<string | null>(null);
   const [pwInputs, setPwInputs] = useState<Record<string, string>>({});
@@ -166,6 +198,7 @@ export default function UsersPage() {
     (u.displayName + (u.email ?? '') + u.region?.name).toLowerCase().includes(search.toLowerCase())
   );
 
+  const paginatedUsers = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const adminCount = users.filter(u => u.role === 'ADMIN').length;
   const suspendedCount = users.filter(u => u.suspended).length;
 
@@ -184,7 +217,7 @@ export default function UsersPage() {
         <input
           placeholder="Search name, email, region…"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
           style={{
             width: 280, padding: '9px 14px', fontSize: 13,
             backgroundColor: C.surface, border: `1px solid ${C.border}`,
@@ -213,18 +246,18 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
+            {paginatedUsers.length === 0 && (
               <tr>
                 <td colSpan={6} style={{ padding: '32px 24px', textAlign: 'center', color: C.textMuted, fontSize: 14 }}>
                   No users found.
                 </td>
               </tr>
             )}
-            {filtered.map((u, i) => (
+            {paginatedUsers.map((u, i) => (
               <tr
                 key={u.id}
                 style={{
-                  borderBottom: i < filtered.length - 1 ? `1px solid ${C.border}` : 'none',
+                  borderBottom: i < paginatedUsers.length - 1 ? `1px solid ${C.border}` : 'none',
                   opacity: loading === u.id ? 0.5 : 1,
                   transition: 'opacity 0.15s',
                 }}
@@ -415,7 +448,8 @@ export default function UsersPage() {
         </table>
       </div>
 
-      <div style={{ marginTop: 12, color: C.textMuted, fontSize: 12, textAlign: 'right' }}>
+      <Pagination page={currentPage} total={filtered.length} onChange={setCurrentPage} />
+      <div style={{ marginTop: 8, color: C.textMuted, fontSize: 12, textAlign: 'right' }}>
         {filtered.length} of {users.length} users
       </div>
     </div>

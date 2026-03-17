@@ -21,10 +21,16 @@ export class AuditService {
     }
   }
 
-  list(limit = 200) {
-    return this.prisma.auditLog.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+  async list(page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.auditLog.count(),
+    ]);
+    return { data, total };
   }
 }

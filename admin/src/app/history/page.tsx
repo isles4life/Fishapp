@@ -10,6 +10,8 @@ const C = {
   text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
 };
 
+const PAGE_SIZE = 50;
+
 type PageTab = 'audit' | 'submissions';
 
 interface SubmissionEntry {
@@ -75,37 +77,86 @@ function getDetails(entry: AuditEntry): string {
   return JSON.stringify(d);
 }
 
+function Pagination({ page, total, limit, onChange }: { page: number; total: number; limit: number; onChange: (p: number) => void }) {
+  const totalPages = Math.ceil(total / limit);
+  if (totalPages <= 1) return null;
+  const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => ({
+    padding: '5px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: disabled ? 'default' : 'pointer',
+    background: active ? C.accent : C.surfaceHigh,
+    color: active ? C.bg : disabled ? C.textMuted : C.textSub,
+    border: `1px solid ${active ? C.accent : C.border}`,
+    opacity: disabled ? 0.4 : 1,
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 16, justifyContent: 'flex-end' }}>
+      <span style={{ color: C.textMuted, fontSize: 13, marginRight: 8 }}>
+        {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
+      </span>
+      <button style={btnStyle(false, page === 1)} disabled={page === 1} onClick={() => onChange(page - 1)}>← Prev</button>
+      {Array.from({ length: totalPages }, (_, i) => i + 1)
+        .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+        .reduce<(number | '...')[]>((acc, p, i, arr) => {
+          if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...');
+          acc.push(p);
+          return acc;
+        }, [])
+        .map((p, i) =>
+          p === '...'
+            ? <span key={`ellipsis-${i}`} style={{ color: C.textMuted, padding: '0 4px' }}>…</span>
+            : <button key={p} style={btnStyle(p === page)} onClick={() => onChange(p as number)}>{p}</button>
+        )}
+      <button style={btnStyle(false, page === totalPages)} disabled={page === totalPages} onClick={() => onChange(page + 1)}>Next →</button>
+    </div>
+  );
+}
+
 export default function HistoryPage() {
   const [pageTab, setPageTab] = useState<PageTab>('audit');
 
   // Audit log state
   const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [auditTotal, setAuditTotal] = useState(0);
+  const [auditPage, setAuditPage] = useState(1);
   const [auditFilter, setAuditFilter] = useState('ALL');
   const [auditLoading, setAuditLoading] = useState(false);
 
   // Submissions state
   const [submissions, setSubmissions] = useState<SubmissionEntry[]>([]);
+  const [subTotal, setSubTotal] = useState(0);
+  const [subPage, setSubPage] = useState(1);
   const [subStatusFilter, setSubStatusFilter] = useState('ALL');
   const [subLoading, setSubLoading] = useState(false);
 
   const [error, setError] = useState('');
 
-  async function loadAudit() {
+  async function loadAudit(page = auditPage) {
     setAuditLoading(true); setError('');
-    try { setEntries(await api.getAuditLog()); }
+    try {
+      const res = await api.getAuditLog(page, PAGE_SIZE);
+      setEntries(res.data);
+      setAuditTotal(res.total);
+      setAuditPage(page);
+    }
     catch (e: any) { setError(e.message); }
     finally { setAuditLoading(false); }
   }
 
-  async function loadSubmissions() {
+  async function loadSubmissions(page = subPage) {
     setSubLoading(true); setError('');
-    try { setSubmissions(await api.getSubmissionsHistory(undefined, subStatusFilter === 'ALL' ? undefined : subStatusFilter)); }
+    try {
+      const res = await api.getSubmissionsHistory(undefined, subStatusFilter === 'ALL' ? undefined : subStatusFilter, page, PAGE_SIZE);
+      setSubmissions(res.data);
+      setSubTotal(res.total);
+      setSubPage(page);
+    }
     catch (e: any) { setError(e.message); }
     finally { setSubLoading(false); }
   }
 
-  useEffect(() => { loadAudit(); }, []);
-  useEffect(() => { if (pageTab === 'submissions') loadSubmissions(); }, [pageTab, subStatusFilter]);
+  useEffect(() => { loadAudit(1); }, []);
+  useEffect(() => {
+    if (pageTab === 'submissions') loadSubmissions(1);
+  }, [pageTab, subStatusFilter]);
 
   const auditCategories = [
     { key: 'ALL', label: 'All' },
@@ -138,7 +189,7 @@ export default function HistoryPage() {
           <button onClick={() => setPageTab('submissions')} style={tabStyle(pageTab === 'submissions')}>Submissions</button>
         </div>
         <button
-          onClick={() => pageTab === 'audit' ? loadAudit() : loadSubmissions()}
+          onClick={() => pageTab === 'audit' ? loadAudit(auditPage) : loadSubmissions(subPage)}
           disabled={auditLoading || subLoading}
           style={{ marginLeft: 'auto', background: C.surfaceHigh, color: C.textSub, border: `1px solid ${C.border}`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}
         >
@@ -177,10 +228,13 @@ export default function HistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredAudit.length === 0 && (
+                {auditLoading && (
+                  <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: C.textMuted }}>Loading…</td></tr>
+                )}
+                {!auditLoading && filteredAudit.length === 0 && (
                   <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: C.textMuted }}>No events yet.</td></tr>
                 )}
-                {filteredAudit.map(entry => {
+                {!auditLoading && filteredAudit.map(entry => {
                   const meta = ACTION_META[entry.action] ?? { label: entry.action, color: C.textSub, icon: '•' };
                   return (
                     <tr key={entry.id} style={{ borderBottom: `1px solid ${C.border}` }}>
@@ -201,6 +255,7 @@ export default function HistoryPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={auditPage} total={auditTotal} limit={PAGE_SIZE} onChange={p => loadAudit(p)} />
         </>
       )}
 
@@ -218,7 +273,7 @@ export default function HistoryPage() {
                 {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
               </button>
             ))}
-            <span style={{ marginLeft: 'auto', color: C.textMuted, fontSize: 13, alignSelf: 'center' }}>{submissions.length} submissions</span>
+            <span style={{ marginLeft: 'auto', color: C.textMuted, fontSize: 13, alignSelf: 'center' }}>{subTotal} submissions</span>
           </div>
           <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -266,6 +321,7 @@ export default function HistoryPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={subPage} total={subTotal} limit={PAGE_SIZE} onChange={p => loadSubmissions(p)} />
         </>
       )}
     </div>
