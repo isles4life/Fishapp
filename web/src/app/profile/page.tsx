@@ -314,7 +314,7 @@ export default function MyProfilePage() {
   void handleLogout; // kept for potential future use
 
   function setArr(field: keyof UpdateProfilePayload, raw: string) {
-    setForm(f => ({ ...f, [field]: raw.split(',').map(s => s.trim()).filter(Boolean) }));
+    setForm(f => ({ ...f, [field]: raw.split(',').map(s => s.trim()) }));
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -322,8 +322,11 @@ export default function MyProfilePage() {
     setSaving(true); setError(''); setSuccess('');
     try {
       // Strip empty strings so @IsUrl / @IsISO8601 validators don't reject them
+      // Also filter empty entries from comma-separated array fields
       const payload = Object.fromEntries(
-        Object.entries(form).filter(([, v]) => v !== '' && v !== undefined)
+        Object.entries(form)
+          .filter(([, v]) => v !== '' && v !== undefined)
+          .map(([k, v]) => [k, Array.isArray(v) ? (v as string[]).filter(Boolean) : v])
       ) as UpdateProfilePayload;
       const updated = await api.updateProfile(payload);
       setProfile(updated);

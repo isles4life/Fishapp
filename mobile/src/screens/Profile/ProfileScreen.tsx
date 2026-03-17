@@ -609,13 +609,17 @@ function EditProfileForm({
   const [error, setError] = useState('');
 
   function setArr(field: keyof UpdateProfilePayload, raw: string) {
-    setForm(f => ({ ...f, [field]: raw.split(',').map(str => str.trim()).filter(Boolean) }));
+    setForm(f => ({ ...f, [field]: raw.split(',').map(str => str.trim()) }));
   }
 
   async function save() {
     setSaving(true); setError('');
     try {
-      const updated = await updateProfile(form);
+      const cleaned = { ...form };
+      (['favoriteTechniques', 'favoriteBaits', 'sponsorTags'] as const).forEach(k => {
+        if (Array.isArray(cleaned[k])) cleaned[k] = (cleaned[k] as string[]).filter(Boolean) as any;
+      });
+      const updated = await updateProfile(cleaned);
       onSaved(updated);
     } catch (e: any) {
       setError(e.message);
