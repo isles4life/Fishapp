@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { SubmissionStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 import { LeaderboardService } from '../leaderboard/leaderboard.service';
 import { EmailService } from '../email/email.service';
@@ -152,7 +153,7 @@ export class ModerationService {
     return this.prisma.submission.findMany({
       where: {
         ...(tournamentId ? { tournamentId } : {}),
-        ...(status && status !== 'ALL' ? { status } : {}),
+        ...(status && status !== 'ALL' ? { status: status as SubmissionStatus } : {}),
       },
       orderBy: { createdAt: 'desc' },
       include: {
