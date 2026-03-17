@@ -70,7 +70,50 @@ function TournamentBanner({ tournament }: { tournament: Tournament }) {
   );
 }
 
-function FeedCard({ entry, region }: { entry: LeaderboardEntry; region: string }) {
+function PropButton({ submissionId }: { submissionId: string }) {
+  const [propped, setPropped] = useState(false);
+  const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const initialized = React.useRef(false);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    api.getProps(submissionId)
+      .then(r => { setCount(r.count); setPropped(r.userHasPropped); })
+      .catch(() => {});
+  }, [submissionId]);
+
+  async function handleToggle() {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const r = await api.toggleProp(submissionId);
+      setPropped(r.propped);
+      setCount(r.count);
+    } catch {
+      // silently handle
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.feedActionBtn, propped && styles.feedActionBtnActive]}
+      onPress={handleToggle}
+      disabled={loading}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.feedActionIcon}>👍</Text>
+      <Text style={[styles.feedActionText, propped && { color: colors.accent }]}>
+        PROPS{count > 0 ? ` ${count}` : ''}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function FeedCard({ entry, region, onComment }: { entry: LeaderboardEntry; region: string; onComment: () => void }) {
   const lengthIn = (entry.fishLengthCm / 2.54).toFixed(1);
   const initials = getInitials(entry.displayName);
   const firstName = entry.displayName.split(' ')[0].toUpperCase();
@@ -124,17 +167,21 @@ function FeedCard({ entry, region }: { entry: LeaderboardEntry; region: string }
 
       {/* Action row */}
       <View style={styles.feedActions}>
-        <TouchableOpacity style={styles.feedActionBtn}>
+        <View style={[styles.feedActionBtn, { opacity: 1 }]}>
           <Text style={styles.feedActionIcon}>✓</Text>
           <Text style={styles.feedActionText}>VERIFIED</Text>
-        </TouchableOpacity>
+        </View>
         <View style={styles.feedActionDivider} />
-        <TouchableOpacity style={styles.feedActionBtn}>
-          <Text style={styles.feedActionIcon}>👍</Text>
-          <Text style={styles.feedActionText}>PROPS</Text>
-        </TouchableOpacity>
+        {entry.submissionId ? (
+          <PropButton submissionId={entry.submissionId} />
+        ) : (
+          <View style={styles.feedActionBtn}>
+            <Text style={styles.feedActionIcon}>👍</Text>
+            <Text style={styles.feedActionText}>PROPS</Text>
+          </View>
+        )}
         <View style={styles.feedActionDivider} />
-        <TouchableOpacity style={styles.feedActionBtn}>
+        <TouchableOpacity style={styles.feedActionBtn} onPress={onComment} activeOpacity={0.7}>
           <Text style={styles.feedActionIcon}>💬</Text>
           <Text style={styles.feedActionText}>COMMENT</Text>
         </TouchableOpacity>
@@ -350,7 +397,12 @@ export default function HomeScreen() {
                   <View style={styles.sectionLine} />
                 </View>
                 {entries.slice(0, 10).map(entry => (
-                  <FeedCard key={entry.userId} entry={entry} region={region} />
+                  <FeedCard
+                    key={entry.userId}
+                    entry={entry}
+                    region={region}
+                    onComment={() => navigation.navigate('MainTabs', { screen: 'Leaderboard' } as any)}
+                  />
                 ))}
               </>
             )}
@@ -672,6 +724,9 @@ const styles = StyleSheet.create({
   feedActionText: {
     ...typography.labelSm,
     color: colors.textMuted,
+  },
+  feedActionBtnActive: {
+    backgroundColor: colors.accent + '15',
   },
   feedActionDivider: {
     width: 1,
