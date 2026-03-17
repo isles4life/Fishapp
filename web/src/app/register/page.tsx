@@ -35,6 +35,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [focusField, setFocusField] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     api.getRegions().then(r => { setRegions(r); if (r.length) setRegionId(r[0].id); }).catch(() => {});
@@ -42,10 +43,11 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!agreedToTerms) { setError('You must agree to the Terms of Service and Privacy Policy.'); return; }
     setError('');
     setLoading(true);
     try {
-      const { token } = await api.register(email, password, displayName, regionId);
+      const { token } = await api.register(email, password, displayName, regionId, new Date().toISOString());
       setToken(token);
       router.push('/');
     } catch (e: any) {
@@ -129,7 +131,22 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <button type="submit" style={{ width: '100%', padding: '13px', backgroundColor: C.accent, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 10, cursor: 'pointer', marginTop: 4, letterSpacing: 1, textTransform: 'uppercase' }} disabled={loading}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={e => setAgreedToTerms(e.target.checked)}
+              style={{ marginTop: 2, accentColor: C.accent, width: 16, height: 16, flexShrink: 0 }}
+            />
+            <span style={{ color: C.textMuted, fontSize: 13, lineHeight: '1.5' }}>
+              I agree to the{' '}
+              <Link href="/legal" target="_blank" style={{ color: C.accent, textDecoration: 'none', fontWeight: 600 }}>
+                Terms of Service and Privacy Policy
+              </Link>
+            </span>
+          </label>
+
+          <button type="submit" style={{ width: '100%', padding: '13px', backgroundColor: C.accent, color: C.bg, fontWeight: 700, fontSize: 16, border: 'none', borderRadius: 10, cursor: agreedToTerms ? 'pointer' : 'not-allowed', marginTop: 4, letterSpacing: 1, textTransform: 'uppercase', opacity: agreedToTerms ? 1 : 0.4 }} disabled={loading || !agreedToTerms}>
             {loading ? 'Creating account...' : 'Join The League'}
           </button>
         </form>

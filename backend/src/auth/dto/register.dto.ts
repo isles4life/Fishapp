@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsUUID } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsUUID, IsOptional, IsDateString } from 'class-validator';
 
 export class RegisterDto {
   @IsEmail()
@@ -13,4 +13,8 @@ export class RegisterDto {
 
   @IsUUID()
   regionId: string;
+
+  @IsOptional()
+  @IsDateString()
+  termsAcceptedAt?: string;
 }

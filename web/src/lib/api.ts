@@ -199,10 +199,10 @@ export const api = {
       body: JSON.stringify({ email, password }),
       headers: { 'X-Platform': 'web' },
     }),
-  register: (email: string, password: string, displayName: string, regionId: string) =>
+  register: (email: string, password: string, displayName: string, regionId: string, termsAcceptedAt?: string) =>
     apiFetch<AuthResponse>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, displayName, regionId }),
+      body: JSON.stringify({ email, password, displayName, regionId, termsAcceptedAt }),
     }),
   getMyProfile: () =>
     apiFetch<AnglerProfile>('/profile/me', undefined, true).catch(e =>

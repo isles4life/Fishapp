@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert, ScrollView,
+  StyleSheet, ActivityIndicator, Alert, ScrollView, Switch,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
@@ -23,6 +23,7 @@ export default function RegisterScreen({ navigation }: Props) {
   const [selectedRegion, setSelectedRegion] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     api.getRegions().then(r => {
@@ -35,9 +36,12 @@ export default function RegisterScreen({ navigation }: Props) {
     if (!email || !password || !displayName || !selectedRegion) {
       return Alert.alert('Error', 'Fill in all fields and select a region');
     }
+    if (!agreedToTerms) {
+      return Alert.alert('Terms Required', 'You must agree to the Terms of Service and Privacy Policy to create an account.');
+    }
     setLoading(true);
     try {
-      const { token } = await api.register(email, password, displayName, selectedRegion);
+      const { token } = await api.register(email, password, displayName, selectedRegion, new Date().toISOString());
       await storage.setToken(token);
       navigation.replace('MainTabs');
       registerPushToken().catch(() => {});
@@ -126,8 +130,24 @@ export default function RegisterScreen({ navigation }: Props) {
         </>
       )}
 
+      {/* Terms of Service */}
+      <View style={styles.termsRow}>
+        <Switch
+          value={agreedToTerms}
+          onValueChange={setAgreedToTerms}
+          trackColor={{ false: colors.border, true: colors.accent }}
+          thumbColor={agreedToTerms ? colors.bg : colors.textMuted}
+        />
+        <Text style={styles.termsText}>
+          I agree to the{' '}
+          <Text style={styles.termsLink} onPress={() => navigation.navigate('Legal')}>
+            Terms of Service and Privacy Policy
+          </Text>
+        </Text>
+      </View>
+
       {/* Submit */}
-      <TouchableOpacity style={styles.goldBtn} onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
+      <TouchableOpacity style={[styles.goldBtn, !agreedToTerms && styles.goldBtnDisabled]} onPress={handleRegister} disabled={loading || !agreedToTerms} activeOpacity={0.85}>
         {loading ? (
           <ActivityIndicator color={colors.bg} />
         ) : (
@@ -215,12 +235,32 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontWeight: '700',
   },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+    paddingHorizontal: 2,
+  },
+  termsText: {
+    flex: 1,
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: colors.accent,
+    fontWeight: '600',
+  },
   goldBtn: {
     backgroundColor: colors.accent,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 8,
+  },
+  goldBtnDisabled: {
+    opacity: 0.4,
   },
   goldBtnText: {
     ...typography.button,

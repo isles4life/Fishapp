@@ -32,6 +32,11 @@ export class AuthService {
       },
     });
 
+    await this.auditService.log('USER_TERMS_ACCEPTED', user.id, user.displayName, user.id, {
+      termsAcceptedAt: dto.termsAcceptedAt ?? new Date().toISOString(),
+      email: user.email,
+    });
+
     return { token: this.sign(user.id), userId: user.id };
   }
 

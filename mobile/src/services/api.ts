@@ -65,11 +65,12 @@ export function register(
   email: string,
   password: string,
   displayName: string,
-  regionId: string
+  regionId: string,
+  termsAcceptedAt?: string
 ): Promise<AuthResponse> {
   return request(
     '/auth/register',
-    { method: 'POST', body: JSON.stringify({ email, password, displayName, regionId }) },
+    { method: 'POST', body: JSON.stringify({ email, password, displayName, regionId, termsAcceptedAt }) },
     false
   );
 }
