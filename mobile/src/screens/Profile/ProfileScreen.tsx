@@ -256,7 +256,7 @@ export function ProfileView({
         {/* Stats grid */}
         <View style={s.statsGrid}>
           <StatCard label="TOTAL CATCHES" value={String(stats.totalCatches)} />
-          <StatCard label="PB" value={stats.largestCatchCm ? `${stats.largestCatchCm}` : '—'} unit="CM" />
+          <StatCard label="PB" value={stats.largestCatchCm ? `${(stats.largestCatchCm / 2.54).toFixed(1)}"` : '—'} />
           <StatCard label="LEAGUE RANK" value={stats.tournamentsWon > 0 ? `#${stats.tournamentsWon}` : '—'} />
           <StatCard label="PROPS" value={String(Math.round(profile.sportsmanshipScore * 10))} />
         </View>

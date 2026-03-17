@@ -147,9 +147,9 @@ export default function PublicProfilePage() {
             {/* Stats — 2×2 grid matching mobile layout */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 24 }}>
               <StatCard label="Total Catches" value={profile.stats.totalCatches} />
-              <StatCard label="PB / Best Catch" value={profile.stats.largestCatchCm ? `${profile.stats.largestCatchCm} cm` : null} />
+              <StatCard label="PB / Best Catch" value={profile.stats.largestCatchCm ? `${(profile.stats.largestCatchCm / 2.54).toFixed(1)}"` : null} />
               <StatCard label="Tournaments" value={profile.stats.totalTournamentsEntered} />
-              <StatCard label="Avg Catch" value={profile.stats.averageCatchCm ? `${profile.stats.averageCatchCm} cm` : null} />
+              <StatCard label="Avg Catch" value={profile.stats.averageCatchCm ? `${(profile.stats.averageCatchCm / 2.54).toFixed(1)}"` : null} />
             </div>
 
             {/* Badges */}
