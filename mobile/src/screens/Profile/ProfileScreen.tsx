@@ -253,6 +253,9 @@ export function ProfileView({
           </TouchableOpacity>
         )}
 
+        {/* Light content section */}
+        <View style={s.lightSection}>
+
         {/* Stats grid */}
         <View style={s.statsGrid}>
           <StatCard label="TOTAL CATCHES" value={String(stats.totalCatches)} />
@@ -333,6 +336,8 @@ export function ProfileView({
         >
           <Text style={s.legalText}>Terms of Service &amp; Privacy Policy</Text>
         </TouchableOpacity>
+
+        </View>{/* end lightSection */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -930,6 +935,11 @@ const s = StyleSheet.create({
     fontSize: 12,
   },
 
+  // Light section wrapper (cream bg)
+  lightSection: {
+    backgroundColor: colors.cream,
+  },
+
   // Stats grid
   statsGrid: {
     flexDirection: 'row',
@@ -937,16 +947,21 @@ const s = StyleSheet.create({
     padding: 12,
     gap: 8,
     marginTop: 0,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.cream,
   },
   statCard: {
     width: '47%',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E8E3D8',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   statValueRow: {
     flexDirection: 'row',
@@ -955,15 +970,15 @@ const s = StyleSheet.create({
   },
   statValue: {
     ...typography.numMd,
-    color: colors.text,
+    color: colors.charcoal,
   },
   statUnit: {
     ...typography.labelSm,
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
   },
   statLabel: {
     ...typography.labelSm,
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -972,16 +987,21 @@ const s = StyleSheet.create({
   section: {
     marginHorizontal: 12,
     marginTop: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E8E3D8',
     marginBottom: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   sectionTitle: {
     ...typography.label,
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
     marginBottom: 12,
   },
   badgeGrid: {
@@ -996,15 +1016,15 @@ const s = StyleSheet.create({
   },
   badgeLabel: {
     ...typography.labelSm,
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
     textAlign: 'center',
   },
 
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tagChip: { backgroundColor: colors.surfaceHigh, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: colors.border },
-  tagText: { color: colors.textSub, fontSize: 12 },
-  infoLine: { fontSize: 13, color: colors.textSub, marginBottom: 6 },
-  infoLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  tagChip: { backgroundColor: colors.cream, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: '#D8D3C8' },
+  tagText: { color: colors.textDarkSub, fontSize: 12 },
+  infoLine: { fontSize: 13, color: colors.textDarkSub, marginBottom: 6 },
+  infoLabel: { color: colors.textDarkMuted, fontSize: 11, fontWeight: '600', marginBottom: 4 },
 
   // Buttons
   goldBtn: {
@@ -1031,7 +1051,8 @@ const s = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.error + '60',
+    borderColor: colors.error + '40',
+    backgroundColor: colors.white,
     alignItems: 'center',
   },
   signOutText: {
@@ -1046,7 +1067,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   legalText: {
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
     fontSize: 12,
     textDecorationLine: 'underline',
   },

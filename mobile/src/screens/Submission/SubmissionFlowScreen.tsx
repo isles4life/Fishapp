@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   cameraHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingTop: 52, paddingHorizontal: 16, paddingBottom: 16,
-    backgroundColor: 'rgba(13,26,13,0.8)',
+    backgroundColor: 'rgba(46,61,56,0.9)',
   },
   cameraBackBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   cameraBackText: { fontSize: 22, color: colors.accent, fontWeight: '600' },
@@ -568,22 +568,22 @@ const styles = StyleSheet.create({
   },
   guideLabel: {
     ...typography.labelSm, color: colors.accent,
-    backgroundColor: 'rgba(13,26,13,0.7)', paddingHorizontal: 10,
+    backgroundColor: 'rgba(46,61,56,0.8)', paddingHorizontal: 10,
     paddingVertical: 4, borderRadius: 4,
   },
   checklistSide: { position: 'absolute', left: 16, top: 130, gap: 16 },
   checklistItem: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: 'rgba(13,26,13,0.75)', borderRadius: 8,
+    backgroundColor: 'rgba(46,61,56,0.85)', borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 6,
-    borderWidth: 1, borderColor: 'rgba(201,164,80,0.3)',
+    borderWidth: 1, borderColor: colors.accent + '50',
   },
   checklistText: { ...typography.caption, color: colors.accent },
   shutterBtn: {
     alignSelf: 'center', marginBottom: 40, width: 72, height: 72,
     borderRadius: 36, borderWidth: 3, borderColor: colors.accent,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(201,164,80,0.15)',
+    backgroundColor: 'rgba(207,194,156,0.15)',
   },
-  shutterInner: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.accent },
+  shutterInner: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.cream },
 });

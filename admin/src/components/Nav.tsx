@@ -2,8 +2,8 @@
 import { useAuth } from './AuthProvider';
 
 const C = {
-  surface: '#152515', border: '#2A4A2A', borderGold: '#C9A450',
-  accent: '#C9A450', text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
+  surface: '#2E3D38', border: '#4A6058', borderGold: '#CFC29C',
+  accent: '#CFC29C', text: '#F0EDE4', textSub: '#9DB5A8', textMuted: '#6B7D73',
 };
 
 export default function Nav() {

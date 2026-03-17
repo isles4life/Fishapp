@@ -6,16 +6,16 @@ import type { FishingIntelResponse, FishingSpot } from '../../lib/api';
 import Link from 'next/link';
 
 const C = {
-  bg:          '#0D1A0D',
-  surface:     '#152515',
-  surfaceHigh: '#1D331D',
-  border:      '#2A4A2A',
-  borderGold:  '#C9A450',
-  accent:      '#C9A450',
-  accentDark:  '#9E7A30',
+  bg:          '#3A4C44',
+  surface:     '#2E3D38',
+  surfaceHigh: '#445C54',
+  border:      '#4A6058',
+  borderGold:  '#CFC29C',
+  accent:      '#CFC29C',
+  accentDark:  '#B8A882',
   text:        '#F0EDE4',
-  textSub:     '#8BA88B',
-  textMuted:   '#4A6A4A',
+  textSub:     '#9DB5A8',
+  textMuted:   '#6B7D73',
   error:       '#C0392B',
   errorBg:     '#3A1414',
   green:       '#3DAF5A',
@@ -369,7 +369,7 @@ export default function FishingIntelligencePage() {
                         </div>
                         <div style={{ fontSize: 12, color: C.textMuted }}>{t.time}</div>
                       </div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: t.type === 'H' ? '#5BB8F5' : '#8BA88B' }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: t.type === 'H' ? '#5BB8F5' : '#9DB5A8' }}>
                         {t.heightFt} ft
                       </div>
                     </div>

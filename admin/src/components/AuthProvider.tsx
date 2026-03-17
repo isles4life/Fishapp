@@ -96,39 +96,39 @@ function LoginScreen({ login }: { login: AuthCtx['login'] }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0D1A0D' }}>
-      <form onSubmit={submit} style={{ background: '#152515', padding: 40, borderRadius: 16, border: '1px solid #2A4A2A', width: 360 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#3A4C44' }}>
+      <form onSubmit={submit} style={{ background: '#2E3D38', padding: 40, borderRadius: 16, border: '1px solid #4A6058', width: 360 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icon.png" alt="FishLeague" style={{ width: 150, display: 'block', margin: '0 auto 20px' }} />
         <h2 style={{ margin: '0 0 4px', color: '#F0EDE4', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase' }}>
-          <span style={{ color: '#F0EDE4' }}>FISH</span><span style={{ color: '#C9A450' }}>LEAGUE</span>
+          <span style={{ color: '#F0EDE4' }}>FISH</span><span style={{ color: '#CFC29C' }}>LEAGUE</span>
         </h2>
-        <p style={{ margin: '0 0 28px', color: '#4A6A4A', textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>Admin Panel</p>
+        <p style={{ margin: '0 0 28px', color: '#6B7D73', textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>Admin Panel</p>
         <label style={{ display: 'block', marginBottom: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#4A6A4A', textTransform: 'uppercase', letterSpacing: 1 }}>Email</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7D73', textTransform: 'uppercase', letterSpacing: 1 }}>Email</span>
           <input
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            style={{ display: 'block', width: '100%', padding: '10px 12px', marginTop: 6, border: '1px solid #2A4A2A', borderRadius: 8, boxSizing: 'border-box', background: '#0D1A0D', color: '#F0EDE4', fontSize: 14 }}
+            style={{ display: 'block', width: '100%', padding: '10px 12px', marginTop: 6, border: '1px solid #4A6058', borderRadius: 8, boxSizing: 'border-box', background: '#3A4C44', color: '#F0EDE4', fontSize: 14 }}
           />
         </label>
         <label style={{ display: 'block', marginBottom: 20 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#4A6A4A', textTransform: 'uppercase', letterSpacing: 1 }}>Password</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7D73', textTransform: 'uppercase', letterSpacing: 1 }}>Password</span>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="Password"
-            style={{ display: 'block', width: '100%', padding: '10px 12px', marginTop: 6, border: '1px solid #2A4A2A', borderRadius: 8, boxSizing: 'border-box', background: '#0D1A0D', color: '#F0EDE4', fontSize: 14 }}
+            style={{ display: 'block', width: '100%', padding: '10px 12px', marginTop: 6, border: '1px solid #4A6058', borderRadius: 8, boxSizing: 'border-box', background: '#3A4C44', color: '#F0EDE4', fontSize: 14 }}
           />
         </label>
         {error && <p style={{ color: '#C0392B', background: '#3A1414', border: '1px solid #C0392B50', borderRadius: 6, padding: '8px 12px', fontSize: 13, marginBottom: 12 }}>{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          style={{ width: '100%', padding: '12px', background: '#C9A450', color: '#0D1A0D', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: 1 }}
+          style={{ width: '100%', padding: '12px', background: '#CFC29C', color: '#3A4C44', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: 1 }}
         >
           {loading ? 'Signing in…' : 'Sign In'}
         </button>

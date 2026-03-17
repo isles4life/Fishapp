@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 
 const C = {
-  bg: '#0D1A0D', surface: '#152515', surfaceHigh: '#1D331D',
-  border: '#2A4A2A', accent: '#C9A450',
+  bg: '#3A4C44', surface: '#2E3D38', surfaceHigh: '#445C54',
+  border: '#4A6058', accent: '#CFC29C',
   green: '#3DAF5A', greenBg: '#0F3A1E',
   red: '#C0392B', redBg: '#3A1414',
-  text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
+  text: '#F0EDE4', textSub: '#9DB5A8', textMuted: '#6B7D73',
 };
 
 const inputStyle: React.CSSProperties = {

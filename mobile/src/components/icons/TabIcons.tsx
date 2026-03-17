@@ -52,11 +52,11 @@ export function ProfileIcon({ color, size = 24 }: IconProps) {
 export function SubmitButtonIcon({ size = 28 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
-      <Circle cx="14" cy="14" r="13" stroke="#C9A450" strokeWidth="1.5" fill="none" />
-      <Circle cx="14" cy="14" r="8" fill="#C9A450" fillOpacity="0.2" />
-      <Path d="M10 10L14 6L18 10" stroke="#C9A450" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <Path d="M14 6V18" stroke="#C9A450" strokeWidth="2" strokeLinecap="round"/>
-      <Path d="M9 21H19" stroke="#C9A450" strokeWidth="2" strokeLinecap="round"/>
+      <Circle cx="14" cy="14" r="13" stroke="#CFC29C" strokeWidth="1.5" fill="none" />
+      <Circle cx="14" cy="14" r="8" fill="#CFC29C" fillOpacity="0.2" />
+      <Path d="M10 10L14 6L18 10" stroke="#CFC29C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M14 6V18" stroke="#CFC29C" strokeWidth="2" strokeLinecap="round"/>
+      <Path d="M9 21H19" stroke="#CFC29C" strokeWidth="2" strokeLinecap="round"/>
     </Svg>
   );
 }

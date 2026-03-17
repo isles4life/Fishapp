@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 
 const C = {
-  surface: '#152515', surfaceHigh: '#1D331D', border: '#2A4A2A', accent: '#C9A450',
-  green: '#3DAF5A', gold: '#C9A450', silver: '#A0A8A0', bronze: '#8B6F4A',
-  red: '#C0392B', text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A',
+  surface: '#2E3D38', surfaceHigh: '#445C54', border: '#4A6058', accent: '#CFC29C',
+  green: '#3DAF5A', gold: '#CFC29C', silver: '#A0A8A0', bronze: '#8B6F4A',
+  red: '#C0392B', text: '#F0EDE4', textSub: '#9DB5A8', textMuted: '#6B7D73',
 };
 
 interface Entry { rank: number; displayName: string; fishLengthCm: number; userId: string; }

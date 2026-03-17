@@ -470,8 +470,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   rankNum: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
+    fontFamily: 'Oswald_700Bold',
   },
   avatarWrap: {
     width: 38,
@@ -519,6 +520,7 @@ const styles = StyleSheet.create({
   measurement: {
     ...typography.numMd,
     color: colors.text,
+    fontFamily: 'Oswald_700Bold',
   },
   propBtn: {
     flexDirection: 'row',

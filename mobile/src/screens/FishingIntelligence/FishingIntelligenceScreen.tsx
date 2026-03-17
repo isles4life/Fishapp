@@ -351,7 +351,7 @@ export default function FishingIntelligenceScreen() {
                       <Text style={styles.tideLabel}>{t.type === 'H' ? 'High Tide' : 'Low Tide'}</Text>
                       <Text style={styles.tideTime}>{t.time}</Text>
                     </View>
-                    <Text style={[styles.tideHeight, { color: t.type === 'H' ? '#5BB8F5' : '#8BA88B' }]}>
+                    <Text style={[styles.tideHeight, { color: t.type === 'H' ? '#5BB8F5' : '#9DB5A8' }]}>
                       {t.heightFt} ft
                     </Text>
                   </View>

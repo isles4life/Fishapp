@@ -6,14 +6,14 @@ import type { HotSpot } from '../../lib/api';
 import Link from 'next/link';
 
 const C = {
-  bg:          '#0D1A0D',
-  surface:     '#152515',
-  surfaceHigh: '#1D331D',
-  border:      '#2A4A2A',
-  accent:      '#C9A450',
+  bg:          '#3A4C44',
+  surface:     '#2E3D38',
+  surfaceHigh: '#445C54',
+  border:      '#4A6058',
+  accent:      '#CFC29C',
   text:        '#F0EDE4',
-  textSub:     '#8BA88B',
-  textMuted:   '#4A6A4A',
+  textSub:     '#9DB5A8',
+  textMuted:   '#6B7D73',
 };
 
 function cmToIn(cm: number): string {

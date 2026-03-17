@@ -3,7 +3,7 @@ import Svg, { Path, Circle, Ellipse, Line } from 'react-native-svg';
 
 type IconProps = { color?: string; size?: number };
 
-export function FishOnMatIcon({ color = '#C9A450', size = 32 }: IconProps) {
+export function FishOnMatIcon({ color = '#CFC29C', size = 32 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
       {/* Mat rectangle */}
@@ -20,7 +20,7 @@ export function FishOnMatIcon({ color = '#C9A450', size = 32 }: IconProps) {
   );
 }
 
-export function MouthClosedIcon({ color = '#C9A450', size = 32 }: IconProps) {
+export function MouthClosedIcon({ color = '#CFC29C', size = 32 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
       {/* Fish head (side profile) */}
@@ -37,7 +37,7 @@ export function MouthClosedIcon({ color = '#C9A450', size = 32 }: IconProps) {
   );
 }
 
-export function TailPinchedIcon({ color = '#C9A450', size = 32 }: IconProps) {
+export function TailPinchedIcon({ color = '#CFC29C', size = 32 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
       {/* Fish body */}

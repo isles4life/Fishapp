@@ -1,5 +1,5 @@
 export default function Home() {
-  const C = { surface: '#152515', border: '#2A4A2A', accent: '#C9A450', text: '#F0EDE4', textSub: '#8BA88B', textMuted: '#4A6A4A' };
+  const C = { surface: '#2E3D38', border: '#4A6058', accent: '#CFC29C', text: '#F0EDE4', textSub: '#9DB5A8', textMuted: '#6B7D73' };
   const cards = [
     { href: '/moderation', label: 'Moderation Queue', desc: 'Review and approve pending catch submissions', icon: '🔍' },
     { href: '/tournaments', label: 'Tournaments', desc: 'Create, open, and close weekly tournaments', icon: '🏆' },

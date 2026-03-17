@@ -3,7 +3,7 @@ import Svg, { Path, Circle, Polygon, Text as SvgText, G } from 'react-native-svg
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
 
-function BadgeShell({ color = '#C9A450', size = 48, children }: { color?: string; size?: number; children?: React.ReactNode }) {
+function BadgeShell({ color = '#CFC29C', size = 48, children }: { color?: string; size?: number; children?: React.ReactNode }) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} viewBox="0 0 48 48" style={{ position: 'absolute' }}>
@@ -30,7 +30,7 @@ export function FirstCatchBadge({ size = 48 }: { size?: number }) {
 
 export function BigFishBadge({ size = 48 }: { size?: number }) {
   return (
-    <BadgeShell size={size} color="#C9A450">
+    <BadgeShell size={size} color="#CFC29C">
       <Text style={{ fontSize: size * 0.35 }}>🐟</Text>
     </BadgeShell>
   );

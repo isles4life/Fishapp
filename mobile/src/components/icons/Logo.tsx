@@ -32,7 +32,7 @@ export function FishLeagueLogoFull({ width = 160 }: { width?: number }) {
       />
       <Text style={{ fontSize: 18, fontWeight: '900', letterSpacing: 1 }}>
         <Text style={{ color: '#F0EDE4' }}>FISH</Text>
-        <Text style={{ color: '#C9A450' }}>LEAGUE</Text>
+        <Text style={{ color: '#CFC29C' }}>LEAGUE</Text>
       </Text>
     </View>
   );

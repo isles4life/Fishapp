@@ -110,7 +110,7 @@ function FeedCard({ entry, region }: { entry: LeaderboardEntry; region: string }
       {/* Caption */}
       <View style={styles.feedCaption}>
         <Text style={styles.feedCaptionText}>
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{firstName} </Text>
+          <Text style={{ color: colors.charcoal, fontWeight: '700' }}>{firstName} </Text>
           <Text>CAUGHT A </Text>
           <Text style={{ color: colors.accent, fontWeight: '800' }}>{lengthIn}"</Text>
           <Text> FISH.</Text>
@@ -373,10 +373,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.cream,
   },
   scroll: {
     flex: 1,
+    backgroundColor: colors.cream,
   },
   header: {
     flexDirection: 'row',
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -516,21 +517,24 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...typography.label,
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
   },
   sectionLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.borderGold + '60',
   },
   feedCard: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    marginBottom: 12,
+    backgroundColor: colors.white,
+    borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   feedCardHeader: {
     flexDirection: 'row',
@@ -539,28 +543,29 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   feedAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.surfaceHigh,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   feedAvatarText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.textSub,
-  },
-  feedAnglerName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.text,
   },
+  feedAnglerName: {
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
+    color: colors.charcoal,
+  },
   feedUsername: {
     fontSize: 11,
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
     marginTop: 1,
   },
   verifiedBadge: {
@@ -631,7 +636,7 @@ const styles = StyleSheet.create({
   },
   feedCaptionText: {
     ...typography.bodyMd,
-    color: colors.textSub,
+    color: colors.textDarkSub,
     letterSpacing: 0.3,
   },
   feedMeta: {
@@ -642,10 +647,10 @@ const styles = StyleSheet.create({
   },
   feedMetaText: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
   },
   feedMetaDot: {
-    color: colors.textMuted,
+    color: colors.textDarkMuted,
     fontSize: 12,
   },
   feedActions: {
@@ -718,10 +723,10 @@ const warningStyles = StyleSheet.create({
     padding: 24,
   },
   card: {
-    backgroundColor: '#1D331D',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2A4A2A',
+    borderColor: colors.border,
     padding: 24,
     width: '100%',
     maxWidth: 400,
@@ -730,7 +735,8 @@ const warningStyles = StyleSheet.create({
   header: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#F0EDE4',
+    fontFamily: 'Oswald_700Bold',
+    color: colors.text,
     marginBottom: 16,
     letterSpacing: 1,
   },
@@ -748,18 +754,19 @@ const warningStyles = StyleSheet.create({
   },
   reason: {
     fontSize: 14,
-    color: '#F0EDE4',
+    fontFamily: 'Inter_400Regular',
+    color: colors.text,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 12,
   },
   sub: {
     fontSize: 12,
-    color: '#8BA88B',
+    color: colors.textSub,
     marginBottom: 20,
   },
   btn: {
-    backgroundColor: '#C9A450',
+    backgroundColor: colors.accent,
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 32,
@@ -769,7 +776,8 @@ const warningStyles = StyleSheet.create({
   btnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0D1A0D',
+    fontFamily: 'Inter_600SemiBold',
+    color: colors.bg,
     letterSpacing: 0.8,
   },
 });

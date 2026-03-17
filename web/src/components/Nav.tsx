@@ -5,15 +5,15 @@ import { api, clearToken, isLoggedIn, fixS3Url } from '../lib/api';
 import type { AnglerProfile } from '../lib/api';
 
 const C = {
-  bg:          '#0D1A0D',
-  surface:     '#152515',
-  surfaceHigh: '#1D331D',
-  border:      '#2A4A2A',
-  borderGold:  '#C9A450',
-  accent:      '#C9A450',
+  bg:          '#3A4C44',
+  surface:     '#2E3D38',
+  surfaceHigh: '#445C54',
+  border:      '#4A6058',
+  borderGold:  '#CFC29C',
+  accent:      '#CFC29C',
   text:        '#F0EDE4',
-  textSub:     '#8BA88B',
-  textMuted:   '#4A6A4A',
+  textSub:     '#9DB5A8',
+  textMuted:   '#6B7D73',
 };
 
 function initials(name?: string | null) {
@@ -216,8 +216,8 @@ function MobileBottomNav({ active }: { active?: string }) {
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-      backgroundColor: '#152515',
-      borderTop: '1px solid #2A4A2A',
+      backgroundColor: '#2E3D38',
+      borderTop: '1px solid #4A6058',
       paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
       paddingTop: 10,
     }} id="mobile-bottom-nav">
@@ -227,7 +227,7 @@ function MobileBottomNav({ active }: { active?: string }) {
           return (
             <a key={item.href} href={item.href} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              color: isActive ? '#C9A450' : '#4A6A4A',
+              color: isActive ? '#CFC29C' : '#6B7D73',
               textDecoration: 'none',
               flex: 1,
               paddingTop: 2,
@@ -235,7 +235,7 @@ function MobileBottomNav({ active }: { active?: string }) {
               {/* Active indicator bar */}
               <div style={{
                 height: 2, width: 20, borderRadius: 1,
-                backgroundColor: isActive ? '#C9A450' : 'transparent',
+                backgroundColor: isActive ? '#CFC29C' : 'transparent',
                 marginBottom: 4,
               }} />
               {item.icon
@@ -245,7 +245,7 @@ function MobileBottomNav({ active }: { active?: string }) {
               }
               <span style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: 0.8,
-                color: isActive ? '#C9A450' : '#4A6A4A',
+                color: isActive ? '#CFC29C' : '#6B7D73',
                 textTransform: 'uppercase',
                 marginTop: 2,
               }}>

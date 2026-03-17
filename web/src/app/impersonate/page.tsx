@@ -19,7 +19,7 @@ function ImpersonateInner() {
 
 export default function ImpersonatePage() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0D1A0D', color: '#F0EDE4', fontSize: 14 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#3A4C44', color: '#F0EDE4', fontSize: 14 }}>
       Signing in…
       <Suspense>
         <ImpersonateInner />
