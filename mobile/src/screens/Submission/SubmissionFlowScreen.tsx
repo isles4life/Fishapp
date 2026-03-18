@@ -296,10 +296,10 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         <View style={styles.measurePanel}>
           {done ? (
             <>
-              <Text style={styles.measureResultNum}>📏 {measuredCm} CM</Text>
+              <Text style={styles.measureResultNum}>📏 {measuredCm !== null ? cmToIn(measuredCm) : ''}″</Text>
               <Text style={styles.measureResultSub}>Measured via credit card (85.6 mm reference)</Text>
               <TouchableOpacity style={[styles.goldBtn, { marginTop: 16 }]} onPress={handleUseMeasurement}>
-                <Text style={styles.goldBtnText}>USE {measuredCm} CM</Text>
+                <Text style={styles.goldBtnText}>USE {measuredCm !== null ? cmToIn(measuredCm) : ''}"</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.outlineBtn, { marginTop: 10 }]}
