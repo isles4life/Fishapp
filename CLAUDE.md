@@ -214,11 +214,14 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-17)
+## Current Status (as of 2026-03-18)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build (March 16) is stale — **new EAS build required** to ship all recent changes
-- Changes needing new build: app icon, region dropdown, inch fix, ToS checkbox, Oswald/Inter fonts, design overhaul, profile split, cream shutter button
-- Admin: pagination added to Users (PAGE_SIZE 50), Tournaments (PAGE_SIZE 20), and History (server-side paging for both Audit Log + Submissions tabs)
-- CI/CD: deploy workflow now has `concurrency: cancel-in-progress: true` — prevents race conditions on rapid pushes
-- All old color tokens (`#0D1A0D`, `#152515`, `#C9A450`, etc.) eliminated from entire codebase
+- iOS TestFlight build #13 (March 18) shipped — includes all design changes, props/comments fix, leaderboard timestamps
+- **New EAS build required** to ship: catch photos in Home feed, real timestamps in feed
+- Backend auto-deployed: leaderboard entries now include presigned `photoUrl` + `submittedAt`
+- Home feed: Props + Comment buttons now functional (Props calls API, Comment navigates to Leaderboard tab)
+- Leaderboard comments: relative timestamps shown (timeAgo) on both mobile and web
+- Architecture sequence diagram added to `docs/architecture.md`
+- Admin: pagination added to Users (PAGE_SIZE 50), Tournaments (PAGE_SIZE 20), and History (server-side paging)
+- CI/CD: deploy workflow has `concurrency: cancel-in-progress: true`
 - Design system fully implemented: Oswald/Inter fonts, new palette, light/dark split screens across mobile + web + admin
