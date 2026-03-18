@@ -27,7 +27,6 @@ export class AuthService {
         email: dto.email,
         displayName: dto.displayName,
         authProvider: 'EMAIL',
-        regionId: dto.regionId,
         passwordHash,
       },
     });
@@ -73,7 +72,6 @@ export class AuthService {
           appleId,
           displayName: dto.displayName ?? 'Angler',
           authProvider: 'APPLE',
-          regionId: dto.regionId,
         },
       });
     }

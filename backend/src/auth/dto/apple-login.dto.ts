@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class AppleLoginDto {
   @IsString()
@@ -7,7 +7,4 @@ export class AppleLoginDto {
   @IsOptional()
   @IsString()
   displayName?: string;
-
-  @IsUUID()
-  regionId: string;
 }

@@ -26,8 +26,8 @@ export class TournamentsController {
 
   @Get('active')
   @UseGuards(JwtAuthGuard)
-  getActive(@Request() req: any) {
-    return this.tournamentsService.getActiveTournament(req.user.regionId);
+  getActive() {
+    return this.tournamentsService.getFirstOpenTournament();
   }
 
   @Get(':id')

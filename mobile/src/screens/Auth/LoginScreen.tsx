@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert, ScrollView,
@@ -9,7 +9,6 @@ import { RootStackParamList } from '../../navigation';
 import * as api from '../../services/api';
 import { storage } from '../../services/storage';
 import { registerPushToken } from '../../services/notifications';
-import type { Region } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { FishLeagueLogo } from '../../components/icons/Logo';
@@ -19,18 +18,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-
-  useEffect(() => {
-    api.getRegions().then(r => {
-      setRegions(r);
-      if (r.length) setSelectedRegion(r[0].id);
-    }).catch(() => {});
-  }, []);
 
   async function handleLogin() {
     if (!email || !password) return Alert.alert('Error', 'Enter email and password');
@@ -48,7 +38,6 @@ export default function LoginScreen({ navigation }: Props) {
   }
 
   async function handleAppleLogin() {
-    if (!selectedRegion) return Alert.alert('Error', 'Select a region first');
     try {
       const cred = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -59,7 +48,7 @@ export default function LoginScreen({ navigation }: Props) {
       const displayName = [cred.fullName?.givenName, cred.fullName?.familyName]
         .filter(Boolean).join(' ') || null;
       setLoading(true);
-      const { token } = await api.appleLogin(cred.identityToken!, displayName, selectedRegion);
+      const { token } = await api.appleLogin(cred.identityToken!, displayName);
       await storage.setToken(token);
       navigation.replace('MainTabs');
       registerPushToken().catch(() => {});
@@ -123,27 +112,6 @@ export default function LoginScreen({ navigation }: Props) {
         <Text style={styles.dividerText}>or</Text>
         <View style={styles.dividerLine} />
       </View>
-
-      {/* Region picker for Apple Sign In */}
-      {regions.length > 0 && (
-        <>
-          <Text style={styles.regionLabel}>SELECT REGION FOR APPLE SIGN IN</Text>
-          <View style={styles.regionRow}>
-            {regions.map(r => (
-              <TouchableOpacity
-                key={r.id}
-                style={[styles.regionBtn, selectedRegion === r.id && styles.regionBtnActive]}
-                onPress={() => setSelectedRegion(r.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.regionBtnText, selectedRegion === r.id && styles.regionBtnTextActive]}>
-                  {r.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </>
-      )}
 
       {/* Apple Sign In */}
       <AppleAuthentication.AppleAuthenticationButton

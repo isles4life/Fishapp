@@ -65,12 +65,11 @@ export function register(
   email: string,
   password: string,
   displayName: string,
-  regionId: string,
   termsAcceptedAt?: string
 ): Promise<AuthResponse> {
   return request(
     '/auth/register',
-    { method: 'POST', body: JSON.stringify({ email, password, displayName, regionId, termsAcceptedAt }) },
+    { method: 'POST', body: JSON.stringify({ email, password, displayName, termsAcceptedAt }) },
     false
   );
 }
@@ -78,11 +77,10 @@ export function register(
 export function appleLogin(
   identityToken: string,
   displayName: string | null,
-  regionId: string
 ): Promise<AuthResponse> {
   return request(
     '/auth/apple',
-    { method: 'POST', body: JSON.stringify({ identityToken, displayName, regionId }), headers: { 'X-Platform': 'mobile' } },
+    { method: 'POST', body: JSON.stringify({ identityToken, displayName }), headers: { 'X-Platform': 'mobile' } },
     false
   );
 }

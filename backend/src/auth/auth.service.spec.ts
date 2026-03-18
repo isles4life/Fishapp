@@ -36,7 +36,7 @@ describe('AuthService', () => {
     it('throws ConflictException if email exists', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'existing' });
       await expect(
-        service.register({ email: 'a@b.com', password: 'pass1234', displayName: 'Test', regionId: 'r1' }),
+        service.register({ email: 'a@b.com', password: 'pass1234', displayName: 'Test' }),
       ).rejects.toThrow(ConflictException);
     });
 
@@ -48,7 +48,6 @@ describe('AuthService', () => {
         email: 'new@test.com',
         password: 'pass1234',
         displayName: 'Angler',
-        regionId: 'region-uuid',
       });
 
       expect(result.token).toBe('mock-token');

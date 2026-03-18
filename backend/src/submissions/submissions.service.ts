@@ -26,7 +26,6 @@ export class SubmissionsService {
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { region: true },
     });
     if (!user) throw new NotFoundException('User not found');
     if (user.suspended) throw new ForbiddenException('Account suspended');
@@ -34,6 +33,7 @@ export class SubmissionsService {
     // 1. Validate tournament exists and is open
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: dto.tournamentId },
+      include: { region: true },
     });
     if (!tournament || !tournament.isOpen) {
       throw new BadRequestException('Tournament is not active');
@@ -44,12 +44,8 @@ export class SubmissionsService {
       throw new BadRequestException('Submission outside tournament window');
     }
 
-    if (tournament.regionId !== user.regionId) {
-      throw new ForbiddenException('Tournament is not in your region');
-    }
-
-    // 2. Validate GPS inside region bounding box
-    const region = user.region;
+    // 2. Validate GPS inside tournament's region bounding box
+    const region = tournament.region;
     const { gpsLat, gpsLng } = dto;
     if (
       gpsLat < region.minLat ||
