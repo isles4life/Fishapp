@@ -632,6 +632,7 @@ function EditProfileForm({
       cleaned.favoriteTechniques = techniquesRaw.split(',').map(s => s.trim()).filter(Boolean);
       cleaned.favoriteBaits = baitsRaw.split(',').map(s => s.trim()).filter(Boolean);
       cleaned.sponsorTags = sponsorRaw.split(',').map(s => s.trim()).filter(Boolean);
+      if (!cleaned.profilePhotoUrl) cleaned.profilePhotoUrl = undefined;
       const updated = await updateProfile(cleaned);
       onSaved(updated);
     } catch (e: any) {
