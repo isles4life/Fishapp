@@ -36,7 +36,7 @@ cd mobile && npx expo start   # start Expo dev server
 - Fish length stored in **cm** in DB (`fishLengthCm`), displayed in **inches** everywhere in UI (`inches = cm / 2.54`)
 - Submission input on mobile accepts inches → converts to cm before API call
 - Image dedup via MD5 hash — flags only, human moderation required (no auto-reject)
-- GPS bounding box validation server-side (never trust client coordinates)
+- GPS bounding box validation server-side against **tournament's region** (not user's region — users no longer have a fixed region assignment; GPS at submission time determines eligibility)
 - S3 bucket is **private** — backend generates presigned URLs (1hr expiry) for photo access
 - Apple Sign-In on mobile; email/password on all platforms; no Google/Facebook yet
 - Admin auth: email/password only, JWT checked for `role === ADMIN`
@@ -217,8 +217,10 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-18)
 - MVP fully deployed: backend + admin + web live on AWS
+- **New EAS build required** to ship all recent mobile changes (see below)
+- GPS-based region detection deployed: users no longer pick a region at registration; GPS at submission time validates against tournament's region. `User.regionId` is now nullable. Migration `20260318000000_make_user_regionid_optional` drops the NOT NULL constraint.
+- Mobile fixes shipped (need new EAS build): FishingIntelligenceScreen back button, profile comma-field delete bug, profilePhotoUrl empty string validation, SubmissionFlowScreen inches display
 - iOS TestFlight build #13 (March 18) shipped — includes all design changes, props/comments fix, leaderboard timestamps
-- **New EAS build required** to ship: catch photos in Home feed, real timestamps in feed
 - Backend auto-deployed: leaderboard entries now include presigned `photoUrl` + `submittedAt`
 - Home feed: Props + Comment buttons now functional (Props calls API, Comment navigates to Leaderboard tab)
 - Leaderboard comments: relative timestamps shown (timeAgo) on both mobile and web
