@@ -621,18 +621,17 @@ function EditProfileForm({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  function setArr(field: keyof UpdateProfilePayload, raw: string) {
-    setForm(f => ({ ...f, [field]: raw.split(',').map(str => str.trim()) }));
-  }
+  const [techniquesRaw, setTechniquesRaw] = useState((existing?.favoriteTechniques ?? []).join(', '));
+  const [baitsRaw, setBaitsRaw] = useState((existing?.favoriteBaits ?? []).join(', '));
+  const [sponsorRaw, setSponsorRaw] = useState((existing?.sponsorTags ?? []).join(', '));
 
   async function save() {
     setSaving(true); setError('');
     try {
       const cleaned = { ...form };
-      (['favoriteTechniques', 'favoriteBaits', 'sponsorTags'] as const).forEach(k => {
-        if (Array.isArray(cleaned[k])) cleaned[k] = (cleaned[k] as string[]).filter(Boolean) as any;
-      });
+      cleaned.favoriteTechniques = techniquesRaw.split(',').map(s => s.trim()).filter(Boolean);
+      cleaned.favoriteBaits = baitsRaw.split(',').map(s => s.trim()).filter(Boolean);
+      cleaned.sponsorTags = sponsorRaw.split(',').map(s => s.trim()).filter(Boolean);
       const updated = await updateProfile(cleaned);
       onSaved(updated);
     } catch (e: any) {
@@ -684,8 +683,8 @@ function EditProfileForm({
         <FormSection title="Fishing Preferences">
           <Text style={s.fieldLabel}>Primary Species</Text>
           <SpeciesPicker selected={form.primarySpecies ?? []} onChange={v => setForm(f => ({ ...f, primarySpecies: v }))} />
-          <FLInput label="Techniques (comma-separated)" value={(form.favoriteTechniques ?? []).join(', ')} onChangeText={v => setArr('favoriteTechniques', v)} placeholder="Fly, Spinning, Baitcasting" />
-          <FLInput label="Baits (comma-separated)" value={(form.favoriteBaits ?? []).join(', ')} onChangeText={v => setArr('favoriteBaits', v)} placeholder="Crankbait, Jig, Live Shrimp" />
+          <FLInput label="Techniques (comma-separated)" value={techniquesRaw} onChangeText={setTechniquesRaw} placeholder="Fly, Spinning, Baitcasting" />
+          <FLInput label="Baits (comma-separated)" value={baitsRaw} onChangeText={setBaitsRaw} placeholder="Crankbait, Jig, Live Shrimp" />
           <Text style={s.fieldLabel}>Water Type</Text>
           <View style={s.waterPicker}>
             {WATER_OPTIONS.map(opt => (
@@ -707,7 +706,7 @@ function EditProfileForm({
           <FLInput label="Favorite Reel" value={form.favoriteReel ?? ''} onChangeText={v => setForm(f => ({ ...f, favoriteReel: v }))} placeholder="Shimano Stradic" />
           <FLInput label="Favorite Line" value={form.favoriteLine ?? ''} onChangeText={v => setForm(f => ({ ...f, favoriteLine: v }))} placeholder="20lb Fluorocarbon" />
           <FLInput label="Favorite Boat" value={form.favoriteBoat ?? ''} onChangeText={v => setForm(f => ({ ...f, favoriteBoat: v }))} placeholder="Ranger Z520C" />
-          <FLInput label="Sponsor Tags (comma-separated)" value={(form.sponsorTags ?? []).join(', ')} onChangeText={v => setArr('sponsorTags', v)} placeholder="Shimano, Rapala" />
+          <FLInput label="Sponsor Tags (comma-separated)" value={sponsorRaw} onChangeText={setSponsorRaw} placeholder="Shimano, Rapala" />
         </FormSection>
 
         <FormSection title="Privacy">
