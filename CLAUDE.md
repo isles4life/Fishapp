@@ -181,6 +181,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 1. **Email verification**: add `emailVerified` + `verificationToken` to User, send confirmation email on register, `GET /auth/verify-email?token=xxx`, block unverified users from submitting.
 2. **Stripe entry fees**: Stripe account, payment sheet in mobile, webhook handling, payout logic. First beta tournament free (`entryFeeCents: 0`).
 3. **Facebook Sign-In** (mobile + web only, skip admin): add `facebookId` to User + `FACEBOOK` to AuthProvider enum, `POST /auth/facebook` via Graph API token verification, `expo-auth-session` on mobile, OAuth redirect on web. Requires Facebook App Review (~1 day code, 1–5 days review).
+4. **ARKit LiDAR fish measurement**: Replace credit card measure with tap-to-measure AR on LiDAR iPhones (12 Pro+). Use ViroReact (Expo-compatible, maintained by ReactVision). User taps head + tail of fish; ARKit raycasts to 3D world positions; Euclidean distance = length. Falls back to manual inch entry on non-LiDAR devices (~75% of iPhones). New file: `mobile/src/screens/Submission/ARMeasureScreen.tsx`. Requires physical iPhone Pro for testing (ARKit does not run in simulator). ~4 days effort.
 
 ## Legal Pages
 - Web: `/legal` — full ToS + Privacy Policy with anchor links (`#terms`, `#privacy`, `#arbitration`)
