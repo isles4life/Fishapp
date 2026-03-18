@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import * as api from '../../services/api';
 import type { FishingIntelResponse, FishingSpot, SpeciesActivity } from '../../models';
@@ -119,6 +120,7 @@ function SpeciesRow({ species }: { species: SpeciesActivity }) {
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function FishingIntelligenceScreen() {
+  const navigation = useNavigation();
   const [data, setData] = useState<FishingIntelResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -180,6 +182,9 @@ export default function FishingIntelligenceScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+            <Text style={styles.backBtnText}>‹ Back</Text>
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>⚡ FISH INTEL</Text>
           <Text style={styles.headerSub}>Weather-based fishing forecast · Nearby spots</Text>
         </View>
@@ -445,6 +450,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  backBtn: {
+    marginBottom: 8,
+  },
+  backBtnText: {
+    fontSize: 16,
+    color: colors.accent,
+    fontWeight: '600',
   },
   headerTitle: {
     ...typography.displayMd,
