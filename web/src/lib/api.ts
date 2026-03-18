@@ -49,6 +49,7 @@ export interface LeaderboardEntry {
   rank: number; submissionId?: string; userId: string; displayName: string; fishLengthCm: number;
   profilePhotoUrl?: string | null; username?: string | null;
   speciesName?: string | null; speciesCategory?: string | null;
+  photoUrl?: string | null; submittedAt?: string | null;
 }
 export interface CatchComment {
   id: string; submissionId: string; userId: string; body: string; createdAt: string;

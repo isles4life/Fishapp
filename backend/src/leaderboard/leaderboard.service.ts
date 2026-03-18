@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { LeaderboardGateway } from '../websocket/leaderboard.gateway';
+import { S3Service } from '../submissions/s3.service';
 
 const TOP_N = 25;
 
@@ -9,6 +10,7 @@ export class LeaderboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: LeaderboardGateway,
+    private readonly s3: S3Service,
   ) {}
 
   /**
@@ -71,22 +73,31 @@ export class LeaderboardService {
           },
         },
         submission: {
-          select: { speciesName: true, speciesCategory: true },
+          select: { speciesName: true, speciesCategory: true, photo1Key: true, createdAt: true },
         },
       },
     });
 
-    return entries.map((e, idx) => ({
-      rank: idx + 1,
-      submissionId: e.submissionId,
-      userId: e.userId,
-      displayName: e.user.displayName,
-      fishLengthCm: e.fishLengthCm,
-      profilePhotoUrl: e.user.profile?.profilePhotoUrl ?? null,
-      username: e.user.profile?.username ?? null,
-      speciesName: e.submission?.speciesName ?? null,
-      speciesCategory: e.submission?.speciesCategory ?? null,
+    const mapped = await Promise.all(entries.map(async (e, idx) => {
+      let photoUrl: string | null = null;
+      if (e.submission?.photo1Key) {
+        photoUrl = await this.s3.getPresignedUrl(e.submission.photo1Key, 3600);
+      }
+      return {
+        rank: idx + 1,
+        submissionId: e.submissionId,
+        userId: e.userId,
+        displayName: e.user.displayName,
+        fishLengthCm: e.fishLengthCm,
+        profilePhotoUrl: e.user.profile?.profilePhotoUrl ?? null,
+        username: e.user.profile?.username ?? null,
+        speciesName: e.submission?.speciesName ?? null,
+        speciesCategory: e.submission?.speciesCategory ?? null,
+        photoUrl,
+        submittedAt: e.submission?.createdAt?.toISOString() ?? null,
+      };
     }));
+    return mapped;
   }
 
   async getUserRank(tournamentId: string, userId: string) {

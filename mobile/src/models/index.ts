@@ -51,6 +51,8 @@ export interface LeaderboardEntry {
   username?: string | null;
   speciesName?: string | null;
   speciesCategory?: string | null;
+  photoUrl?: string | null;
+  submittedAt?: string | null;
 }
 
 export interface CatchComment {

@@ -137,11 +137,19 @@ function FeedCard({ entry, region, onComment }: { entry: LeaderboardEntry; regio
         <Text style={styles.feedDots}>···</Text>
       </View>
 
-      {/* Fish photo placeholder */}
+      {/* Fish photo */}
       <View style={styles.feedPhotoPlaceholder}>
-        <View style={styles.feedFishInfo}>
-          <Text style={styles.feedFishLengthLabel}>CATCH LENGTH</Text>
-          <Text style={styles.feedFishLength}>{lengthIn}{'"'}</Text>
+        {entry.photoUrl ? (
+          <Image
+            source={{ uri: entry.photoUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : null}
+        {/* Length overlay */}
+        <View style={[styles.feedFishInfo, entry.photoUrl && styles.feedFishInfoOverlay]}>
+          <Text style={[styles.feedFishLengthLabel, entry.photoUrl && { color: 'rgba(255,255,255,0.8)' }]}>CATCH LENGTH</Text>
+          <Text style={[styles.feedFishLength, entry.photoUrl && { color: '#FFFFFF' }]}>{lengthIn}{'"'}</Text>
         </View>
         {entry.rank === 1 && (
           <View style={styles.feedRankBadge}>
@@ -161,7 +169,7 @@ function FeedCard({ entry, region, onComment }: { entry: LeaderboardEntry; regio
         <View style={styles.feedMeta}>
           <Text style={styles.feedMetaText}>📍 {region}</Text>
           <Text style={styles.feedMetaDot}>·</Text>
-          <Text style={styles.feedMetaText}>🕐 Recently</Text>
+          <Text style={styles.feedMetaText}>🕐 {entry.submittedAt ? timeAgo(entry.submittedAt) : 'Recently'}</Text>
         </View>
       </View>
 
@@ -651,6 +659,12 @@ const styles = StyleSheet.create({
   },
   feedFishInfo: {
     alignItems: 'center',
+  },
+  feedFishInfoOverlay: {
+    backgroundColor: 'rgba(46,61,56,0.65)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   feedFishLengthLabel: {
     ...typography.labelSm,
