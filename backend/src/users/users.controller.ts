@@ -53,7 +53,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   async updateUser(
     @Param('id') id: string,
-    @Body() body: { role?: 'USER' | 'ADMIN'; suspended?: boolean; regionId?: string },
+    @Body() body: { role?: 'USER' | 'ADMIN'; suspended?: boolean; regionId?: string | null },
     @Request() req: any,
   ) {
     const updated = await this.prisma.user.update({

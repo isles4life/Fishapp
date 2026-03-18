@@ -21,8 +21,8 @@ interface User {
   suspended: boolean;
   authProvider: string;
   createdAt: string;
-  regionId: string;
-  region: { id: string; name: string };
+  regionId: string | null;
+  region: { id: string; name: string } | null;
 }
 
 function Initials({ name }: { name: string }) {
@@ -296,20 +296,21 @@ export default function UsersPage() {
                 {/* Region */}
                 <td style={{ padding: '14px 20px' }}>
                   <select
-                    value={u.regionId}
+                    value={u.regionId ?? ''}
                     disabled={loading === u.id}
                     onChange={async e => {
                       setLoading(u.id);
-                      try { await api.updateUser(u.id, { regionId: e.target.value }); await load(); }
+                      try { await api.updateUser(u.id, { regionId: e.target.value || null }); await load(); }
                       catch (err: any) { setError(err.message); }
                       finally { setLoading(null); }
                     }}
                     style={{
                       padding: '4px 8px', fontSize: 12,
                       backgroundColor: C.bg, border: `1px solid ${C.border}`,
-                      borderRadius: 6, color: C.textSub, cursor: 'pointer',
+                      borderRadius: 6, color: u.regionId ? C.textSub : C.textMuted, cursor: 'pointer',
                     }}
                   >
+                    <option value="">— GPS only —</option>
                     {regions.map(r => (
                       <option key={r.id} value={r.id}>{r.name}</option>
                     ))}
