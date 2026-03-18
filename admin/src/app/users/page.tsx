@@ -233,8 +233,8 @@ export default function UsersPage() {
       )}
 
       {/* Table */}
-      <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflowX: 'auto' }}>
+        <table style={{ width: '100%', minWidth: 980, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${C.border}` }}>
               <th style={thStyle}>Angler</th>
