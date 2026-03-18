@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LeaderboardService } from './leaderboard.service';
 import { PrismaService } from '../common/prisma.service';
 import { LeaderboardGateway } from '../websocket/leaderboard.gateway';
+import { S3Service } from '../submissions/s3.service';
 
 const mockPrisma = {
   submission: { findUnique: jest.fn() },
@@ -15,6 +16,7 @@ const mockPrisma = {
 };
 
 const mockGateway = { broadcastLeaderboardUpdate: jest.fn() };
+const mockS3 = { getPresignedUrl: jest.fn().mockResolvedValue('https://s3.example.com/photo.jpg') };
 
 describe('LeaderboardService', () => {
   let service: LeaderboardService;
@@ -25,6 +27,7 @@ describe('LeaderboardService', () => {
         LeaderboardService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: LeaderboardGateway, useValue: mockGateway },
+        { provide: S3Service, useValue: mockS3 },
       ],
     }).compile();
 
@@ -78,8 +81,8 @@ describe('LeaderboardService', () => {
 
   it('getTop25 returns ranked entries', async () => {
     mockPrisma.leaderboardEntry.findMany.mockResolvedValue([
-      { userId: 'u1', fishLengthCm: 60, user: { displayName: 'Alice' } },
-      { userId: 'u2', fishLengthCm: 50, user: { displayName: 'Bob' } },
+      { userId: 'u1', fishLengthCm: 60, submissionId: 's1', user: { displayName: 'Alice', profile: null }, submission: { speciesName: null, speciesCategory: null, photo1Key: null, createdAt: new Date() } },
+      { userId: 'u2', fishLengthCm: 50, submissionId: 's2', user: { displayName: 'Bob', profile: null }, submission: { speciesName: null, speciesCategory: null, photo1Key: null, createdAt: new Date() } },
     ]);
 
     const result = await service.getTop25('tourn-1');
