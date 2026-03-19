@@ -741,11 +741,36 @@ async function getTidesForLocation(lat: number, lon: number): Promise<TideInfo |
   }
 }
 
+// ── Response cache (in-memory, 15-min TTL, keyed by ~1km grid cell) ───────────
+
+interface CacheEntry { data: FishingIntelResponse; ts: number; }
+const responseCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+function cacheKey(lat: number, lon: number): string {
+  // Round to 2 decimal places ≈ 1.1 km grid
+  return `${lat.toFixed(2)},${lon.toFixed(2)}`;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 // ── Main service ──────────────────────────────────────────────────────────────
 
 @Injectable()
 export class FishingIntelligenceService {
   async getRecommendations(lat: number, lon: number): Promise<FishingIntelResponse> {
+    // Return cached result if fresh
+    const key = cacheKey(lat, lon);
+    const cached = responseCache.get(key);
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      return cached.data;
+    }
+
     const weatherUrl =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${lat}&longitude=${lon}` +
@@ -766,9 +791,9 @@ export class FishingIntelligenceService {
           if (!r.ok) throw new Error(`Open-Meteo returned ${r.status}`);
           return r.json() as Promise<OpenMeteoResponse>;
         }),
-        getNearbySpots(lat, lon),
-        getLocationLabel(lat, lon),
-        getTidesForLocation(lat, lon),
+        withTimeout(getNearbySpots(lat, lon), 6000, []),
+        withTimeout(getLocationLabel(lat, lon), 5000, 'Your location'),
+        withTimeout(getTidesForLocation(lat, lon), 8000, null),
       ]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -832,7 +857,7 @@ export class FishingIntelligenceService {
 
     const windows = buildBiteWindows(sunrise, sunset, nowLocal);
 
-    return {
+    const result: FishingIntelResponse = {
       conditions: {
         temperatureF: tempF,
         windMph,
@@ -862,5 +887,8 @@ export class FishingIntelligenceService {
       tides,
       activeSpecies: getActiveSpecies(tempF, season, pressureTrend, tides !== null, windMph),
     };
+
+    responseCache.set(key, { data: result, ts: Date.now() });
+    return result;
   }
 }

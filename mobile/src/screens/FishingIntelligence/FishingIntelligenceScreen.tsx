@@ -171,9 +171,7 @@ export default function FishingIntelligenceScreen() {
     fetchIntel(coords.lat, coords.lon);
   }, [zip, fetchIntel]);
 
-  useEffect(() => {
-    requestLocation();
-  }, [requestLocation]);
+  // No auto-load — user chooses zip or current location
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -223,6 +221,15 @@ export default function FishingIntelligenceScreen() {
           </TouchableOpacity>
           {zipError ? <Text style={styles.zipErrorText}>{zipError}</Text> : null}
         </View>
+
+        {/* Idle prompt */}
+        {!loading && !error && !data && (
+          <View style={styles.centerWrap}>
+            <Image source={require('../../../assets/icon.png')} style={{ width: 90, height: 90, marginBottom: 16, opacity: 0.7 }} resizeMode="contain" />
+            <Text style={styles.idleTitle}>Check fishing conditions</Text>
+            <Text style={styles.idleSubtitle}>Enter a zip code above or tap{'\n'}"Use My Location" to get started.</Text>
+          </View>
+        )}
 
         {/* Loading */}
         {loading && (
@@ -527,6 +534,19 @@ const styles = StyleSheet.create({
   zipErrorText: {
     ...typography.caption,
     color: colors.error,
+  },
+  // Idle
+  idleTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  idleSubtitle: {
+    ...typography.bodyMd,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   // States
   centerWrap: {
