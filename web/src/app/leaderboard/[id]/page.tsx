@@ -157,6 +157,13 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                     Week {tournament.weekNumber} · {tournament.region?.name ?? 'All Regions'} ·{' '}
                     {entries.length} angler{entries.length !== 1 ? 's' : ''}
                   </div>
+                  {tournament.scoringMethod && tournament.scoringMethod !== 'LENGTH' && (
+                    <div style={{ marginTop: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, backgroundColor: C.accent + '18', border: `1px solid ${C.accent}50`, borderRadius: 6, padding: '2px 8px' }}>
+                        {tournament.scoringMethod === 'WEIGHT' ? '⚖️ Weight' : tournament.scoringMethod === 'FISH_COUNT' ? '🐟 Fish Count' : '🧬 Species Count'}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <button

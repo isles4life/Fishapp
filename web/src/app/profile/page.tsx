@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Nav from '../../components/Nav';
 import { api, clearToken, isLoggedIn, fixS3Url } from '../../lib/api';
-import type { AnglerProfile, UpdateProfilePayload } from '../../lib/api';
+import type { AnglerProfile, UpdateProfilePayload, Tournament, TournamentAdminRequest } from '../../lib/api';
 
 const C = {
   bg:          '#3A4C44',
@@ -288,6 +288,13 @@ export default function MyProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [form, setForm] = useState<UpdateProfilePayload>({});
+  const [directorRequests, setDirectorRequests] = useState<TournamentAdminRequest[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [directorTournamentId, setDirectorTournamentId] = useState('');
+  const [directorMessage, setDirectorMessage] = useState('');
+  const [directorSubmitting, setDirectorSubmitting] = useState(false);
+  const [directorError, setDirectorError] = useState('');
+  const [directorSuccess, setDirectorSuccess] = useState('');
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return; }
@@ -308,10 +315,27 @@ export default function MyProfilePage() {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
+    // Load director requests + all tournaments in parallel
+    api.getMyTournamentRequests().then(setDirectorRequests).catch(() => {});
+    api.getTournaments().then(setTournaments).catch(() => {});
   }, [router]);
 
   function handleLogout() { clearToken(); router.push('/'); }
-  void handleLogout; // kept for potential future use
+
+  async function handleDirectorRequest(e: React.FormEvent) {
+    e.preventDefault();
+    if (!directorTournamentId || directorSubmitting) return;
+    setDirectorSubmitting(true); setDirectorError(''); setDirectorSuccess('');
+    try {
+      const req = await api.submitTournamentAdminRequest(directorTournamentId, directorMessage || undefined);
+      setDirectorRequests(prev => [...prev, req]);
+      setDirectorTournamentId('');
+      setDirectorMessage('');
+      setDirectorSuccess('Request submitted! An admin will review it.');
+      setTimeout(() => setDirectorSuccess(''), 5000);
+    } catch (e: any) { setDirectorError(e.message); }
+    finally { setDirectorSubmitting(false); }
+  }
 
   function setArr(field: keyof UpdateProfilePayload, raw: string) {
     setForm(f => ({ ...f, [field]: raw.split(',').map(s => s.trim()) }));
@@ -490,8 +514,9 @@ export default function MyProfilePage() {
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
             <button onClick={() => setEditing(true)} style={ghostBtn}>Edit Profile</button>
+            <button onClick={handleLogout} style={{ ...ghostBtn, color: '#C0392B', borderColor: '#C0392B40' }}>Sign Out</button>
           </div>
         </div>
       </div>
@@ -500,12 +525,14 @@ export default function MyProfilePage() {
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 20px' }}>
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
 
-          {/* Stats — 2×2 grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 }}>
+          {/* Stats — 3×2 grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
             <StatCard label="Total Catches" value={stats.totalCatches} />
             <StatCard label="PB / Best Catch" value={stats.largestCatchCm ? `${(stats.largestCatchCm / 2.54).toFixed(2)} IN` : null} />
-            <StatCard label="League Rank" value={stats.tournamentsWon > 0 ? `#${stats.tournamentsWon}` : null} />
-            <StatCard label="Props" value={Math.round(profile.sportsmanshipScore * 10)} />
+            <StatCard label="Tournaments" value={stats.totalTournamentsEntered} />
+            <StatCard label="Avg Catch" value={stats.averageCatchCm ? `${(stats.averageCatchCm / 2.54).toFixed(2)} IN` : null} />
+            <StatCard label="Wins" value={stats.tournamentsWon || null} />
+            <StatCard label="Sportsmanship" value={`${stats.verifiedCatches} ✓`} />
           </div>
 
           {/* Badges */}
@@ -535,7 +562,7 @@ export default function MyProfilePage() {
 
           {/* Gear */}
           {(profile.favoriteRod || profile.favoriteReel || profile.favoriteLine || profile.favoriteBoat || profile.sponsorTags.length > 0) && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #CFC29C' }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #CFC29C', marginBottom: 14 }}>
               <h4 style={{ color: '#6B7D73', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>Gear</h4>
               {([['Rod', profile.favoriteRod], ['Reel', profile.favoriteReel], ['Line', profile.favoriteLine], ['Boat', profile.favoriteBoat]] as [string, string | null][]).map(([label, val]) =>
                 val ? <div key={label} style={{ marginBottom: 6 }}><span style={{ color: '#6B7D73', fontSize: 12 }}>{label}: </span><span style={{ color: '#1A1D1A', fontSize: 14 }}>{val}</span></div> : null
@@ -543,6 +570,70 @@ export default function MyProfilePage() {
               <TagList label="Sponsors" tags={profile.sponsorTags} />
             </div>
           )}
+
+          {/* Tournament Director Request */}
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, border: '1px solid #CFC29C', marginBottom: 14 }}>
+            <h4 style={{ color: '#6B7D73', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 14px' }}>Tournament Director</h4>
+            <p style={{ color: '#4A5A52', fontSize: 14, marginBottom: 14 }}>
+              Want to run a tournament? Request the Tournament Director role and an admin will review your application.
+            </p>
+
+            {/* Existing requests */}
+            {directorRequests.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                {directorRequests.map(r => (
+                  <div key={r.id} style={{ backgroundColor: '#F2EFE8', borderRadius: 10, padding: '10px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 14, color: '#1A1D1A', fontWeight: 600 }}>{r.tournament.name}</div>
+                      <div style={{ fontSize: 12, color: '#6B7D73', marginTop: 2 }}>Week {r.tournament.weekNumber} · {r.tournament.year}</div>
+                    </div>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                      backgroundColor: r.status === 'APPROVED' ? '#0F3A1E' : r.status === 'REJECTED' ? '#3A1414' : '#2E3D38',
+                      color: r.status === 'APPROVED' ? '#3DAF5A' : r.status === 'REJECTED' ? '#C0392B' : '#CFC29C',
+                      border: `1px solid ${r.status === 'APPROVED' ? '#3DAF5A50' : r.status === 'REJECTED' ? '#C0392B50' : '#CFC29C50'}`,
+                    }}>{r.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* New request form */}
+            {directorRequests.every(r => r.status !== 'PENDING') && (
+              <form onSubmit={handleDirectorRequest}>
+                {directorError && <div style={{ color: '#C0392B', background: '#3A1414', border: '1px solid #C0392B', padding: '8px 12px', borderRadius: 8, marginBottom: 10, fontSize: 13 }}>{directorError}</div>}
+                {directorSuccess && <div style={{ color: '#3DAF5A', background: '#0F3A1E', border: '1px solid #3DAF5A50', padding: '8px 12px', borderRadius: 8, marginBottom: 10, fontSize: 13 }}>{directorSuccess}</div>}
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ display: 'block', color: '#6B7D73', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Select Tournament</label>
+                  <select
+                    value={directorTournamentId}
+                    onChange={e => setDirectorTournamentId(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '10px 12px', boxSizing: 'border-box', backgroundColor: '#3A4C44', border: '1px solid #4A6058', borderRadius: 10, color: '#F0EDE4', fontSize: 14, outline: 'none' }}
+                  >
+                    <option value="">— Select a tournament —</option>
+                    {tournaments.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} (Week {t.weekNumber}, {t.year})</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', color: '#6B7D73', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>Message (optional)</label>
+                  <textarea
+                    value={directorMessage}
+                    onChange={e => setDirectorMessage(e.target.value)}
+                    placeholder="Tell us why you'd like to run this tournament..."
+                    maxLength={500}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', backgroundColor: '#3A4C44', border: '1px solid #4A6058', borderRadius: 10, color: '#F0EDE4', fontSize: 14, outline: 'none', resize: 'vertical', minHeight: 80 }}
+                  />
+                </div>
+                <button type="submit" disabled={!directorTournamentId || directorSubmitting}
+                  style={{ backgroundColor: '#CFC29C', color: '#3A4C44', fontWeight: 700, border: 'none', borderRadius: 10, padding: '10px 24px', cursor: 'pointer', fontSize: 14, opacity: (!directorTournamentId || directorSubmitting) ? 0.5 : 1 }}>
+                  {directorSubmitting ? 'Submitting…' : 'Request Director Role'}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>

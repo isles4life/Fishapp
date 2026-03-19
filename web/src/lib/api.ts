@@ -79,6 +79,11 @@ export interface CatchComment {
   user: { id: string; displayName: string };
 }
 export interface AuthResponse { token: string; userId: string; }
+export interface TournamentAdminRequest {
+  id: string; tournamentId: string; status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  message: string | null; createdAt: string;
+  tournament: { id: string; name: string; weekNumber: number; year: number };
+}
 
 export interface AnglerStats {
   totalCatches: number;
@@ -250,6 +255,13 @@ export const api = {
     const qs = tournamentId ? `?tournamentId=${encodeURIComponent(tournamentId)}` : '';
     return apiFetch<HotSpot[]>(`/submissions/hotspots${qs}`, undefined, true);
   },
+  getTournaments: () => apiFetch<Tournament[]>('/tournaments'),
+  getMyTournamentRequests: () =>
+    apiFetch<TournamentAdminRequest[]>('/tournament-admin/my-requests', undefined, true),
+  submitTournamentAdminRequest: (tournamentId: string, message?: string) =>
+    apiFetch<TournamentAdminRequest>('/tournament-admin/request', {
+      method: 'POST', body: JSON.stringify({ tournamentId, message }),
+    }, true),
   getTournamentFeed: (id: string, cursor?: string) => {
     const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
     return apiFetch<{ posts: TournamentPost[]; nextCursor: string | null }>(`/tournaments/${id}/feed${qs}`, undefined, true);

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import Nav from '../../components/Nav';
-import { api } from '../../lib/api';
+import { api, isLoggedIn } from '../../lib/api';
 import type { Tournament, LeaderboardEntry, CatchComment } from '../../lib/api';
 
 function timeAgo(dateStr: string): string {
@@ -210,6 +210,7 @@ export default function LeaderboardPage() {
   const [tab, setTab] = useState<Tab>('largest');
   const [speciesFilter, setSpeciesFilter] = useState('All');
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
 
   const load = useCallback(async (species?: string) => {
     try {
@@ -230,6 +231,12 @@ export default function LeaderboardPage() {
     const interval = setInterval(() => load(speciesFilter), 30000);
     return () => clearInterval(interval);
   }, [load, speciesFilter]);
+
+  useEffect(() => {
+    if (isLoggedIn()) {
+      api.getMyProfile().then(p => { if (p) setMyUserId(p.userId); }).catch(() => {});
+    }
+  }, []);
 
   function tabStyle(name: Tab): React.CSSProperties {
     const active = tab === name;
@@ -333,6 +340,28 @@ export default function LeaderboardPage() {
             No entries yet — tournament just opened!
           </div>
         )}
+
+        {/* Your Rank banner */}
+        {myUserId && !loading && entries.length > 0 && (() => {
+          const myEntry = entries.find(e => e.userId === myUserId);
+          if (!myEntry) return null;
+          return (
+            <div style={{
+              backgroundColor: C.accent + '15', border: `1px solid ${C.accent}50`,
+              borderRadius: 12, padding: '14px 20px', marginBottom: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.accent, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Your Rank</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: C.accent }}>#{myEntry.rank}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>{cmToInches(myEntry.fishLengthCm)} <span style={{ fontSize: 13, color: C.textSub }}>IN</span></div>
+                {myEntry.speciesName && <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{myEntry.speciesName}</div>}
+              </div>
+            </div>
+          );
+        })()}
 
         {!loading && entries.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
