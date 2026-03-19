@@ -141,7 +141,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - `TournamentAdminRequest` — userId, tournamentId, status (PENDING/APPROVED/REJECTED), message?, reviewedById?, reviewedAt — tracks requests from anglers to become tournament directors
 - `AnglerProfile` — userId, username, bio, birthday (DateTime!), favoriteTechniques[], favoriteBaits[], sponsorTags[], homeState, homeCity, country, zipCode, profilePhotoUrl, publicProfile, allowFollowers
 - `Region` — name, minLat, maxLat, minLng, maxLng (Southeast bounds currently widened to cover continental US: lat 24–50, lng -125 to -66)
-- `Tournament` — name, status (DRAFT/OPEN/CLOSED), regionId, weekNumber, year, entryFeeCents
+- `Tournament` — name, status (DRAFT/OPEN/CLOSED), regionId, weekNumber, year, entryFeeCents, scoringMethod (LENGTH/WEIGHT/FISH_COUNT/SPECIES_COUNT, default LENGTH)
 - `Submission` — fishLengthCm, gpsLat, gpsLng, photo1Key, photo2Key (S3 keys), imageHash1, matSerialId (nullable), status (PENDING/APPROVED/REJECTED/FLAGGED), flagDuplicateHash, flagDuplicateGps, flagSuspectPhoto, flagSuspectLength, estimatedLengthCm (Float?), released, speciesName, userId, tournamentId
 - `LeaderboardEntry` — rank, submissionId, userId, tournamentId
 - `ModerationAction` — submissionId, moderatorId, actionType, note
@@ -248,8 +248,20 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS TestFlight build #23 live — all mobile changes shipped (see below)
 - Backend fully deployed: TOURNAMENT_ADMIN role, QR check-in, comment edit/delete all live
+- **New backend deploy required** for multiple scoring methods
+- **New EAS build required** for scoring method mobile changes (weight input, count-based flow)
 
-### Recently Shipped
+### Recently Shipped (not yet deployed)
+- **Multiple scoring methods** (full-stack, pending deploy + EAS build):
+  - `ScoringMethod` enum: `LENGTH | WEIGHT | FISH_COUNT | SPECIES_COUNT` on Tournament
+  - `fishWeightOz Float?` on Submission; `score Float` on LeaderboardEntry
+  - Migration `20260321000002_add_scoring_method` back-fills score from fishLengthCm
+  - Leaderboard service branches on scoringMethod: LENGTH/WEIGHT keep best-per-user, FISH_COUNT/SPECIES_COUNT aggregate counts; all ranked by `score desc`
+  - Admin: scoring method dropdown in tournament creation; badge on tournament list; formatScore() in leaderboard view
+  - Mobile: `scoringMethod` flows through TournamentContext + route params; weight input shown for WEIGHT tournaments; length field optional for count-based modes
+  - Tournament Director request picker: replaced auto-fill with full tournament list picker
+
+### Previously Shipped
 - **iOS TestFlight build #23** — ships all pending mobile changes:
   - Measuring device flow (mat/ruler/tape) replacing credit card
   - Photo upload from camera roll on submission screen
