@@ -153,6 +153,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **Status enum case** — backend returns uppercase (`APPROVED`, `REJECTED`, `PENDING`, `FLAGGED`); all UI comparisons must be uppercase
 - **Comma in array fields** — profile comma-separated fields (techniques, baits, tags) must NOT call `filter(Boolean)` on every keystroke or the comma gets eaten; filter only on save
 - **FormData number coercion** — multipart form submissions send all values as strings; use `@Type(() => Number)` from class-transformer on DTO numeric fields
+- **FormData boolean coercion** — booleans from FormData arrive as `'true'`/`'false'` strings; use `@Transform(({ value }) => value === true || value === 'true')` before `@IsBoolean()`
 - **matSerialId nullable** — migration `20260314000000_mat_free_submissions` was baselined (not run); constraints dropped directly via psql ECS task
 - **S3 presigned URLs** — S3 bucket is private; admin moderation photos use presigned URLs from backend, not public URLs
 - **Birthday on profile save** — mobile `BirthdayPicker` correctly calls `.toISOString()`, but web `<input type="date">` sends `YYYY-MM-DD`; backend converts with `new Date(\`${birthday}T00:00:00.000Z\`)`
@@ -215,7 +216,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-18)
+## Current Status (as of 2026-03-19)
 - MVP fully deployed: backend + admin + web live on AWS
 - **New EAS build required** to ship all recent mobile changes (see below)
 - GPS-based region detection deployed: users no longer pick a region at registration; GPS at submission time validates against tournament's region. `User.regionId` is now nullable. Migration `20260318000000_make_user_regionid_optional` drops the NOT NULL constraint.
@@ -227,6 +228,8 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Tournament director announcements: `POST /tournaments/:id/announce` + admin 📢 button broadcasts push to all participants
   - Prize random draw: `POST /tournaments/:id/draw` + admin 🎁 button (flat or weighted by catch count, logs to audit)
   - Offline queue UX: TournamentScreen shows pending uploads with per-item discard + Retry Now button
+  - **Angler career stats**: ProfileScreen + public profile page expanded to 6-card (3×2) stats grid — TOTAL CATCHES, PERSONAL BEST, AVG CATCH, TOURNAMENTS, WINS, WIN RATE
+  - **Conservation mode**: `released` Boolean on Submission; toggle in submission flow details step; "↩ Released" badge in tournament list, leaderboard (mobile + web); migration `20260319000000_add_released_to_submission`
 - Mobile fixes shipped (need new EAS build): FishingIntelligenceScreen back button, profile comma-field delete bug, profilePhotoUrl empty string validation, SubmissionFlowScreen inches display
 - iOS TestFlight build #13 (March 18) shipped — includes all design changes, props/comments fix, leaderboard timestamps
 - Backend auto-deployed: leaderboard entries now include presigned `photoUrl` + `submittedAt`
