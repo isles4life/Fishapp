@@ -143,7 +143,9 @@ model Submission {
   flagDuplicateGps     Boolean @default(false)
   flagSuspectPhoto     Boolean @default(false)
   flagSuspectLength    Boolean @default(false)
+  flagSuspectSpecies   Boolean @default(false)
   estimatedLengthCm    Float?
+  aiSuggestedSpecies   String?
   released             Boolean @default(false)
 
   createdAt        DateTime @default(now())

@@ -140,13 +140,17 @@ export class SubmissionsService {
     this.email.sendSubmissionReceived(user.email, user.displayName, tournament.name);
 
     // Fire-and-forget AI fraud checks
-    this.checkIsFish(photo2, submission.id);
+    this.checkIsFish(photo2, submission.id, dto.speciesName ?? null);
     this.estimateFishLength(photo2, submission.id, dto.fishLengthCm);
 
     return { submissionId: submission.id, status: 'PENDING' };
   }
 
-  private async checkIsFish(photoBuffer: Buffer, submissionId: string): Promise<void> {
+  private async checkIsFish(
+    photoBuffer: Buffer,
+    submissionId: string,
+    submittedSpecies: string | null,
+  ): Promise<void> {
     try {
       const blob = new Blob([new Uint8Array(photoBuffer)], { type: 'image/jpeg' });
       const form = new FormData();
@@ -164,13 +168,28 @@ export class SubmissionsService {
       );
 
       // Flag if no fish detected at all, or top fish confidence is very low
-      const topFishScore = fishResults[0]?.combined_score ?? 0;
-      const suspect = fishResults.length === 0 || topFishScore < 0.15;
+      const topFish = fishResults[0];
+      const topFishScore = topFish?.combined_score ?? 0;
+      const noFish = fishResults.length === 0 || topFishScore < 0.15;
 
-      if (suspect) {
+      // Species mismatch: AI is confident (≥60%) but name doesn't match submitted species
+      const aiCommonName: string | null = topFish?.taxon?.preferred_common_name ?? topFish?.taxon?.name ?? null;
+      let suspectSpecies = false;
+      if (!noFish && aiCommonName && submittedSpecies && topFishScore >= 0.60) {
+        const a = submittedSpecies.toLowerCase().trim();
+        const b = aiCommonName.toLowerCase().trim();
+        suspectSpecies = !a.includes(b) && !b.includes(a);
+      }
+
+      const updateData: Record<string, any> = {};
+      if (noFish) updateData.flagSuspectPhoto = true;
+      if (aiCommonName) updateData.aiSuggestedSpecies = aiCommonName;
+      if (suspectSpecies) updateData.flagSuspectSpecies = true;
+
+      if (Object.keys(updateData).length > 0) {
         await this.prisma.submission.update({
           where: { id: submissionId },
-          data: { flagSuspectPhoto: true },
+          data: updateData,
         });
       }
     } catch {

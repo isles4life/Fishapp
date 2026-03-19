@@ -27,7 +27,10 @@ interface Submission {
   flagDuplicateGps: boolean;
   flagSuspectPhoto: boolean;
   flagSuspectLength: boolean;
+  flagSuspectSpecies: boolean;
   estimatedLengthCm: number | null;
+  aiSuggestedSpecies: string | null;
+  speciesName: string | null;
   matSerial: { serialCode: string } | null;
   status: string;
 }
@@ -231,6 +234,7 @@ export default function ModerationPage() {
                     {s.flagDuplicateGps && <span style={{ fontSize: 10, color: C.orange, background: C.orangeBg, padding: '1px 6px', borderRadius: 4 }}>⚠ Dup GPS</span>}
                     {s.flagSuspectPhoto && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>🤖 No Fish Detected</span>}
                     {s.flagSuspectLength && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>🤖 Length Mismatch</span>}
+                    {s.flagSuspectSpecies && <span style={{ fontSize: 10, color: C.orange, background: C.orangeBg, padding: '1px 6px', borderRadius: 4 }}>🤖 Species Mismatch</span>}
                   </div>
                 </div>
               </div>
@@ -259,13 +263,19 @@ export default function ModerationPage() {
               ))}
             </div>
 
-            {(selected.flagDuplicateHash || selected.flagDuplicateGps || selected.flagSuspectPhoto) && (
+            {(selected.flagDuplicateHash || selected.flagDuplicateGps || selected.flagSuspectPhoto || selected.flagSuspectLength || selected.flagSuspectSpecies) && (
               <div style={{ backgroundColor: C.orangeBg, border: `1px solid ${C.orange}40`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
                 {selected.flagSuspectPhoto && <div style={{ color: C.red, fontSize: 13, marginBottom: 4 }}>🤖 AI detected no fish in photo — review carefully</div>}
                 {selected.flagSuspectLength && (
                   <div style={{ color: C.red, fontSize: 13, marginBottom: 4 }}>
                     🤖 Length mismatch — submitted {(selected.fishLengthCm / 2.54).toFixed(1)}&quot;
                     {selected.estimatedLengthCm ? `, AI estimated ${(selected.estimatedLengthCm / 2.54).toFixed(1)}"` : ''}
+                  </div>
+                )}
+                {selected.flagSuspectSpecies && (
+                  <div style={{ color: C.orange, fontSize: 13, marginBottom: 4 }}>
+                    🤖 Species mismatch — submitted &quot;{selected.speciesName}&quot;
+                    {selected.aiSuggestedSpecies ? `, AI identified as &quot;${selected.aiSuggestedSpecies}&quot;` : ''}
                   </div>
                 )}
                 {selected.flagDuplicateHash && <div style={{ color: C.red, fontSize: 13 }}>⚠ Duplicate image hash detected</div>}
