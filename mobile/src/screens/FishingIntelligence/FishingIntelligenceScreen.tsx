@@ -6,6 +6,7 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  Image,
   TouchableOpacity,
   TextInput,
   KeyboardAvoidingView,
@@ -226,7 +227,8 @@ export default function FishingIntelligenceScreen() {
         {/* Loading */}
         {loading && (
           <View style={styles.centerWrap}>
-            <ActivityIndicator size="large" color={colors.accent} />
+            <Image source={require('../../../assets/icon.png')} style={{ width: 100, height: 100, marginBottom: 16 }} resizeMode="contain" />
+            <ActivityIndicator size="small" color={colors.accent} />
             <Text style={styles.loadingText}>
               {locationStatus === 'requesting' ? 'Requesting location…' : 'Analyzing conditions…'}
             </Text>

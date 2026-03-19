@@ -42,7 +42,7 @@ export type RootStackParamList = {
   HotSpots: undefined;
   Legal: undefined;
   TournamentHistory: undefined;
-  CheckIn: undefined;
+  CheckIn: { code?: string } | undefined;
 };
 
 export type TabParamList = {
@@ -186,12 +186,22 @@ function MainTabs() {
   );
 }
 
+const linking = {
+  prefixes: ['fishleague://'],
+  config: {
+    screens: {
+      MainTabs: '',
+      CheckIn: 'check-in',
+    },
+  },
+};
+
 export default function Navigation({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [tournamentId, setTournamentId] = useState<string | null>(null);
   const [scoringMethod, setScoringMethod] = useState('LENGTH');
   return (
     <TournamentContext.Provider value={{ tournamentId, setTournamentId, scoringMethod, setScoringMethod }}>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <Stack.Navigator
           initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}
           screenOptions={{ headerShown: false }}

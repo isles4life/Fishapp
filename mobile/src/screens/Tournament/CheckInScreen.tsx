@@ -3,13 +3,27 @@ import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation';
 import * as api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
+type Props = NativeStackScreenProps<RootStackParamList, 'CheckIn'>;
+
+function extractCode(raw: string): string {
+  // Handle deep link: fishleague://check-in?code=UUID
+  try {
+    const match = raw.match(/[?&]code=([^&]+)/);
+    if (match) return decodeURIComponent(match[1]);
+  } catch {}
+  return raw;
+}
+
 export default function CheckInScreen() {
   const navigation = useNavigation();
+  const route = useRoute<Props['route']>();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,12 +32,18 @@ export default function CheckInScreen() {
     if (!permission?.granted) requestPermission();
   }, []);
 
+  // Auto-submit if arrived via deep link with a code param
+  useEffect(() => {
+    const code = route.params?.code;
+    if (code) handleScan({ data: code });
+  }, []);
+
   async function handleScan({ data }: { data: string }) {
     if (scanned || loading) return;
     setScanned(true);
     setLoading(true);
     try {
-      const result = await api.checkInTournament(data);
+      const result = await api.checkInTournament(extractCode(data));
       const t = result.tournament;
       const endsAt = new Date(t.endsAt);
       const daysLeft = Math.max(0, Math.ceil((endsAt.getTime() - Date.now()) / 86400000));

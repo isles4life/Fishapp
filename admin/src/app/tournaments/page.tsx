@@ -337,7 +337,7 @@ export default function TournamentsPage() {
             {qrCode ? (
               <>
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrCode)}&bgcolor=2E3D38&color=CFC29C&margin=12`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(`fishleague://check-in?code=${qrCode}`)}&bgcolor=2E3D38&color=CFC29C&margin=12`}
                   alt="Check-in QR code"
                   style={{ width: 220, height: 220, borderRadius: 12, border: `2px solid ${C.accent}40`, marginBottom: 16 }}
                 />
