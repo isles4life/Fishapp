@@ -161,7 +161,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **GPS bounds** — Southeast region bounds were widened in DB directly to cover test locations outside original bounds
 
 ## Admin Features
-- Moderation queue: view pending submissions with photos (presigned URLs), approve/reject/flag individually or in bulk. AI fraud flags shown: `🤖 No Fish Detected`, `🤖 Length Mismatch` (with submitted vs AI estimated inches)
+- Moderation queue: view pending submissions with photos (presigned URLs), approve/reject/flag individually or in bulk. AI fraud flags: `🤖 No Fish Detected`, `🤖 Length Mismatch` (submitted vs AI estimated inches), `🤖 Species Mismatch` (submitted vs AI identified species)
 - Submissions history: all submissions filterable by status (ALL/PENDING/APPROVED/REJECTED/FLAGGED)
 - Audit log: all admin actions logged with actor, target, details
 - Tournament management: create (DRAFT), open, close tournaments; broadcast announcements 📢; prize random draw 🎁
@@ -169,17 +169,18 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Leaderboard: view current rankings per tournament
 
 ## Submission Flow (end-to-end)
-1. Mobile captures photo, gets GPS location
-2. **AI species ID fires in background** (iNaturalist `POST /submissions/identify`) during measure step
-3. Optional: credit card auto-measure (calculates cm internally, shows inches in input)
-4. User enters fish length in **inches**; app converts to cm for API call
+1. Mobile captures photo (camera or upload from camera roll), gets GPS location
+2. **AI species ID fires in background** (iNaturalist `POST /submissions/identify`) immediately after photo capture
+3. Angler reads length from measuring device (mat, ruler, or tape) visible in photo and types it in inches — photo shown full-screen for reference; no credit card required
+4. App converts inches to cm for API call
 5. Species step shows 🤖 AI suggested chips with confidence % — auto-selects if ≥70% confident
 6. Backend validates: GPS inside region bounds, mat serial not reused, photo hash not duplicate
-7. Photo uploaded to S3 (`photo1Key`, `photo2Key`)
+7. Photo uploaded to S3 (`photo1Key` optional, `photo2Key` = fish with measuring device)
 8. Submission created with status `PENDING`
 9. **AI fraud checks fire in background** (fire-and-forget, never block submission):
    - iNaturalist checks photo2 for fish — sets `flagSuspectPhoto` if no fish found
-   - Gemini 2.0 Flash reads measuring mat or ruler in photo2 — sets `flagSuspectLength` + `estimatedLengthCm` if estimate differs >30% from submitted length
+   - iNaturalist top species vs submitted species (≥60% confidence) — sets `flagSuspectSpecies` + `aiSuggestedSpecies` if mismatch
+   - Gemini 2.0 Flash reads mat/ruler/tape in photo2 — sets `flagSuspectLength` + `estimatedLengthCm` if >30% discrepancy
 10. Admin reviews in moderation queue (photos via presigned URLs); sees AI fraud flags
 11. On approve: leaderboard updated, push notification + email sent to angler
 12. On reject: push notification + email sent with note
@@ -224,40 +225,43 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-20)
 - MVP fully deployed: backend + admin + web live on AWS
-- **New EAS build required** to ship all pending mobile changes (see below)
+- iOS TestFlight build #21 live — avatar picker, AI species UI, loading states, all prior fixes
+- **New EAS build required** for latest mobile changes (see below)
 
 ### Recently Shipped (this session)
 - **AI species identification**: `POST /submissions/identify` proxies to iNaturalist; fires in background during measure step; shows 🤖 AI suggested chips with confidence % in species step; auto-selects if ≥70% confident
-- **AI fraud detection — photo**: iNaturalist checks fish photo after submission; sets `flagSuspectPhoto` if no fish found; admin sees `🤖 No Fish Detected` badge in moderation queue
-- **AI fraud detection — length**: Gemini 2.0 Flash reads measuring mat or ruler in fish photo; sets `flagSuspectLength` + `estimatedLengthCm` if estimate differs >30% from submitted length; admin sees `🤖 Length Mismatch` with submitted vs AI inches
-- **Schema migrations**: `20260320000000_add_flag_suspect_photo`, `20260320000001_add_estimated_length` — run automatically on deploy
-- **Env vars**: `GEMINI_API_KEY` injected into backend ECS container via deploy workflow; skips gracefully if not set
-- **CI/CD**: deploy workflow changed from `cancel-in-progress: true` → `false` — new pushes queue instead of killing in-progress deploys
-- **Loading states**: all full-screen loading states across mobile (App.tsx, Tournament, Home, Leaderboard, Profile) and web (home, leaderboard, profile pages) replaced with `icon.png` + small spinner
-- **Admin tournaments table**: dates show as date + time on two lines (no seconds); status badge gets `whiteSpace: nowrap`
-- **Mobile EditProfileForm**: avatar picker added at top of Identity section — tap to upload, updates `profilePhotoUrl` in form state
-- **Competitive analysis doc**: `docs/competitive-analysis.md` — iAngler gap + innovation analysis
+- **AI fraud detection — photo**: iNaturalist checks fish photo after submission; sets `flagSuspectPhoto` if no fish found; admin sees `🤖 No Fish Detected` badge
+- **AI fraud detection — length**: Gemini 2.0 Flash reads measuring mat or ruler; sets `flagSuspectLength` + `estimatedLengthCm` if >30% discrepancy; admin sees `🤖 Length Mismatch` with inches comparison
+- **AI fraud detection — species**: iNaturalist top result compared against submitted species (≥60% confidence, substring match); sets `flagSuspectSpecies` + `aiSuggestedSpecies`; admin sees `🤖 Species Mismatch`
+- **Schema migrations**: `20260320000000_add_flag_suspect_photo`, `20260320000001_add_estimated_length`, `20260320000002_add_flag_suspect_species`
+- **Env vars**: `GEMINI_API_KEY` injected into backend ECS via deploy workflow; skips gracefully if not set
+- **CI/CD**: deploy workflow `cancel-in-progress: false` — new pushes queue instead of killing in-progress deploys
+- **Credit card removed**: submission flow now requires mat, ruler, or tape measure; tap-to-measure pixel ratio calculation removed; angler reads device and types length; photo shown full-screen during length entry
+- **Photo upload**: "⬆ Upload" button on camera screen lets anglers submit from camera roll; AI species ID fires in background for both paths
+- **Loading states**: icon.png + small spinner across mobile (App.tsx, Tournament, Home, Leaderboard, Profile) and web
+- **Admin tournaments table**: dates on two lines (no seconds); status badge `whiteSpace: nowrap`
+- **Mobile EditProfileForm**: avatar picker in Identity section
+- **Competitive analysis doc**: `docs/competitive-analysis.md`
 
-### Mobile Pending EAS Build
-- FishingIntelligenceScreen back button fix
-- Profile comma-field delete bug fix
-- profilePhotoUrl empty string validation fix
-- SubmissionFlowScreen inches display fix
-- Profile photo URL raw input removed from edit form
-- Avatar picker in EditProfileForm
+### Mobile Pending EAS Build (build #22)
+- Measuring device flow (mat/ruler/tape) replacing credit card
+- Photo upload from camera roll on submission screen
 - AI species identification UI (suggestions banner + chips)
+- Avatar picker in EditProfileForm
 - Loading states replaced with icon.png
 - Conservation mode toggle + badges
 - Career stats 6-card grid
 - Birthday year picker fix
 - Leaderboard prop count fix
+- FishingIntelligenceScreen back button fix
+- Profile comma-field delete bug fix
+- profilePhotoUrl empty string validation fix
 
 ### Previously Shipped
 - GPS-based region detection: `User.regionId` nullable; GPS at submission time validates against tournament region
 - iAngler gap closures: rejection notes in-app, species chips (24), historical leaderboards, public spectator view, tournament announcements, prize draw, offline queue UX, career stats, conservation mode
-- iOS TestFlight build #20 (March 18) — career stats, conservation mode, birthday year fix, leaderboard prop count fix
+- iOS TestFlight build #21 (March 20) — avatar picker, AI species UI, icon.png loading states, all prior mobile fixes
 - Leaderboard: presigned `photoUrl` + `submittedAt` + relative timestamps
 - Props + Comment buttons functional on HomeScreen
 - Admin: pagination (Users 50/page, Tournaments 20/page, History server-side)
 - Design system: Oswald/Inter fonts, dark/cream split screens across all platforms
-- Architecture diagram: `docs/architecture.md`

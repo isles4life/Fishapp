@@ -132,7 +132,7 @@ model Submission {
   serverReceivedAt DateTime         @default(now())
 
   photo1Key        String?          // S3 key – mat photo (optional, mat-free submissions omit this)
-  photo2Key        String           // S3 key – fish photo with credit card
+  photo2Key        String           // S3 key – fish photo with measuring device (mat, ruler, or tape)
   imageHash1       String?
   imageHash2       String
 
