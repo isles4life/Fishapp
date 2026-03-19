@@ -39,7 +39,7 @@ cd mobile && npx expo start   # start Expo dev server
 - GPS bounding box validation server-side against **tournament's region** (not user's region — users no longer have a fixed region assignment; GPS at submission time determines eligibility)
 - S3 bucket is **private** — backend generates presigned URLs (1hr expiry) for photo access
 - Apple Sign-In on mobile; email/password on all platforms; no Google/Facebook yet
-- Admin auth: email/password only, JWT checked for `role === ADMIN`
+- Admin auth: email/password only, JWT checked for `role === ADMIN` or `role === TOURNAMENT_ADMIN`; TOURNAMENT_ADMIN users see a scoped admin panel filtered to their assigned tournament(s)
 - Mat serial (QR code) reuse prevention: server checks matSerialId + tournamentId + userId uniqueness
 - Weekly tournament reset: cron closes at Sunday 23:59 UTC; admin manually creates next week's tournament
 - Push notifications: Expo push service, `pushToken` stored on `User`, `PushService` in backend
@@ -60,6 +60,8 @@ cd mobile && npx expo start   # start Expo dev server
 - `backend/src/audit/audit.service.ts` — audit log writes
 - `backend/src/push/push.service.ts` — Expo push notifications
 - `backend/src/email/email.service.ts` — transactional emails
+- `backend/src/tournament-admin/tournament-admin.service.ts` — request/approve/reject tournament director role
+- `backend/src/common/tournament-scoped.guard.ts` — guard allowing ADMIN or TOURNAMENT_ADMIN
 
 ### Mobile
 - `mobile/src/navigation/index.tsx` — tab + stack nav (uses `TournamentScreen`, NOT `TournamentHomeScreen`)
@@ -76,8 +78,9 @@ cd mobile && npx expo start   # start Expo dev server
 - `admin/src/app/leaderboard/page.tsx` — admin leaderboard view
 - `admin/src/app/tournaments/page.tsx` — tournament management
 - `admin/src/app/users/page.tsx` — user management (role, suspend, region, warnings, impersonate)
+- `admin/src/app/requests/page.tsx` — tournament director request approval queue (ADMIN only)
 - `admin/src/lib/api.ts` — admin API client
-- `admin/src/components/AuthProvider.tsx` — admin login with role verification
+- `admin/src/components/AuthProvider.tsx` — admin login; supports ADMIN + TOURNAMENT_ADMIN; exposes `isAdmin`, `isTournamentAdmin`, `assignedTournamentIds`
 
 ### Web
 - `web/src/app/page.tsx` — public home / leaderboard feed
@@ -100,6 +103,12 @@ cd mobile && npx expo start   # start Expo dev server
 - `GET /admin/audit` — audit log
 - `PUT /profile/me` — update angler profile
 - `GET /profile/:username` — public profile
+- `POST /tournament-admin/request` — angler requests tournament director role (body: tournamentId, message?)
+- `GET /tournament-admin/my-requests` — angler's own requests + status
+- `GET /tournament-admin/my-tournaments` — tournament admin's assigned tournament IDs (used by admin panel)
+- `GET /admin/tournament-admin/requests` — admin: all pending requests
+- `PATCH /admin/tournament-admin/requests/:id/approve` — approve request, sets user role to TOURNAMENT_ADMIN
+- `PATCH /admin/tournament-admin/requests/:id/reject` — reject request (body: note?)
 
 ## AWS Infrastructure
 - Region: `us-east-1`
@@ -128,7 +137,8 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Past use cases: dropping NOT NULL constraints that baselined migrations missed, widening GPS region bounds
 
 ## DB Schema — Key Models
-- `User` — id, email, passwordHash, appleId, role (USER/ADMIN), suspended, regionId, pushToken, authProvider (EMAIL|APPLE)
+- `User` — id, email, passwordHash, appleId, role (USER/ADMIN/TOURNAMENT_ADMIN), suspended, regionId, pushToken, authProvider (EMAIL|APPLE)
+- `TournamentAdminRequest` — userId, tournamentId, status (PENDING/APPROVED/REJECTED), message?, reviewedById?, reviewedAt — tracks requests from anglers to become tournament directors
 - `AnglerProfile` — userId, username, bio, birthday (DateTime!), favoriteTechniques[], favoriteBaits[], sponsorTags[], homeState, homeCity, country, zipCode, profilePhotoUrl, publicProfile, allowFollowers
 - `Region` — name, minLat, maxLat, minLng, maxLng (Southeast bounds currently widened to cover continental US: lat 24–50, lng -125 to -66)
 - `Tournament` — name, status (DRAFT/OPEN/CLOSED), regionId, weekNumber, year, entryFeeCents
@@ -164,9 +174,20 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Moderation queue: view pending submissions with photos (presigned URLs), approve/reject/flag individually or in bulk. AI fraud flags: `🤖 No Fish Detected`, `🤖 Length Mismatch` (submitted vs AI estimated inches), `🤖 Species Mismatch` (submitted vs AI identified species)
 - Submissions history: all submissions filterable by status (ALL/PENDING/APPROVED/REJECTED/FLAGGED)
 - Audit log: all admin actions logged with actor, target, details
-- Tournament management: create (DRAFT), open, close tournaments; broadcast announcements 📢; prize random draw 🎁
-- User management: change role (USER/ADMIN), suspend/unsuspend, change region, reset password, impersonate, issue warnings (MINOR/MAJOR/FINAL)
+- Tournament management: create (DRAFT), open, close tournaments; broadcast announcements 📢; prize random draw 🎁; generate QR check-in code 📱
+- User management: change role (USER/ADMIN/TOURNAMENT_ADMIN), suspend/unsuspend, change region, reset password, impersonate, issue warnings (MINOR/MAJOR/FINAL)
 - Leaderboard: view current rankings per tournament
+- **Tournament Director Requests** (`/requests`): admin-only queue to approve/reject angler requests to become tournament directors. On approve: user role set to TOURNAMENT_ADMIN, push notification sent.
+
+## Tournament Admin (TOURNAMENT_ADMIN) Role
+- Anglers request the role from Profile → "Tournament Director" section on mobile; select a tournament + optional message
+- Admin reviews at `/requests` in the admin panel — approve or reject with optional note
+- On approval: user's role immediately becomes TOURNAMENT_ADMIN (JWT strategy fetches live from DB — no re-login needed)
+- TOURNAMENT_ADMIN logs into the admin panel with email/password (same login screen)
+- Scoped view: sees only their assigned tournament(s) in Moderation, Tournaments, Leaderboard, History
+- Cannot access: Users page, Requests page, Create Tournament form
+- Nav label reads "TOURNAMENT DIRECTOR" instead of "ADMIN"
+- Scope enforcement: `TournamentScopedGuard` on moderation endpoints; each endpoint checks `req.user.role` and filters to `getAssignedTournamentIds(userId)` for TOURNAMENT_ADMIN
 
 ## Submission Flow (end-to-end)
 1. Mobile captures photo (camera or upload from camera roll), gets GPS location
