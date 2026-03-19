@@ -59,6 +59,10 @@ export default function TournamentsPage() {
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
+  const [announceTarget, setAnnounceTarget] = useState<Tournament | null>(null);
+  const [announceForm, setAnnounceForm] = useState({ title: '', message: '' });
+  const [announceSending, setAnnounceSending] = useState(false);
+  const [announceResult, setAnnounceResult] = useState<string | null>(null);
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -93,6 +97,22 @@ export default function TournamentsPage() {
       await load();
       setForm(f => ({ ...f, name: '', weekNumber: '', startsDate: '', startsTime: '08:00', endsDate: '', endsTime: '20:00', entryFee: '', prizePool: '' }));
     } catch (e: any) { setError(e.message); }
+  }
+
+  async function sendAnnouncement(e: React.FormEvent) {
+    e.preventDefault();
+    if (!announceTarget) return;
+    setAnnounceSending(true);
+    setAnnounceResult(null);
+    try {
+      const res = await api.announceTournament(announceTarget.id, announceForm.title, announceForm.message);
+      setAnnounceResult(`Sent to ${res.sent} participant${res.sent !== 1 ? 's' : ''}`);
+      setAnnounceForm({ title: '', message: '' });
+    } catch (e: any) {
+      setAnnounceResult(`Error: ${e.message}`);
+    } finally {
+      setAnnounceSending(false);
+    }
   }
 
   const paginatedTournaments = tournaments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -158,6 +178,46 @@ export default function TournamentsPage() {
         </button>
       </form>
 
+      {/* Announce modal */}
+      {announceTarget && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ backgroundColor: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 28, maxWidth: 480, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.4)' }}>
+            <h3 style={{ color: C.text, margin: '0 0 4px', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>📢 Broadcast Announcement</h3>
+            <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 20px' }}>{announceTarget.name} · push to all participants</p>
+            <form onSubmit={sendAnnouncement}>
+              <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Title</label>
+              <input
+                value={announceForm.title}
+                onChange={e => setAnnounceForm(f => ({ ...f, title: e.target.value }))}
+                required maxLength={64}
+                placeholder="e.g. Weather Delay ⛈"
+                style={{ ...inputStyle, marginBottom: 14 }}
+              />
+              <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Message</label>
+              <textarea
+                value={announceForm.message}
+                onChange={e => setAnnounceForm(f => ({ ...f, message: e.target.value }))}
+                required maxLength={256} rows={3}
+                placeholder="e.g. Tournament extended by 2 hours due to lightning. New end time: 10pm ET."
+                style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+              />
+              {announceResult && (
+                <div style={{ fontSize: 13, color: announceResult.startsWith('Error') ? C.red : C.green, marginBottom: 12 }}>{announceResult}</div>
+              )}
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button type="submit" disabled={announceSending} style={{ flex: 1, backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 700, fontSize: 14, cursor: announceSending ? 'default' : 'pointer', opacity: announceSending ? 0.7 : 1 }}>
+                  {announceSending ? 'Sending...' : 'Send Announcement'}
+                </button>
+                <button type="button" onClick={() => { setAnnounceTarget(null); setAnnounceResult(null); setAnnounceForm({ title: '', message: '' }); }}
+                  style={{ padding: '10px 20px', backgroundColor: 'transparent', color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -198,10 +258,13 @@ export default function TournamentsPage() {
                   </span>
                 </td>
                 <td style={{ padding: '12px 16px' }}>
-                  {t.isOpen
-                    ? <button onClick={() => api.closeTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.redBg, color: C.red, border: `1px solid ${C.red}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Close</button>
-                    : <button onClick={() => api.openTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.green}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Open</button>
-                  }
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {t.isOpen
+                      ? <button onClick={() => api.closeTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.redBg, color: C.red, border: `1px solid ${C.red}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Close</button>
+                      : <button onClick={() => api.openTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.green}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Open</button>
+                    }
+                    <button onClick={() => { setAnnounceTarget(t); setAnnounceResult(null); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>📢</button>
+                  </div>
                 </td>
               </tr>
             ))}

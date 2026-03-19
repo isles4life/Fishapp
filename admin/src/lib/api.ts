@@ -45,6 +45,9 @@ export const api = {
 
   closeTournament: (id: string) => apiFetch(`/tournaments/${id}/close`, { method: 'PATCH' }),
 
+  announceTournament: (id: string, title: string, message: string) =>
+    apiFetch<{ sent: number }>(`/tournaments/${id}/announce`, { method: 'POST', body: JSON.stringify({ title, message }) }),
+
   getLeaderboard: (tournamentId: string) =>
     apiFetch<any[]>(`/leaderboard/${tournamentId}`),
 

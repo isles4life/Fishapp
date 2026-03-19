@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { AdminGuard } from '../common/admin.guard';
 import { TournamentsService } from './tournaments.service';
@@ -64,5 +64,14 @@ export class TournamentsController {
     const tournament = await this.tournamentsService.setOpen(id, false);
     await this.auditService.log('TOURNAMENT_CLOSED', req.user.id, req.user.displayName, id, { name: tournament.name });
     return tournament;
+  }
+
+  @Post(':id/announce')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async announce(@Param('id') id: string, @Body() body: { title: string; message: string }, @Request() req: any) {
+    if (!body.title?.trim() || !body.message?.trim()) throw new BadRequestException('title and message are required');
+    const result = await this.tournamentsService.broadcastAnnouncement(id, body.title.trim(), body.message.trim());
+    await this.auditService.log('TOURNAMENT_ANNOUNCED', req.user.id, req.user.displayName, id, { title: body.title, sent: result.sent });
+    return result;
   }
 }

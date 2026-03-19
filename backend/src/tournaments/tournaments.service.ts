@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { PushService } from '../push/push.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 
 @Injectable()
 export class TournamentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: PushService,
+  ) {}
 
   async getFirstOpenTournament() {
     const tournament = await this.prisma.tournament.findFirst({
@@ -76,5 +80,27 @@ export class TournamentsService {
       data: { isOpen },
       include: { region: { select: { name: true } } },
     });
+  }
+
+  async broadcastAnnouncement(id: string, title: string, message: string): Promise<{ sent: number }> {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) throw new NotFoundException('Tournament not found');
+
+    // Find all unique participants with a push token
+    const submissions = await this.prisma.submission.findMany({
+      where: { tournamentId: id },
+      select: { user: { select: { id: true, pushToken: true } } },
+      distinct: ['userId'],
+    });
+
+    const tokens = submissions
+      .map(s => s.user.pushToken)
+      .filter((t): t is string => !!t);
+
+    await Promise.all(tokens.map(token =>
+      this.push.sendToToken(token, title, message, { type: 'announcement', tournamentId: id })
+    ));
+
+    return { sent: tokens.length };
   }
 }
