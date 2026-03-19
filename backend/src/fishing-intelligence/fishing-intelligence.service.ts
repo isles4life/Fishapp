@@ -741,11 +741,26 @@ async function getTidesForLocation(lat: number, lon: number): Promise<TideInfo |
   }
 }
 
-// ── Response cache (in-memory, 15-min TTL, keyed by ~1km grid cell) ───────────
+// ── Per-source caches for slow static data (weather always fetched fresh) ─────
+//
+//  • spots        — water bodies don't move          → 24-hour TTL
+//  • locationLabel — address for a coordinate        → 24-hour TTL
+//  • tides         — daily NOAA predictions are fixed → until midnight local
 
-interface CacheEntry { data: FishingIntelResponse; ts: number; }
-const responseCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+interface SlowCacheEntry<T> { data: T; ts: number; }
+
+const spotsCache    = new Map<string, SlowCacheEntry<FishingSpot[]>>();
+const labelCache    = new Map<string, SlowCacheEntry<string>>();
+const tidesCache    = new Map<string, SlowCacheEntry<TideInfo | null>>();
+
+const TTL_24H = 24 * 60 * 60 * 1000;
+
+/** Milliseconds until midnight UTC (tides reset at the calendar day boundary). */
+function msTilMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  return midnight.getTime() - Date.now();
+}
 
 function cacheKey(lat: number, lon: number): string {
   // Round to 2 decimal places ≈ 1.1 km grid
@@ -759,17 +774,38 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   ]);
 }
 
+async function getCachedSpots(key: string, lat: number, lon: number): Promise<FishingSpot[]> {
+  const entry = spotsCache.get(key);
+  if (entry && Date.now() - entry.ts < TTL_24H) return entry.data;
+  const data = await withTimeout(getNearbySpots(lat, lon), 6000, []);
+  spotsCache.set(key, { data, ts: Date.now() });
+  return data;
+}
+
+async function getCachedLabel(key: string, lat: number, lon: number): Promise<string> {
+  const entry = labelCache.get(key);
+  if (entry && Date.now() - entry.ts < TTL_24H) return entry.data;
+  const data = await withTimeout(getLocationLabel(lat, lon), 5000, 'Your location');
+  labelCache.set(key, { data, ts: Date.now() });
+  return data;
+}
+
+async function getCachedTides(key: string, lat: number, lon: number): Promise<TideInfo | null> {
+  const entry = tidesCache.get(key);
+  // Tide cache valid until midnight (daily predictions are fixed once fetched)
+  const tideExpiry = entry ? entry.ts + msTilMidnight() : 0;
+  if (entry && Date.now() < tideExpiry) return entry.data;
+  const data = await withTimeout(getTidesForLocation(lat, lon), 8000, null);
+  tidesCache.set(key, { data, ts: Date.now() });
+  return data;
+}
+
 // ── Main service ──────────────────────────────────────────────────────────────
 
 @Injectable()
 export class FishingIntelligenceService {
   async getRecommendations(lat: number, lon: number): Promise<FishingIntelResponse> {
-    // Return cached result if fresh
     const key = cacheKey(lat, lon);
-    const cached = responseCache.get(key);
-    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-      return cached.data;
-    }
 
     const weatherUrl =
       `https://api.open-meteo.com/v1/forecast` +
@@ -786,14 +822,17 @@ export class FishingIntelligenceService {
     let tides: TideInfo | null;
 
     try {
+      // Weather is always fetched fresh (fast, real-time data).
+      // Spots, label, and tides are served from per-source caches to avoid
+      // the 3–20 s Overpass / Nominatim / NOAA latency on repeat requests.
       [raw, spots, locationLabel, tides] = await Promise.all([
         fetch(weatherUrl).then(r => {
           if (!r.ok) throw new Error(`Open-Meteo returned ${r.status}`);
           return r.json() as Promise<OpenMeteoResponse>;
         }),
-        withTimeout(getNearbySpots(lat, lon), 6000, []),
-        withTimeout(getLocationLabel(lat, lon), 5000, 'Your location'),
-        withTimeout(getTidesForLocation(lat, lon), 8000, null),
+        getCachedSpots(key, lat, lon),
+        getCachedLabel(key, lat, lon),
+        getCachedTides(key, lat, lon),
       ]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -888,7 +927,6 @@ export class FishingIntelligenceService {
       activeSpecies: getActiveSpecies(tempF, season, pressureTrend, tides !== null, windMph),
     };
 
-    responseCache.set(key, { data: result, ts: Date.now() });
     return result;
   }
 }
