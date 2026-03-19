@@ -246,40 +246,33 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-21)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #21 live — avatar picker, AI species UI, loading states, all prior fixes
-- **New EAS build required** for latest mobile changes (see below)
-- **New backend deploy required** for Tournament Admin role feature
+- iOS TestFlight build #23 live — all mobile changes shipped (see below)
+- Backend fully deployed: TOURNAMENT_ADMIN role, QR check-in, comment edit/delete all live
 
-### Recently Shipped (this session)
-- **Tournament Admin role feature** (full-stack, not yet deployed):
-  - **Schema**: `TOURNAMENT_ADMIN` added to `UserRole` enum; new `TournamentAdminRequest` model with userId, tournamentId, status (PENDING/APPROVED/REJECTED), message, reviewedBy
-  - **Migration**: `20260321000001_add_tournament_admin` — adds enum value + creates table
-  - **Backend**: `TournamentAdminModule` with service + controller; endpoints: `POST /tournament-admin/request`, `GET /tournament-admin/my-requests`, `GET /tournament-admin/my-tournaments`, `GET /admin/tournament-admin/requests`, `PATCH /admin/tournament-admin/requests/:id/approve`, `PATCH /admin/tournament-admin/requests/:id/reject`
-  - **TournamentScopedGuard**: new guard in `backend/src/common/` — allows ADMIN or TOURNAMENT_ADMIN role
-  - **ModerationController**: switched from AdminGuard to TournamentScopedGuard; TOURNAMENT_ADMIN scoped to assigned tournament IDs; `getFlaggedSubmissions()` updated to accept optional `tournamentIds[]` param
-  - **Admin AuthProvider**: supports TOURNAMENT_ADMIN role; fetches `assignedTournamentIds` on login; exposes `isAdmin`, `isTournamentAdmin`, `assignedTournamentIds` in context
-  - **Admin Nav**: shows "TOURNAMENT DIRECTOR" label for tournament admins; different nav links (no Users nav item)
-  - **Admin Requests page** (`/requests`): admin-only page to approve/reject pending tournament director requests
-  - **Admin Tournaments page**: hides Create Tournament form for tournament admins; filters tournament list to assigned tournaments only
-  - **Admin Moderation page**: passes assigned tournamentId for TOURNAMENT_ADMIN users
-  - **Mobile ProfileScreen**: "Tournament Director" section with apply button/modal; shows status of existing requests
-  - **Mobile API**: `requestTournamentAdmin()`, `getMyTournamentAdminRequests()` functions added
-  - **Mobile models**: `TournamentAdminRequest` interface added
-
-### Mobile Pending EAS Build (build #22)
-- Measuring device flow (mat/ruler/tape) replacing credit card
-- Photo upload from camera roll on submission screen
-- AI species identification UI (suggestions banner + chips)
-- Avatar picker in EditProfileForm
-- Loading states replaced with icon.png
-- Conservation mode toggle + badges
-- Career stats 6-card grid
-- Birthday year picker fix
-- Leaderboard prop count fix
-- FishingIntelligenceScreen back button fix
-- Profile comma-field delete bug fix
-- profilePhotoUrl empty string validation fix
-- Tournament Director apply section in ProfileScreen
+### Recently Shipped
+- **iOS TestFlight build #23** — ships all pending mobile changes:
+  - Measuring device flow (mat/ruler/tape) replacing credit card
+  - Photo upload from camera roll on submission screen
+  - AI species identification UI (suggestions banner + chips)
+  - Avatar picker in EditProfileForm
+  - Loading states replaced with icon.png
+  - Conservation mode toggle + badges
+  - Career stats 6-card grid
+  - Birthday year picker fix
+  - Leaderboard prop count fix
+  - FishingIntelligenceScreen back button fix
+  - Profile comma-field delete bug fix
+  - profilePhotoUrl empty string validation fix
+  - Tournament Director apply section in ProfileScreen
+  - Comment long-press edit/delete
+  - QR check-in screen (CheckInScreen.tsx)
+- **Tournament Admin role feature** (full-stack, deployed):
+  - `TOURNAMENT_ADMIN` role with request/approval flow
+  - Scoped admin panel — tournament admins see only their tournament
+  - `TournamentScopedGuard` on moderation endpoints
+  - Admin `/requests` page for approving/rejecting role requests
+- **QR tournament check-in**: admin generates UUID code → QR rendered in admin panel → anglers scan to check in
+- **Comment edit/delete**: long-press own comments for inline edit or delete
 
 ### Previously Shipped
 - GPS-based region detection: `User.regionId` nullable; GPS at submission time validates against tournament region
