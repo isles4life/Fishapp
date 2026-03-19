@@ -46,6 +46,15 @@ function PropButton({
   const [propped, setPropped] = useState(false);
   const [count, setCount] = useState(initialCount ?? 0);
   const [loading, setLoading] = useState(false);
+  const initialized = React.useRef(false);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    api.getProps(submissionId)
+      .then(r => { setCount(r.count); setPropped(r.userHasPropped); })
+      .catch(() => {});
+  }, [submissionId]);
 
   const handleProp = useCallback(async () => {
     if (loading) return;
