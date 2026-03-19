@@ -53,7 +53,9 @@ export class ProfileService {
     }
 
     const { birthday, ...rest } = dto;
-    const birthdayDate = birthday ? new Date(`${birthday}T00:00:00.000Z`) : undefined;
+    const birthdayDate = birthday
+      ? new Date(birthday.includes('T') ? birthday : `${birthday}T00:00:00.000Z`)
+      : undefined;
 
     const profile = await this.prisma.anglerProfile.upsert({
       where: { userId },
