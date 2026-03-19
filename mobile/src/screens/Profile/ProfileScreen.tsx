@@ -8,9 +8,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
-import { getMyProfile, updateProfile, uploadAvatar, getMyTournamentAdminRequests, requestTournamentAdmin, getActiveTournament } from '../../services/api';
+import { getMyProfile, updateProfile, uploadAvatar, getMyTournamentAdminRequests, requestTournamentAdmin, getTournaments } from '../../services/api';
 import { storage } from '../../services/storage';
-import type { AnglerProfile, UpdateProfilePayload, WaterType, TournamentAdminRequest } from '../../models';
+import type { AnglerProfile, UpdateProfilePayload, WaterType, TournamentAdminRequest, Tournament } from '../../models';
 import { GenericBadge, TournamentWinBadge, VerifiedAnglerBadge } from '../../components/icons/BadgeIcons';
 import type { RootStackParamList } from '../../navigation';
 
@@ -139,11 +139,12 @@ export function ProfileView({
   const [taMessage, setTaMessage] = useState('');
   const [taSubmitting, setTaSubmitting] = useState(false);
   const [taTournamentId, setTaTournamentId] = useState<string | null>(null);
+  const [taTournaments, setTaTournaments] = useState<Tournament[]>([]);
 
   useEffect(() => {
     if (!isOwn) return;
     getMyTournamentAdminRequests().then(setTaRequests).catch(() => {});
-    getActiveTournament().then(t => setTaTournamentId(t.id)).catch(() => {});
+    getTournaments().then(setTaTournaments).catch(() => {});
   }, [isOwn]);
 
   async function handleSignOut() {
@@ -357,7 +358,7 @@ export function ProfileView({
           <View style={s.section}>
             <Text style={s.sectionTitle}>TOURNAMENT DIRECTOR</Text>
             {taRequests.length === 0 ? (
-              <TouchableOpacity style={s.taApplyBtn} onPress={() => setShowTaModal(true)} activeOpacity={0.8}>
+              <TouchableOpacity style={s.taApplyBtn} onPress={() => { setTaTournamentId(null); setTaMessage(''); setShowTaModal(true); }} activeOpacity={0.8}>
                 <Text style={s.taApplyBtnText}>Apply to Manage a Tournament</Text>
               </TouchableOpacity>
             ) : (
@@ -376,7 +377,7 @@ export function ProfileView({
                     </View>
                   );
                 })}
-                <TouchableOpacity style={[s.taApplyBtn, { marginTop: 8 }]} onPress={() => setShowTaModal(true)} activeOpacity={0.8}>
+                <TouchableOpacity style={[s.taApplyBtn, { marginTop: 8 }]} onPress={() => { setTaTournamentId(null); setTaMessage(''); setShowTaModal(true); }} activeOpacity={0.8}>
                   <Text style={s.taApplyBtnText}>Apply for Another Tournament</Text>
                 </TouchableOpacity>
               </>
@@ -393,10 +394,30 @@ export function ProfileView({
                 <TouchableOpacity onPress={() => setShowTaModal(false)}><Text style={s.taModalClose}>✕</Text></TouchableOpacity>
               </View>
               <View style={{ padding: 20 }}>
-                <Text style={s.taModalLabel}>TOURNAMENT</Text>
-                <View style={s.taModalTournament}>
-                  <Text style={s.taModalTournamentText}>{taTournamentId ? 'Active Tournament' : 'No active tournament'}</Text>
-                </View>
+                <Text style={s.taModalLabel}>SELECT TOURNAMENT</Text>
+                {taTournaments.length === 0 ? (
+                  <Text style={s.taModalNoTournaments}>No tournaments available.</Text>
+                ) : (
+                  <View style={s.taPicker}>
+                    {taTournaments.map(t => {
+                      const selected = taTournamentId === t.id;
+                      return (
+                        <TouchableOpacity
+                          key={t.id}
+                          style={[s.taPickerRow, selected && s.taPickerRowSelected]}
+                          onPress={() => setTaTournamentId(t.id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={[s.taPickerName, selected && { color: colors.accent }]}>{t.name}</Text>
+                            <Text style={s.taPickerSub}>Week {t.weekNumber} · {t.year}{t.isOpen ? '  ✓ Open' : ''}</Text>
+                          </View>
+                          {selected && <Text style={s.taPickerCheck}>✓</Text>}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
                 <Text style={[s.taModalLabel, { marginTop: 16 }]}>MESSAGE (OPTIONAL)</Text>
                 <TextInput
                   style={s.taModalInput}
@@ -1375,16 +1396,43 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 6,
   },
-  taModalTournament: {
-    backgroundColor: colors.surface,
-    borderRadius: 8,
+  taModalNoTournaments: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  taPicker: {
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 12,
+    overflow: 'hidden',
+    marginBottom: 4,
   },
-  taModalTournamentText: {
+  taPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  taPickerRowSelected: {
+    backgroundColor: colors.accent + '18',
+  },
+  taPickerName: {
     fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
+    marginBottom: 2,
+  },
+  taPickerSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  taPickerCheck: {
+    fontSize: 16,
+    color: colors.accent,
+    marginLeft: 8,
   },
   taModalInput: {
     backgroundColor: colors.surface,

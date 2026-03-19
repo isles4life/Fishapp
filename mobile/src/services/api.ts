@@ -94,6 +94,10 @@ export function getActiveTournament(): Promise<Tournament> {
   return request('/tournaments/active');
 }
 
+export function getTournaments(): Promise<Tournament[]> {
+  return request('/tournaments');
+}
+
 export function getClosedTournaments(): Promise<(Tournament & { _count: { submissions: number } })[]> {
   return request('/tournaments/history');
 }
