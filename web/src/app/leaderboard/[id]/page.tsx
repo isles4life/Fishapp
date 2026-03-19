@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Nav from '../../../components/Nav';
 import { api } from '../../../lib/api';
-import type { Tournament, LeaderboardEntry } from '../../../lib/api';
+import type { Tournament, LeaderboardEntry, TournamentPost } from '../../../lib/api';
 
 const C = {
   bg:          '#3A4C44',
@@ -54,6 +54,9 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [feed, setFeed] = useState<TournamentPost[]>([]);
+  const [feedCursor, setFeedCursor] = useState<string | null>(null);
+  const [feedLoading, setFeedLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -75,6 +78,30 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
   }, [params.id]);
+
+  useEffect(() => {
+    async function loadFeed() {
+      setFeedLoading(true);
+      try {
+        const res = await api.getTournamentFeed(params.id);
+        setFeed(res.posts);
+        setFeedCursor(res.nextCursor);
+      } catch { /* feed is non-critical */ }
+      finally { setFeedLoading(false); }
+    }
+    loadFeed();
+  }, [params.id]);
+
+  async function loadMoreFeed() {
+    if (!feedCursor || feedLoading) return;
+    setFeedLoading(true);
+    try {
+      const res = await api.getTournamentFeed(params.id, feedCursor);
+      setFeed(prev => [...prev, ...res.posts]);
+      setFeedCursor(res.nextCursor);
+    } catch {}
+    finally { setFeedLoading(false); }
+  }
 
   function handleCopyLink() {
     navigator.clipboard.writeText(window.location.href);
@@ -207,6 +234,120 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                     </div>
                   </Link>
                 ))}
+              </div>
+            )}
+
+            {/* Tournament details card */}
+            {(tournament.description || tournament.director || tournament.entryFeeCents > 0) && (
+              <div style={{ backgroundColor: C.surface, borderRadius: 16, border: `1px solid ${C.border}`, padding: '20px 20px', marginTop: 24 }}>
+                {tournament.description && (
+                  <div style={{ marginBottom: tournament.director ? 16 : 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>About This Tournament</div>
+                    <div style={{ fontSize: 14, color: C.textSub, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{tournament.description}</div>
+                  </div>
+                )}
+                {tournament.director && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: tournament.description ? 16 : 0, borderTop: tournament.description ? `1px solid ${C.border}` : 'none' }}>
+                    {tournament.director.profile?.profilePhotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={tournament.director.profile.profilePhotoUrl} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: 'cover', border: `1.5px solid ${C.border}`, flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.bg, border: `1.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: C.textSub, flexShrink: 0 }}>
+                        {initials(tournament.director.displayName)}
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>Tournament Director</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{tournament.director.displayName}</div>
+                    </div>
+                  </div>
+                )}
+                {tournament.entryFeeCents > 0 && (
+                  <div style={{ display: 'flex', gap: 24, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Entry Fee</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: C.accent }}>${(tournament.entryFeeCents / 100).toFixed(2)}</div>
+                    </div>
+                    {(tournament as any).prizePoolCents > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Prize Pool</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.accent }}>${((tournament as any).prizePoolCents / 100).toFixed(2)}</div>
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Dates</div>
+                      <div style={{ fontSize: 13, color: C.textSub }}>
+                        {new Date(tournament.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(tournament.endsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Social feed */}
+            {(feed.length > 0 || feedLoading) && (
+              <div style={{ marginTop: 32 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Tournament Feed</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {feed.map(post => {
+                    const badgeColor = post.type === 'ANNOUNCEMENT' ? '#D4820A' : post.type === 'CATCH' ? '#3DAF5A' : post.type === 'CHECK_IN' ? C.textSub : C.accent;
+                    const badgeLabel = post.type === 'ANNOUNCEMENT' ? '📢 Announcement' : post.type === 'CATCH' ? '🎣 Catch' : post.type === 'CHECK_IN' ? '✅ Check-In' : '💬 Post';
+                    return (
+                      <div key={post.id} style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                          {post.user.profile?.profilePhotoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={post.user.profile.profilePhotoUrl} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover', border: `1px solid ${C.border}`, flexShrink: 0 }} />
+                          ) : (
+                            <div style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: C.textSub, flexShrink: 0 }}>
+                              {initials(post.user.displayName)}
+                            </div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{post.user.displayName}</div>
+                            <div style={{ fontSize: 11, color: C.textMuted }}>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: badgeColor, backgroundColor: badgeColor + '20', border: `1px solid ${badgeColor}40`, borderRadius: 6, padding: '2px 8px' }}>{badgeLabel}</span>
+                        </div>
+
+                        {post.type === 'CATCH' && post.submission && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                            {post.photoUrl && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={post.photoUrl} alt="catch" style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.border}` }} />
+                            )}
+                            <div>
+                              <div style={{ fontSize: 18, fontWeight: 800, color: C.accent, fontFamily: 'Oswald, sans-serif' }}>
+                                {(post.submission.fishLengthCm / 2.54).toFixed(1)}"
+                              </div>
+                              {post.submission.speciesName && <div style={{ fontSize: 12, color: C.textMuted }}>{post.submission.speciesName}</div>}
+                              {post.submission.released && <div style={{ fontSize: 11, color: '#3DAF5A' }}>↩ Released</div>}
+                            </div>
+                          </div>
+                        )}
+
+                        {post.type === 'CHECK_IN' && (
+                          <div style={{ fontSize: 13, color: C.textSub }}>{post.user.displayName} checked in to the tournament.</div>
+                        )}
+
+                        {(post.type === 'ANNOUNCEMENT' || post.type === 'ANGLER_POST') && post.body && (
+                          <div style={{ fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.body.replace(/\*\*(.*?)\*\*/g, '$1')}</div>
+                        )}
+
+                        {post.type === 'ANGLER_POST' && post.photoUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={post.photoUrl} alt="" style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}` }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                  {feedCursor && (
+                    <button onClick={loadMoreFeed} disabled={feedLoading} style={{ padding: '10px 0', backgroundColor: 'transparent', color: feedLoading ? C.textMuted : C.accent, border: `1px solid ${C.border}`, borderRadius: 8, cursor: feedLoading ? 'default' : 'pointer', fontSize: 13, fontWeight: 600 }}>
+                      {feedLoading ? 'Loading...' : 'Load more'}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

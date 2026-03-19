@@ -208,14 +208,14 @@ export class TournamentsService {
     return { count: checkIns.length, checkIns };
   }
 
-  async broadcastAnnouncement(id: string, title: string, message: string): Promise<{ sent: number }> {
+  async broadcastAnnouncement(id: string, title: string, message: string, actorId: string): Promise<{ sent: number }> {
     const tournament = await this.prisma.tournament.findUnique({ where: { id } });
     if (!tournament) throw new NotFoundException('Tournament not found');
 
     // Find all unique participants with a push token
     const submissions = await this.prisma.submission.findMany({
       where: { tournamentId: id },
-      select: { user: { select: { id: true, pushToken: true } } },
+      select: { user: { select: { pushToken: true } } },
       distinct: ['userId'],
     });
 
@@ -227,13 +227,10 @@ export class TournamentsService {
       this.push.sendToToken(token, title, message, { type: 'announcement', tournamentId: id })
     ));
 
-    // Also write the announcement as a feed post (use the first admin/director userId)
-    const adminId = submissions[0]?.user?.id ?? null;
-    if (adminId) {
-      await this.prisma.tournamentPost.create({
-        data: { tournamentId: id, userId: adminId, type: 'ANNOUNCEMENT', body: `**${title}**\n${message}` },
-      }).catch(() => { /* non-critical */ });
-    }
+    // Write the announcement as a feed post authored by the acting admin/director
+    await this.prisma.tournamentPost.create({
+      data: { tournamentId: id, userId: actorId, type: 'ANNOUNCEMENT', body: `**${title}**\n${message}` },
+    }).catch(() => { /* non-critical */ });
 
     return { sent: tokens.length };
   }

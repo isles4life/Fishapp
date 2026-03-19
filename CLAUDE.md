@@ -260,6 +260,11 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Mobile `TournamentDetailScreen`: hero card, director section, QR code (admin/director) or scan button (angler), top 3 leaderboard, full social feed with compose bar
   - "Tournament Details →" button on TournamentScreen active card
   - Admin: description textarea + director dropdown in create form
+  - **Gap fixes (this session):**
+    - Announcement feed post now uses `actorId` (admin/director who sent it) instead of a random participant
+    - Admin: ✏️ edit button on tournament rows → modal to update description + director
+    - `TournamentHistoryScreen`: expanded card now has "View Tournament Details →" button navigating to `TournamentDetailScreen`
+    - Web `/leaderboard/[id]`: now shows description, director card, entry fee/dates, and full social feed
 - **Multiple scoring methods** (full-stack, backend deployed):
   - `ScoringMethod` enum: `LENGTH | WEIGHT | FISH_COUNT | SPECIES_COUNT` on Tournament
   - `fishWeightOz Float?` on Submission; `score Float` on LeaderboardEntry

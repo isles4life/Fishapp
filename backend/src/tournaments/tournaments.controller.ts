@@ -80,7 +80,7 @@ export class TournamentsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   async announce(@Param('id') id: string, @Body() body: { title: string; message: string }, @Request() req: any) {
     if (!body.title?.trim() || !body.message?.trim()) throw new BadRequestException('title and message are required');
-    const result = await this.tournamentsService.broadcastAnnouncement(id, body.title.trim(), body.message.trim());
+    const result = await this.tournamentsService.broadcastAnnouncement(id, body.title.trim(), body.message.trim(), req.user.id);
     await this.auditService.log('TOURNAMENT_ANNOUNCED', req.user.id, req.user.displayName, id, { title: body.title, sent: result.sent });
     return result;
   }

@@ -4,15 +4,17 @@ import {
   FlatList, ActivityIndicator, SafeAreaView,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as api from '../../services/api';
 import type { LeaderboardEntry, Tournament } from '../../models';
+import type { RootStackParamList } from '../../navigation';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
 type ClosedTournament = Tournament & { _count: { submissions: number } };
 
 export default function TournamentHistoryScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [tournaments, setTournaments] = useState<ClosedTournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -119,6 +121,13 @@ export default function TournamentHistoryScreen() {
                     ) : (
                       <Text style={styles.emptyText}>No entries.</Text>
                     )}
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('TournamentDetail', { tournamentId: t.id })}
+                      style={styles.detailBtn}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={styles.detailBtnText}>View Tournament Details →</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -170,4 +179,10 @@ const styles = StyleSheet.create({
   rank: { ...typography.label, color: colors.accent, width: 36 },
   angler: { ...typography.body, color: colors.text, flex: 1 },
   length: { ...typography.numSm, color: colors.accent, width: 60, textAlign: 'right' },
+  detailBtn: {
+    marginTop: 12, paddingVertical: 10, paddingHorizontal: 12,
+    backgroundColor: colors.surfaceHigh, borderRadius: 8,
+    borderWidth: 1, borderColor: colors.border, alignItems: 'center',
+  },
+  detailBtnText: { ...typography.labelSm, color: colors.accent },
 });

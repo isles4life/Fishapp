@@ -42,8 +42,28 @@ export interface Region { id: string; name: string; }
 export interface Tournament {
   id: string; name: string; weekNumber: number; year: number;
   startsAt: string; endsAt: string; isOpen: boolean;
-  entryFeeCents: number; prizePoolCents: number;
+  entryFeeCents: number; prizePoolCents: number; scoringMethod?: string;
+  description?: string | null;
   region: { name: string };
+  director?: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null } | null;
+  _count?: { submissions: number; checkIns: number };
+  top3?: LeaderboardEntry[];
+}
+
+export interface TournamentPost {
+  id: string;
+  type: 'CATCH' | 'ANNOUNCEMENT' | 'CHECK_IN' | 'ANGLER_POST';
+  body?: string | null;
+  photoUrl?: string | null;
+  createdAt: string;
+  user: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null };
+  submission?: {
+    id: string;
+    fishLengthCm: number;
+    fishWeightOz?: number | null;
+    speciesName?: string | null;
+    released?: boolean;
+  } | null;
 }
 export interface LeaderboardEntry {
   rank: number; submissionId?: string; userId: string; displayName: string; fishLengthCm: number;
@@ -228,5 +248,9 @@ export const api = {
   getHotSpots: (tournamentId?: string) => {
     const qs = tournamentId ? `?tournamentId=${encodeURIComponent(tournamentId)}` : '';
     return apiFetch<HotSpot[]>(`/submissions/hotspots${qs}`, undefined, true);
+  },
+  getTournamentFeed: (id: string, cursor?: string) => {
+    const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+    return apiFetch<{ posts: TournamentPost[]; nextCursor: string | null }>(`/tournaments/${id}/feed${qs}`, undefined, true);
   },
 };

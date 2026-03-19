@@ -82,6 +82,10 @@ export default function TournamentsPage() {
   const [scoringMethod, setScoringMethod] = useState('LENGTH');
   const [formDirectorId, setFormDirectorId] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [editTarget, setEditTarget] = useState<Tournament | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editDirectorId, setEditDirectorId] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -153,6 +157,27 @@ export default function TournamentsPage() {
       setDrawResult(res);
     } catch (e: any) { setError(e.message); }
     finally { setDrawLoading(false); }
+  }
+
+  function openEditModal(t: Tournament) {
+    setEditTarget(t);
+    setEditDescription(t.description ?? '');
+    setEditDirectorId(t.directorId ?? '');
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editTarget) return;
+    setEditSaving(true);
+    try {
+      await (api as any).updateTournament(editTarget.id, {
+        description: editDescription || undefined,
+        directorId: editDirectorId || null,
+      });
+      await load();
+      setEditTarget(null);
+    } catch (e: any) { setError(e.message); }
+    finally { setEditSaving(false); }
   }
 
   async function openQrModal(t: Tournament) {
@@ -412,6 +437,48 @@ export default function TournamentsPage() {
         </div>
       )}
 
+      {/* Edit tournament modal */}
+      {editTarget && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ backgroundColor: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 28, maxWidth: 480, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.4)' }}>
+            <h3 style={{ color: C.text, margin: '0 0 4px', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>✏️ Edit Tournament</h3>
+            <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 20px' }}>{editTarget.name}</p>
+            <form onSubmit={saveEdit}>
+              <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Tournament Director</label>
+              <select
+                value={editDirectorId}
+                onChange={e => setEditDirectorId(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 14 }}
+              >
+                <option value="">None assigned</option>
+                {directors.map(d => (
+                  <option key={d.id} value={d.id}>{d.displayName}</option>
+                ))}
+              </select>
+
+              <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Description / Rules</label>
+              <textarea
+                value={editDescription}
+                onChange={e => setEditDescription(e.target.value)}
+                maxLength={2000}
+                rows={5}
+                placeholder="Tournament rules, target species, registration info, etc."
+                style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit', marginBottom: 14 }}
+              />
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button type="submit" disabled={editSaving} style={{ flex: 1, backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 700, fontSize: 14, cursor: editSaving ? 'default' : 'pointer', opacity: editSaving ? 0.7 : 1 }}>
+                  {editSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button type="button" onClick={() => setEditTarget(null)} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -479,6 +546,7 @@ export default function TournamentsPage() {
                       ? <button onClick={() => api.closeTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.redBg, color: C.red, border: `1px solid ${C.red}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Close</button>
                       : <button onClick={() => api.openTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.green}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Open</button>
                     }
+                    <button onClick={() => openEditModal(t)} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>✏️</button>
                     <button onClick={() => { setAnnounceTarget(t); setAnnounceResult(null); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>📢</button>
                     <button onClick={() => { setDrawTarget(t); setDrawResult(null); setDrawWeighted(false); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>🎁</button>
                     {t.isOpen && (
