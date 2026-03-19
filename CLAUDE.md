@@ -90,6 +90,7 @@ cd mobile && npx expo start   # start Expo dev server
 - `POST /auth/register` — email registration
 - `GET /tournaments` — list tournaments
 - `POST /submissions` — submit catch (multipart form: photo + GPS + length in cm)
+- `POST /submissions/identify` — AI species ID via iNaturalist (authenticated, returns top 3 fish suggestions with confidence %)
 - `GET /submissions/mine?tournamentId=` — user's own submissions
 - `GET /leaderboard/:tournamentId` — leaderboard entries
 - `GET /admin/moderation/pending` — pending submissions queue
@@ -131,7 +132,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - `AnglerProfile` — userId, username, bio, birthday (DateTime!), favoriteTechniques[], favoriteBaits[], sponsorTags[], homeState, homeCity, country, zipCode, profilePhotoUrl, publicProfile, allowFollowers
 - `Region` — name, minLat, maxLat, minLng, maxLng (Southeast bounds currently widened to cover continental US: lat 24–50, lng -125 to -66)
 - `Tournament` — name, status (DRAFT/OPEN/CLOSED), regionId, weekNumber, year, entryFeeCents
-- `Submission` — fishLengthCm, gpsLat, gpsLng, photo1Key, photo2Key (S3 keys), imageHash1, matSerialId (nullable), status (PENDING/APPROVED/REJECTED/FLAGGED), flagDuplicateHash, flagDuplicateGps, userId, tournamentId
+- `Submission` — fishLengthCm, gpsLat, gpsLng, photo1Key, photo2Key (S3 keys), imageHash1, matSerialId (nullable), status (PENDING/APPROVED/REJECTED/FLAGGED), flagDuplicateHash, flagDuplicateGps, flagSuspectPhoto, flagSuspectLength, estimatedLengthCm (Float?), released, speciesName, userId, tournamentId
 - `LeaderboardEntry` — rank, submissionId, userId, tournamentId
 - `ModerationAction` — submissionId, moderatorId, actionType, note
 - `AuditLog` — action, actorName, targetId, details (JSON), createdAt
@@ -160,23 +161,28 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **GPS bounds** — Southeast region bounds were widened in DB directly to cover test locations outside original bounds
 
 ## Admin Features
-- Moderation queue: view pending submissions with photos (presigned URLs), approve/reject/flag individually or in bulk
+- Moderation queue: view pending submissions with photos (presigned URLs), approve/reject/flag individually or in bulk. AI fraud flags shown: `🤖 No Fish Detected`, `🤖 Length Mismatch` (with submitted vs AI estimated inches)
 - Submissions history: all submissions filterable by status (ALL/PENDING/APPROVED/REJECTED/FLAGGED)
 - Audit log: all admin actions logged with actor, target, details
-- Tournament management: create (DRAFT), open, close tournaments
+- Tournament management: create (DRAFT), open, close tournaments; broadcast announcements 📢; prize random draw 🎁
 - User management: change role (USER/ADMIN), suspend/unsuspend, change region, reset password, impersonate, issue warnings (MINOR/MAJOR/FINAL)
 - Leaderboard: view current rankings per tournament
 
 ## Submission Flow (end-to-end)
 1. Mobile captures photo, gets GPS location
-2. Optional: credit card auto-measure (calculates cm internally, shows inches in input)
-3. User enters fish length in **inches**; app converts to cm for API call
-4. Backend validates: GPS inside region bounds, mat serial not reused, photo hash not duplicate
-5. Photo uploaded to S3 (`photo1Key`, `photo2Key`)
-6. Submission created with status `PENDING`
-7. Admin reviews in moderation queue (photos via presigned URLs)
-8. On approve: leaderboard updated, push notification + email sent to angler
-9. On reject: push notification + email sent with note
+2. **AI species ID fires in background** (iNaturalist `POST /submissions/identify`) during measure step
+3. Optional: credit card auto-measure (calculates cm internally, shows inches in input)
+4. User enters fish length in **inches**; app converts to cm for API call
+5. Species step shows 🤖 AI suggested chips with confidence % — auto-selects if ≥70% confident
+6. Backend validates: GPS inside region bounds, mat serial not reused, photo hash not duplicate
+7. Photo uploaded to S3 (`photo1Key`, `photo2Key`)
+8. Submission created with status `PENDING`
+9. **AI fraud checks fire in background** (fire-and-forget, never block submission):
+   - iNaturalist checks photo2 for fish — sets `flagSuspectPhoto` if no fish found
+   - Gemini 2.0 Flash reads measuring mat or ruler in photo2 — sets `flagSuspectLength` + `estimatedLengthCm` if estimate differs >30% from submitted length
+10. Admin reviews in moderation queue (photos via presigned URLs); sees AI fraud flags
+11. On approve: leaderboard updated, push notification + email sent to angler
+12. On reject: push notification + email sent with note
 
 ## Post-Beta Backlog
 1. **Email verification**: add `emailVerified` + `verificationToken` to User, send confirmation email on register, `GET /auth/verify-email?token=xxx`, block unverified users from submitting.
@@ -218,26 +224,40 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-20)
 - MVP fully deployed: backend + admin + web live on AWS
-- **New EAS build required** to ship all recent mobile changes (see below)
-- GPS-based region detection deployed: users no longer pick a region at registration; GPS at submission time validates against tournament's region. `User.regionId` is now nullable. Migration `20260318000000_make_user_regionid_optional` drops the NOT NULL constraint.
-- **iAngler gap closures shipped (backend + web deployed; mobile needs new EAS build):**
-  - Rejection note shown in-app on Tournament screen under REJECTED badge
-  - Species quick-pick chips (24 species) in submission flow + custom text fallback
-  - Historical leaderboards: `GET /tournaments/history` + `TournamentHistoryScreen` accordion (tap to expand top-10)
-  - Public spectator view: `/leaderboard/[id]` web page (no login) + mobile share sheet button
-  - Tournament director announcements: `POST /tournaments/:id/announce` + admin 📢 button broadcasts push to all participants
-  - Prize random draw: `POST /tournaments/:id/draw` + admin 🎁 button (flat or weighted by catch count, logs to audit)
-  - Offline queue UX: TournamentScreen shows pending uploads with per-item discard + Retry Now button
-  - **Angler career stats**: ProfileScreen + public profile page expanded to 6-card (3×2) stats grid — TOTAL CATCHES, PERSONAL BEST, AVG CATCH, TOURNAMENTS, WINS, WIN RATE
-  - **Conservation mode**: `released` Boolean on Submission; toggle in submission flow details step; "↩ Released" badge in tournament list, leaderboard (mobile + web); migration `20260319000000_add_released_to_submission`
-- Mobile fixes pending EAS build: FishingIntelligenceScreen back button, profile comma-field delete bug, profilePhotoUrl empty string validation, SubmissionFlowScreen inches display, profile photo URL field removed from edit form, avatar picker added to EditProfileForm (tap photo to change)
-- iOS TestFlight build #20 shipped — includes career stats, conservation mode, birthday year fix, leaderboard prop count fix
-- Backend auto-deployed: leaderboard entries now include presigned `photoUrl` + `submittedAt`
-- Home feed: Props + Comment buttons now functional (Props calls API, Comment navigates to Leaderboard tab)
-- Leaderboard comments: relative timestamps shown (timeAgo) on both mobile and web
-- Architecture sequence diagram added to `docs/architecture.md`
-- Admin: pagination added to Users (PAGE_SIZE 50), Tournaments (PAGE_SIZE 20), and History (server-side paging)
-- CI/CD: deploy workflow has `concurrency: cancel-in-progress: true`
-- Design system fully implemented: Oswald/Inter fonts, new palette, light/dark split screens across mobile + web + admin
-- Admin tournaments table fixed: dates no longer show seconds (date + time on two lines), status badge no longer wraps
-- Competitive analysis doc added: `docs/competitive-analysis.md`
+- **New EAS build required** to ship all pending mobile changes (see below)
+
+### Recently Shipped (this session)
+- **AI species identification**: `POST /submissions/identify` proxies to iNaturalist; fires in background during measure step; shows 🤖 AI suggested chips with confidence % in species step; auto-selects if ≥70% confident
+- **AI fraud detection — photo**: iNaturalist checks fish photo after submission; sets `flagSuspectPhoto` if no fish found; admin sees `🤖 No Fish Detected` badge in moderation queue
+- **AI fraud detection — length**: Gemini 2.0 Flash reads measuring mat or ruler in fish photo; sets `flagSuspectLength` + `estimatedLengthCm` if estimate differs >30% from submitted length; admin sees `🤖 Length Mismatch` with submitted vs AI inches
+- **Schema migrations**: `20260320000000_add_flag_suspect_photo`, `20260320000001_add_estimated_length` — run automatically on deploy
+- **Env vars**: `GEMINI_API_KEY` injected into backend ECS container via deploy workflow; skips gracefully if not set
+- **CI/CD**: deploy workflow changed from `cancel-in-progress: true` → `false` — new pushes queue instead of killing in-progress deploys
+- **Loading states**: all full-screen loading states across mobile (App.tsx, Tournament, Home, Leaderboard, Profile) and web (home, leaderboard, profile pages) replaced with `icon.png` + small spinner
+- **Admin tournaments table**: dates show as date + time on two lines (no seconds); status badge gets `whiteSpace: nowrap`
+- **Mobile EditProfileForm**: avatar picker added at top of Identity section — tap to upload, updates `profilePhotoUrl` in form state
+- **Competitive analysis doc**: `docs/competitive-analysis.md` — iAngler gap + innovation analysis
+
+### Mobile Pending EAS Build
+- FishingIntelligenceScreen back button fix
+- Profile comma-field delete bug fix
+- profilePhotoUrl empty string validation fix
+- SubmissionFlowScreen inches display fix
+- Profile photo URL raw input removed from edit form
+- Avatar picker in EditProfileForm
+- AI species identification UI (suggestions banner + chips)
+- Loading states replaced with icon.png
+- Conservation mode toggle + badges
+- Career stats 6-card grid
+- Birthday year picker fix
+- Leaderboard prop count fix
+
+### Previously Shipped
+- GPS-based region detection: `User.regionId` nullable; GPS at submission time validates against tournament region
+- iAngler gap closures: rejection notes in-app, species chips (24), historical leaderboards, public spectator view, tournament announcements, prize draw, offline queue UX, career stats, conservation mode
+- iOS TestFlight build #20 (March 18) — career stats, conservation mode, birthday year fix, leaderboard prop count fix
+- Leaderboard: presigned `photoUrl` + `submittedAt` + relative timestamps
+- Props + Comment buttons functional on HomeScreen
+- Admin: pagination (Users 50/page, Tournaments 20/page, History server-side)
+- Design system: Oswald/Inter fonts, dark/cream split screens across all platforms
+- Architecture diagram: `docs/architecture.md`
