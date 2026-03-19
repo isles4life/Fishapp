@@ -672,7 +672,6 @@ function EditProfileForm({
           <FLInput label="Bio (max 250 chars)" value={form.bio ?? ''} onChangeText={v => setForm(f => ({ ...f, bio: v }))} placeholder="Tell the community about yourself..." multiline />
           <Text style={s.fieldLabel}>Birthday</Text>
           <BirthdayPicker value={form.birthday} onChange={v => setForm(f => ({ ...f, birthday: v }))} />
-          <FLInput label="Profile Photo URL" value={form.profilePhotoUrl ?? ''} onChangeText={v => setForm(f => ({ ...f, profilePhotoUrl: v }))} placeholder="https://..." />
         </FormSection>
 
         <FormSection title="Location">
