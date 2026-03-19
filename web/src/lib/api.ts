@@ -50,6 +50,7 @@ export interface LeaderboardEntry {
   profilePhotoUrl?: string | null; username?: string | null;
   speciesName?: string | null; speciesCategory?: string | null;
   photoUrl?: string | null; submittedAt?: string | null;
+  released?: boolean;
 }
 export interface CatchComment {
   id: string; submissionId: string; userId: string; body: string; createdAt: string;

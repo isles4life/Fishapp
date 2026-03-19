@@ -187,6 +187,7 @@ function LeaderboardRow({
           <Text style={styles.name} numberOfLines={1}>{item.displayName}</Text>
           {item.username && <Text style={styles.username}>@{item.username}</Text>}
           {item.speciesName && <Text style={styles.speciesLabel}>{item.speciesName}</Text>}
+          {item.released && <Text style={styles.releasedBadge}>↩ Released</Text>}
         </View>
 
         {/* Measurement + prop */}
@@ -526,6 +527,12 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.accent,
     marginTop: 2,
+  },
+  releasedBadge: {
+    ...typography.caption,
+    color: colors.verified,
+    marginTop: 2,
+    fontSize: 11,
   },
   measureWrap: {
     alignItems: 'flex-end',

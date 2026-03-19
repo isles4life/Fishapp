@@ -35,6 +35,7 @@ export interface MySubmission {
   fishLengthCm: number;
   capturedAt: string;
   rejectionNote?: string | null;
+  released?: boolean;
 }
 
 export interface SubmissionResult {
@@ -54,6 +55,7 @@ export interface LeaderboardEntry {
   speciesCategory?: string | null;
   photoUrl?: string | null;
   submittedAt?: string | null;
+  released?: boolean;
 }
 
 export interface CatchComment {

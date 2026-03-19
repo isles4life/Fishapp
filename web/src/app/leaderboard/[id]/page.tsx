@@ -183,6 +183,9 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                         {e.speciesName && (
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{e.speciesName}</div>
                         )}
+                        {e.released && (
+                          <div style={{ fontSize: 11, color: '#3DAF5A', marginTop: 1 }}>↩ Released</div>
+                        )}
                       </div>
 
                       {/* Length */}

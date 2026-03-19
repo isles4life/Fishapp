@@ -109,6 +109,7 @@ export async function uploadSubmission(fields: {
   capturedAt: string;
   photoUri: string;
   speciesName?: string;
+  released?: string; // 'true' | 'false' — FormData is strings
 }): Promise<SubmissionResult> {
   const token = await storage.getToken();
   const form = new FormData();

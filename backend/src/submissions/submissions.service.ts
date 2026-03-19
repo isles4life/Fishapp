@@ -132,6 +132,7 @@ export class SubmissionsService {
         status: 'PENDING',
         speciesName: dto.speciesName,
         speciesCategory: dto.speciesCategory,
+        released: dto.released ?? false,
       },
     });
 
@@ -151,6 +152,7 @@ export class SubmissionsService {
         fishLengthCm: true,
         capturedAt: true,
         createdAt: true,
+        released: true,
         moderationActions: {
           where: { actionType: 'REJECT' },
           orderBy: { createdAt: 'desc' },
@@ -167,6 +169,7 @@ export class SubmissionsService {
       capturedAt: s.capturedAt,
       createdAt: s.createdAt,
       rejectionNote: s.moderationActions[0]?.note ?? null,
+      released: s.released,
     }));
   }
 

@@ -70,6 +70,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [fishLength, setFishLength] = useState('');
   const [speciesName, setSpeciesName] = useState('');
+  const [released, setReleased] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [failedFields, setFailedFields] = useState<Parameters<typeof uploadSubmission>[0] | null>(null);
@@ -156,6 +157,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         capturedAt: new Date().toISOString(),
         photoUri,
         speciesName: speciesName.trim() || undefined,
+        released: String(released),
       });
       setStep('success');
     } catch (e: any) {
@@ -168,6 +170,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         capturedAt: new Date().toISOString(),
         photoUri: photoUri!,
         speciesName: speciesName.trim() || undefined,
+        released: String(released),
       });
       setStep('error');
     }
@@ -420,6 +423,21 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             />
           </View>
 
+          {/* Catch & Release */}
+          <TouchableOpacity
+            style={[styles.detailsCard, styles.releaseRow]}
+            onPress={() => setReleased(r => !r)}
+            activeOpacity={0.8}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.detailsFieldLabel}>CATCH & RELEASE</Text>
+              <Text style={styles.releaseSubtext}>Fish was safely returned to water</Text>
+            </View>
+            <View style={[styles.releaseToggle, released && styles.releaseToggleOn]}>
+              <View style={[styles.releaseThumb, released && styles.releaseThumbOn]} />
+            </View>
+          </TouchableOpacity>
+
           {/* GPS */}
           <View style={styles.detailsCard}>
             <Text style={styles.detailsFieldLabel}>GPS LOCATION</Text>
@@ -584,6 +602,17 @@ const styles = StyleSheet.create({
   lengthPreview: { ...typography.numLg, color: colors.accent, marginTop: 8 },
   measuredBadge: { ...typography.caption, color: colors.textMuted, marginTop: 6 },
   gpsValue: { ...typography.bodyMd, color: colors.textSub },
+  releaseRow: { flexDirection: 'row', alignItems: 'center' },
+  releaseSubtext: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  releaseToggle: {
+    width: 48, height: 28, borderRadius: 14,
+    backgroundColor: colors.border, justifyContent: 'center', paddingHorizontal: 2,
+  },
+  releaseToggleOn: { backgroundColor: colors.verified },
+  releaseThumb: {
+    width: 22, height: 22, borderRadius: 11, backgroundColor: colors.textMuted,
+  },
+  releaseThumbOn: { backgroundColor: '#fff', alignSelf: 'flex-end' },
   retakeLink: { marginTop: 12, alignItems: 'center', paddingVertical: 8 },
   retakeLinkText: { ...typography.bodyMd, color: colors.textSub },
 

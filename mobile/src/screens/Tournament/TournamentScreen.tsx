@@ -39,6 +39,7 @@ function SubmissionRow({ item }: { item: MySubmission }) {
         <Text style={styles.submissionDate}>
           {new Date(item.capturedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </Text>
+        {item.released && <Text style={styles.releasedLabel}>↩ Released</Text>}
         {item.status === 'REJECTED' && item.rejectionNote ? (
           <Text style={styles.rejectionNote}>"{item.rejectionNote}"</Text>
         ) : null}
@@ -605,6 +606,12 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  releasedLabel: {
+    ...typography.caption,
+    color: colors.verified,
+    marginTop: 2,
+    fontSize: 11,
   },
   rejectionNote: {
     ...typography.caption,

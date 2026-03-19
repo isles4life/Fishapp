@@ -1,5 +1,5 @@
-import { IsUUID, IsNumber, IsString, IsDateString, IsOptional, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsUUID, IsNumber, IsString, IsDateString, IsOptional, IsBoolean, Min, Max } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 export class CreateSubmissionDto {
   @IsUUID()
@@ -37,4 +37,9 @@ export class CreateSubmissionDto {
   @IsOptional()
   @IsString()
   speciesCategory?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  released?: boolean;
 }
