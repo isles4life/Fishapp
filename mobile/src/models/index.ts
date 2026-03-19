@@ -175,6 +175,15 @@ export interface TournamentCheckIn {
   };
 }
 
+export interface TournamentAdminRequest {
+  id: string;
+  tournamentId: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  message: string | null;
+  createdAt: string;
+  tournament: { id: string; name: string; weekNumber: number; year: number };
+}
+
 // ── Fishing Intelligence ───────────────────────────────────────────────────
 
 export interface FishingSpot {

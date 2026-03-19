@@ -5,9 +5,10 @@ import { LeaderboardModule } from '../leaderboard/leaderboard.module';
 import { EmailModule } from '../email/email.module';
 import { PushModule } from '../push/push.module';
 import { SubmissionsModule } from '../submissions/submissions.module';
+import { TournamentAdminModule } from '../tournament-admin/tournament-admin.module';
 
 @Module({
-  imports: [LeaderboardModule, EmailModule, PushModule, SubmissionsModule],
+  imports: [LeaderboardModule, EmailModule, PushModule, SubmissionsModule, TournamentAdminModule],
   providers: [ModerationService],
   controllers: [ModerationController],
 })

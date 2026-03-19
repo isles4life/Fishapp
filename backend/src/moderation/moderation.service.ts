@@ -172,9 +172,12 @@ export class ModerationService {
     return { data, total };
   }
 
-  async getFlaggedSubmissions() {
+  async getFlaggedSubmissions(tournamentIds?: string[]) {
     return this.prisma.submission.findMany({
-      where: { OR: [{ flagDuplicateHash: true }, { flagDuplicateGps: true }] },
+      where: {
+        OR: [{ flagDuplicateHash: true }, { flagDuplicateGps: true }],
+        ...(tournamentIds ? { tournamentId: { in: tournamentIds } } : {}),
+      },
       include: { user: { select: { displayName: true } } },
       orderBy: { createdAt: 'asc' },
     });

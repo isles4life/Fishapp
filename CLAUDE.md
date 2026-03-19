@@ -223,25 +223,27 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-20)
+## Current Status (as of 2026-03-21)
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS TestFlight build #21 live — avatar picker, AI species UI, loading states, all prior fixes
 - **New EAS build required** for latest mobile changes (see below)
+- **New backend deploy required** for Tournament Admin role feature
 
 ### Recently Shipped (this session)
-- **AI species identification**: `POST /submissions/identify` proxies to iNaturalist; fires in background during measure step; shows 🤖 AI suggested chips with confidence % in species step; auto-selects if ≥70% confident
-- **AI fraud detection — photo**: iNaturalist checks fish photo after submission; sets `flagSuspectPhoto` if no fish found; admin sees `🤖 No Fish Detected` badge
-- **AI fraud detection — length**: Gemini 2.0 Flash reads measuring mat or ruler; sets `flagSuspectLength` + `estimatedLengthCm` if >30% discrepancy; admin sees `🤖 Length Mismatch` with inches comparison
-- **AI fraud detection — species**: iNaturalist top result compared against submitted species (≥60% confidence, substring match); sets `flagSuspectSpecies` + `aiSuggestedSpecies`; admin sees `🤖 Species Mismatch`
-- **Schema migrations**: `20260320000000_add_flag_suspect_photo`, `20260320000001_add_estimated_length`, `20260320000002_add_flag_suspect_species`
-- **Env vars**: `GEMINI_API_KEY` injected into backend ECS via deploy workflow; skips gracefully if not set
-- **CI/CD**: deploy workflow `cancel-in-progress: false` — new pushes queue instead of killing in-progress deploys
-- **Credit card removed**: submission flow now requires mat, ruler, or tape measure; tap-to-measure pixel ratio calculation removed; angler reads device and types length; photo shown full-screen during length entry
-- **Photo upload**: "⬆ Upload" button on camera screen lets anglers submit from camera roll; AI species ID fires in background for both paths
-- **Loading states**: icon.png + small spinner across mobile (App.tsx, Tournament, Home, Leaderboard, Profile) and web
-- **Admin tournaments table**: dates on two lines (no seconds); status badge `whiteSpace: nowrap`
-- **Mobile EditProfileForm**: avatar picker in Identity section
-- **Competitive analysis doc**: `docs/competitive-analysis.md`
+- **Tournament Admin role feature** (full-stack, not yet deployed):
+  - **Schema**: `TOURNAMENT_ADMIN` added to `UserRole` enum; new `TournamentAdminRequest` model with userId, tournamentId, status (PENDING/APPROVED/REJECTED), message, reviewedBy
+  - **Migration**: `20260321000001_add_tournament_admin` — adds enum value + creates table
+  - **Backend**: `TournamentAdminModule` with service + controller; endpoints: `POST /tournament-admin/request`, `GET /tournament-admin/my-requests`, `GET /tournament-admin/my-tournaments`, `GET /admin/tournament-admin/requests`, `PATCH /admin/tournament-admin/requests/:id/approve`, `PATCH /admin/tournament-admin/requests/:id/reject`
+  - **TournamentScopedGuard**: new guard in `backend/src/common/` — allows ADMIN or TOURNAMENT_ADMIN role
+  - **ModerationController**: switched from AdminGuard to TournamentScopedGuard; TOURNAMENT_ADMIN scoped to assigned tournament IDs; `getFlaggedSubmissions()` updated to accept optional `tournamentIds[]` param
+  - **Admin AuthProvider**: supports TOURNAMENT_ADMIN role; fetches `assignedTournamentIds` on login; exposes `isAdmin`, `isTournamentAdmin`, `assignedTournamentIds` in context
+  - **Admin Nav**: shows "TOURNAMENT DIRECTOR" label for tournament admins; different nav links (no Users nav item)
+  - **Admin Requests page** (`/requests`): admin-only page to approve/reject pending tournament director requests
+  - **Admin Tournaments page**: hides Create Tournament form for tournament admins; filters tournament list to assigned tournaments only
+  - **Admin Moderation page**: passes assigned tournamentId for TOURNAMENT_ADMIN users
+  - **Mobile ProfileScreen**: "Tournament Director" section with apply button/modal; shows status of existing requests
+  - **Mobile API**: `requestTournamentAdmin()`, `getMyTournamentAdminRequests()` functions added
+  - **Mobile models**: `TournamentAdminRequest` interface added
 
 ### Mobile Pending EAS Build (build #22)
 - Measuring device flow (mat/ruler/tape) replacing credit card
@@ -256,6 +258,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - FishingIntelligenceScreen back button fix
 - Profile comma-field delete bug fix
 - profilePhotoUrl empty string validation fix
+- Tournament Director apply section in ProfileScreen
 
 ### Previously Shipped
 - GPS-based region detection: `User.regionId` nullable; GPS at submission time validates against tournament region

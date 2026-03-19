@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { useAuth } from '../../components/AuthProvider';
 
 const C = {
   bg: '#3A4C44', surface: '#2E3D38', surfaceHigh: '#445C54',
@@ -56,6 +57,7 @@ function Pagination({ page, total, onChange }: { page: number; total: number; on
 }
 
 export default function TournamentsPage() {
+  const { isTournamentAdmin, assignedTournamentIds } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -159,7 +161,10 @@ export default function TournamentsPage() {
     finally { setQrGenerating(false); }
   }
 
-  const paginatedTournaments = tournaments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const filteredTournaments = isTournamentAdmin
+    ? tournaments.filter(t => assignedTournamentIds.includes(t.id))
+    : tournaments;
+  const paginatedTournaments = filteredTournaments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div>
@@ -167,6 +172,7 @@ export default function TournamentsPage() {
       {error && <div style={{ color: C.red, background: C.redBg, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14, border: `1px solid ${C.red}50` }}>{error}</div>}
 
       {/* Create form */}
+      {!isTournamentAdmin && (
       <form onSubmit={create} style={{ backgroundColor: C.surface, padding: 24, borderRadius: 12, marginBottom: 28, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.accent}`, maxWidth: 560 }}>
         <h3 style={{ color: C.text, marginTop: 0, marginBottom: 16, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>Create Tournament</h3>
 
@@ -221,6 +227,7 @@ export default function TournamentsPage() {
           Create Tournament
         </button>
       </form>
+      )}
 
       {/* Announce modal */}
       {announceTarget && (
@@ -411,7 +418,7 @@ export default function TournamentsPage() {
           </tbody>
         </table>
       </div>
-      <Pagination page={currentPage} total={tournaments.length} onChange={setCurrentPage} />
+      <Pagination page={currentPage} total={filteredTournaments.length} onChange={setCurrentPage} />
     </div>
   );
 }

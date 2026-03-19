@@ -88,4 +88,16 @@ export const api = {
 
   getCheckIns: (id: string) =>
     apiFetch<{ count: number; checkIns: { id: string; checkedInAt: string; user: { displayName: string; email: string } }[] }>(`/tournaments/${id}/check-ins`),
+
+  getTournamentAdminRequests: () =>
+    apiFetch<any[]>('/admin/tournament-admin/requests'),
+
+  approveTournamentAdminRequest: (id: string) =>
+    apiFetch<{ ok: boolean }>(`/admin/tournament-admin/requests/${id}/approve`, { method: 'PATCH' }),
+
+  rejectTournamentAdminRequest: (id: string, note?: string) =>
+    apiFetch<{ ok: boolean }>(`/admin/tournament-admin/requests/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify({ note }),
+    }),
 };

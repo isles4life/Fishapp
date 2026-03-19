@@ -16,6 +16,7 @@ import { PropsModule } from './props/props.module';
 import { CommentsModule } from './comments/comments.module';
 import { WarningsModule } from './warnings/warnings.module';
 import { FishingIntelligenceModule } from './fishing-intelligence/fishing-intelligence.module';
+import { TournamentAdminModule } from './tournament-admin/tournament-admin.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { FishingIntelligenceModule } from './fishing-intelligence/fishing-intell
     CommentsModule,
     WarningsModule,
     FishingIntelligenceModule,
+    TournamentAdminModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

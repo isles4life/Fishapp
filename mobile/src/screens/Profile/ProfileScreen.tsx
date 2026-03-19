@@ -8,9 +8,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
-import { getMyProfile, updateProfile, uploadAvatar } from '../../services/api';
+import { getMyProfile, updateProfile, uploadAvatar, getMyTournamentAdminRequests, requestTournamentAdmin, getActiveTournament } from '../../services/api';
 import { storage } from '../../services/storage';
-import type { AnglerProfile, UpdateProfilePayload, WaterType } from '../../models';
+import type { AnglerProfile, UpdateProfilePayload, WaterType, TournamentAdminRequest } from '../../models';
 import { GenericBadge, TournamentWinBadge, VerifiedAnglerBadge } from '../../components/icons/BadgeIcons';
 import type { RootStackParamList } from '../../navigation';
 
@@ -134,6 +134,17 @@ export function ProfileView({
   const { stats } = profile;
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.profilePhotoUrl);
+  const [taRequests, setTaRequests] = useState<TournamentAdminRequest[]>([]);
+  const [showTaModal, setShowTaModal] = useState(false);
+  const [taMessage, setTaMessage] = useState('');
+  const [taSubmitting, setTaSubmitting] = useState(false);
+  const [taTournamentId, setTaTournamentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOwn) return;
+    getMyTournamentAdminRequests().then(setTaRequests).catch(() => {});
+    getActiveTournament().then(t => setTaTournamentId(t.id)).catch(() => {});
+  }, [isOwn]);
 
   async function handleSignOut() {
     await storage.deleteToken();
@@ -165,6 +176,22 @@ export function ProfileView({
       Alert.alert('Upload failed', e.message);
     } finally {
       setAvatarLoading(false);
+    }
+  }
+
+  async function handleTaRequest() {
+    if (!taTournamentId || taSubmitting) return;
+    setTaSubmitting(true);
+    try {
+      const req = await requestTournamentAdmin(taTournamentId, taMessage.trim() || undefined);
+      setTaRequests(prev => [...prev.filter(r => r.tournamentId !== req.tournamentId), req]);
+      setShowTaModal(false);
+      setTaMessage('');
+      Alert.alert('Request Submitted', 'Your request has been sent to the league admin for review.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'Could not submit request.');
+    } finally {
+      setTaSubmitting(false);
     }
   }
 
@@ -325,6 +352,74 @@ export function ProfileView({
             {profile.sponsorTags.length > 0 && <TagRow label="Sponsors" tags={profile.sponsorTags} />}
           </View>
         )}
+        {/* Tournament Director */}
+        {isOwn && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>TOURNAMENT DIRECTOR</Text>
+            {taRequests.length === 0 ? (
+              <TouchableOpacity style={s.taApplyBtn} onPress={() => setShowTaModal(true)} activeOpacity={0.8}>
+                <Text style={s.taApplyBtnText}>Apply to Manage a Tournament</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                {taRequests.map(r => {
+                  const statusColor = r.status === 'APPROVED' ? colors.verified : r.status === 'REJECTED' ? colors.error : colors.warning;
+                  return (
+                    <View key={r.id} style={s.taRequestRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.taRequestName}>{r.tournament.name}</Text>
+                        <Text style={s.taRequestWeek}>Week {r.tournament.weekNumber} · {r.tournament.year}</Text>
+                      </View>
+                      <View style={[s.taStatusBadge, { backgroundColor: statusColor + '20', borderColor: statusColor + '50' }]}>
+                        <Text style={[s.taStatusText, { color: statusColor }]}>{r.status}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+                <TouchableOpacity style={[s.taApplyBtn, { marginTop: 8 }]} onPress={() => setShowTaModal(true)} activeOpacity={0.8}>
+                  <Text style={s.taApplyBtnText}>Apply for Another Tournament</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Tournament Director Modal */}
+        {isOwn && showTaModal && (
+          <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowTaModal(false)}>
+            <View style={s.taModal}>
+              <View style={s.taModalHeader}>
+                <Text style={s.taModalTitle}>APPLY AS TOURNAMENT DIRECTOR</Text>
+                <TouchableOpacity onPress={() => setShowTaModal(false)}><Text style={s.taModalClose}>✕</Text></TouchableOpacity>
+              </View>
+              <View style={{ padding: 20 }}>
+                <Text style={s.taModalLabel}>TOURNAMENT</Text>
+                <View style={s.taModalTournament}>
+                  <Text style={s.taModalTournamentText}>{taTournamentId ? 'Active Tournament' : 'No active tournament'}</Text>
+                </View>
+                <Text style={[s.taModalLabel, { marginTop: 16 }]}>MESSAGE (OPTIONAL)</Text>
+                <TextInput
+                  style={s.taModalInput}
+                  placeholder="Why do you want to manage this tournament?"
+                  placeholderTextColor={colors.textMuted}
+                  value={taMessage}
+                  onChangeText={setTaMessage}
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity
+                  style={[s.taModalBtn, (!taTournamentId || taSubmitting) && { opacity: 0.4 }]}
+                  onPress={handleTaRequest}
+                  disabled={!taTournamentId || taSubmitting}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.taModalBtnText}>{taSubmitting ? 'SUBMITTING...' : 'SUBMIT REQUEST'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        )}
+
         {/* Sign Out */}
         {isOwn && (
           <TouchableOpacity
@@ -1203,4 +1298,116 @@ const s = StyleSheet.create({
     borderColor: colors.error + '50',
   },
   errorBannerText: { color: colors.error, fontSize: 13 },
+
+  // Tournament Director styles
+  taApplyBtn: {
+    borderWidth: 1,
+    borderColor: colors.accent + '60',
+    borderRadius: 10,
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: colors.accent + '10',
+  },
+  taApplyBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.accent,
+    letterSpacing: 0.5,
+  },
+  taRequestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E3D8',
+  },
+  taRequestName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textDark,
+  },
+  taRequestWeek: {
+    fontSize: 12,
+    color: colors.textDarkMuted,
+    marginTop: 2,
+  },
+  taStatusBadge: {
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  taStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  taModal: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  taModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  taModalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: 1,
+  },
+  taModalClose: {
+    fontSize: 18,
+    color: colors.textSub,
+    paddingLeft: 16,
+  },
+  taModalLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  taModalTournament: {
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+  },
+  taModalTournamentText: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  taModalInput: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    color: colors.text,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 20,
+  },
+  taModalBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  taModalBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.bg,
+    letterSpacing: 0.8,
+  },
 });

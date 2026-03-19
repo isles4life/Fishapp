@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { useAuth } from '../../components/AuthProvider';
 
 const C = {
   bg: '#3A4C44', surface: '#2E3D38', surfaceHigh: '#445C54',
@@ -51,6 +52,7 @@ const ACTIONS = [
 ];
 
 export default function ModerationPage() {
+  const { isTournamentAdmin, assignedTournamentIds } = useAuth();
   const [tab, setTab] = useState<'pending' | 'flagged'>('pending');
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selected, setSelected] = useState<Submission | null>(null);
@@ -61,7 +63,8 @@ export default function ModerationPage() {
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
 
   async function load() {
-    const data = tab === 'pending' ? await api.getPending() : await api.getFlagged();
+    const effectiveTournamentId = isTournamentAdmin ? (assignedTournamentIds[0]) : undefined;
+    const data = tab === 'pending' ? await api.getPending(effectiveTournamentId) : await api.getFlagged();
     setSubmissions(data);
     setSelected(null);
     setCheckedIds(new Set());

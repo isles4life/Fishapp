@@ -5,39 +5,59 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 const APPLE_CLIENT_ID = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID ?? '';
 const APPLE_REDIRECT_URI = process.env.NEXT_PUBLIC_APPLE_REDIRECT_URI ?? '';
 
+type AdminRole = 'ADMIN' | 'TOURNAMENT_ADMIN';
+
 interface AuthCtx {
   token: string | null;
+  role: AdminRole | null;
+  assignedTournamentIds: string[];
+  isAdmin: boolean;
+  isTournamentAdmin: boolean;
   login: (email: string, password: string) => Promise<string | null>;
   loginWithAppleToken: (identityToken: string) => Promise<string | null>;
   logout: () => void;
 }
 
-const Ctx = createContext<AuthCtx>({ token: null, login: async () => null, loginWithAppleToken: async () => null, logout: () => {} });
+const Ctx = createContext<AuthCtx>({
+  token: null, role: null, assignedTournamentIds: [], isAdmin: false, isTournamentAdmin: false,
+  login: async () => null, loginWithAppleToken: async () => null, logout: () => {},
+});
 
 export function useAuth() { return useContext(Ctx); }
 
-async function verifyAdminRole(token: string): Promise<boolean> {
+async function verifyRole(token: string): Promise<{ role: AdminRole; assignedTournamentIds: string[] } | null> {
   try {
     const res = await fetch(`${BASE}/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return false;
+    if (!res.ok) return null;
     const user = await res.json();
-    return user.role === 'ADMIN';
+    if (user.role !== 'ADMIN' && user.role !== 'TOURNAMENT_ADMIN') return null;
+    const role: AdminRole = user.role;
+    let assignedTournamentIds: string[] = [];
+    if (role === 'TOURNAMENT_ADMIN') {
+      const r2 = await fetch(`${BASE}/tournament-admin/my-tournaments`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r2.ok) assignedTournamentIds = await r2.json();
+    }
+    return { role, assignedTournamentIds };
   } catch {
-    return false;
+    return null;
   }
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
+  const [role, setRole] = useState<AdminRole | null>(null);
+  const [assignedTournamentIds, setAssignedTournamentIds] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('admin_token');
     if (stored) {
-      verifyAdminRole(stored).then(isAdmin => {
-        if (isAdmin) setToken(stored);
+      verifyRole(stored).then(result => {
+        if (result) { setToken(stored); setRole(result.role); setAssignedTournamentIds(result.assignedTournamentIds); }
         else localStorage.removeItem('admin_token');
         setReady(true);
       });
@@ -47,10 +67,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   async function saveToken(raw: string): Promise<string | null> {
-    const isAdmin = await verifyAdminRole(raw);
-    if (!isAdmin) return 'This Apple account does not have admin access.';
+    const result = await verifyRole(raw);
+    if (!result) return 'This account does not have admin or tournament director access.';
     localStorage.setItem('admin_token', raw);
     setToken(raw);
+    setRole(result.role);
+    setAssignedTournamentIds(result.assignedTournamentIds);
     return null;
   }
 
@@ -84,14 +106,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   function logout() {
     localStorage.removeItem('admin_token');
-    setToken(null);
+    setToken(null); setRole(null); setAssignedTournamentIds([]);
   }
 
   if (!ready) return null;
   if (!token) return <LoginScreen login={login} loginWithAppleToken={loginWithAppleToken} />;
 
+  const isAdmin = role === 'ADMIN';
+  const isTournamentAdmin = role === 'TOURNAMENT_ADMIN';
+
   return (
-    <Ctx.Provider value={{ token, login, loginWithAppleToken, logout }}>
+    <Ctx.Provider value={{ token, role, assignedTournamentIds, isAdmin, isTournamentAdmin, login, loginWithAppleToken, logout }}>
       {children}
     </Ctx.Provider>
   );
