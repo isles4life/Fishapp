@@ -155,6 +155,15 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
   );
 }
 
+function formatScore(entry: LeaderboardEntry): string {
+  switch (entry.scoringMethod) {
+    case 'WEIGHT': return `${(entry.fishWeightOz ?? entry.score).toFixed(1)} oz`;
+    case 'FISH_COUNT': return `${entry.score} fish`;
+    case 'SPECIES_COUNT': return `${entry.score} species`;
+    default: return `${(entry.fishLengthCm / 2.54).toFixed(1)}"`;
+  }
+}
+
 function LeaderboardRow({
   item,
   expanded,
@@ -202,7 +211,7 @@ function LeaderboardRow({
         {/* Measurement + prop */}
         <View style={styles.measureWrap}>
           <Text style={[styles.measurement, isFirst && { color: colors.accent }]}>
-            {(item.fishLengthCm / 2.54).toFixed(1)}{'"'}
+            {formatScore(item)}
           </Text>
           {item.submissionId && (
             <PropButton submissionId={item.submissionId} />
@@ -362,8 +371,16 @@ export default function LeaderboardScreen() {
         <View style={styles.myRankBanner}>
           <Text style={styles.myRankLabel}>YOUR RANK</Text>
           <Text style={styles.myRankValue}>#{myRank.rank}</Text>
-          {myRank.fishLengthCm != null && (
-            <Text style={styles.myRankLength}>{(myRank.fishLengthCm / 2.54).toFixed(1)}"</Text>
+          {(myRank.score != null || myRank.fishLengthCm != null) && (
+            <Text style={styles.myRankLength}>{
+              (() => {
+                const sm = entries[0]?.scoringMethod;
+                if (sm === 'WEIGHT') return `${(myRank.score ?? 0).toFixed(1)} oz`;
+                if (sm === 'FISH_COUNT') return `${myRank.score ?? 0} fish`;
+                if (sm === 'SPECIES_COUNT') return `${myRank.score ?? 0} species`;
+                return `${((myRank.fishLengthCm ?? 0) / 2.54).toFixed(1)}"`;
+              })()
+            }</Text>
           )}
         </View>
       )}

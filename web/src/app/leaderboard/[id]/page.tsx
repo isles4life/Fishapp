@@ -32,6 +32,15 @@ function rankColor(rank: number) {
   return C.textSub;
 }
 
+function formatScore(e: LeaderboardEntry): string {
+  switch (e.scoringMethod) {
+    case 'WEIGHT': return `${(e.fishWeightOz ?? e.score).toFixed(1)} oz`;
+    case 'FISH_COUNT': return `${e.score} fish`;
+    case 'SPECIES_COUNT': return `${e.score} species`;
+    default: return `${(e.fishLengthCm / 2.54).toFixed(1)}"`;
+  }
+}
+
 function rankLabel(rank: number) {
   if (rank === 1) return '🥇';
   if (rank === 2) return '🥈';
@@ -193,7 +202,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                         fontSize: 18, fontWeight: 800, color: rankColor(e.rank),
                         fontFamily: 'Oswald, sans-serif', flexShrink: 0,
                       }}>
-                        {(e.fishLengthCm / 2.54).toFixed(1)}"
+                        {formatScore(e)}
                       </div>
                     </div>
                   </Link>

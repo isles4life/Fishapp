@@ -47,6 +47,7 @@ export interface Tournament {
 }
 export interface LeaderboardEntry {
   rank: number; submissionId?: string; userId: string; displayName: string; fishLengthCm: number;
+  score: number; scoringMethod?: string; fishWeightOz?: number | null;
   profilePhotoUrl?: string | null; username?: string | null;
   speciesName?: string | null; speciesCategory?: string | null;
   photoUrl?: string | null; submittedAt?: string | null;

@@ -50,6 +50,9 @@ export interface LeaderboardEntry {
   userId: string;
   displayName: string;
   fishLengthCm: number;
+  score: number;
+  scoringMethod?: string;
+  fishWeightOz?: number | null;
   profilePhotoUrl?: string | null;
   username?: string | null;
   speciesName?: string | null;
@@ -79,6 +82,7 @@ export interface UserWarning {
 export interface UserRank {
   rank?: number;
   fishLengthCm?: number;
+  score?: number | null;
 }
 
 export interface LeaderboardUpdate {
