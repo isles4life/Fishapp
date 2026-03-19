@@ -139,8 +139,9 @@ export class SubmissionsService {
     // Fire-and-forget confirmation email
     this.email.sendSubmissionReceived(user.email, user.displayName, tournament.name);
 
-    // Fire-and-forget AI fraud check — flags submission if photo contains no fish
+    // Fire-and-forget AI fraud checks
     this.checkIsFish(photo2, submission.id);
+    this.estimateFishLength(photo2, submission.id, dto.fishLengthCm);
 
     return { submissionId: submission.id, status: 'PENDING' };
   }
@@ -174,6 +175,59 @@ export class SubmissionsService {
       }
     } catch {
       // Never fail the submission over a fraud check
+    }
+  }
+
+  private async estimateFishLength(
+    photoBuffer: Buffer,
+    submissionId: string,
+    submittedLengthCm: number,
+  ): Promise<void> {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return;
+
+    try {
+      const base64 = photoBuffer.toString('base64');
+      const body = {
+        contents: [{
+          parts: [
+            {
+              inline_data: { mime_type: 'image/jpeg', data: base64 },
+            },
+            {
+              text: `This photo shows a fish on a measuring surface. There may be a measuring mat with ruler markings along the side, or a separate ruler or tape measure placed next to the fish. Using any visible measurement markings (mat ruler or standalone ruler), estimate the fish's total length in inches from tip of mouth to tip of tail. Respond with ONLY a single number in inches (e.g. "14.5") or the word "unknown" if you cannot clearly determine the length.`,
+            },
+          ],
+        }],
+        generationConfig: { temperature: 0, maxOutputTokens: 16 },
+      };
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      );
+      if (!res.ok) return;
+
+      const data: any = await res.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+      const estimatedIn = parseFloat(raw);
+      if (isNaN(estimatedIn) || estimatedIn <= 0) return;
+
+      const estimatedCm = estimatedIn * 2.54;
+      const discrepancy = Math.abs(estimatedCm - submittedLengthCm) / submittedLengthCm;
+
+      // Flag if AI estimate differs by more than 30% from submitted length
+      const suspect = discrepancy > 0.30;
+
+      await this.prisma.submission.update({
+        where: { id: submissionId },
+        data: {
+          estimatedLengthCm: estimatedCm,
+          ...(suspect ? { flagSuspectLength: true } : {}),
+        },
+      });
+    } catch {
+      // Never fail the submission over a length estimate
     }
   }
 

@@ -26,6 +26,8 @@ interface Submission {
   flagDuplicateHash: boolean;
   flagDuplicateGps: boolean;
   flagSuspectPhoto: boolean;
+  flagSuspectLength: boolean;
+  estimatedLengthCm: number | null;
   matSerial: { serialCode: string } | null;
   status: string;
 }
@@ -228,6 +230,7 @@ export default function ModerationPage() {
                     {s.flagDuplicateHash && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>⚠ Dup Hash</span>}
                     {s.flagDuplicateGps && <span style={{ fontSize: 10, color: C.orange, background: C.orangeBg, padding: '1px 6px', borderRadius: 4 }}>⚠ Dup GPS</span>}
                     {s.flagSuspectPhoto && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>🤖 No Fish Detected</span>}
+                    {s.flagSuspectLength && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>🤖 Length Mismatch</span>}
                   </div>
                 </div>
               </div>
@@ -259,6 +262,12 @@ export default function ModerationPage() {
             {(selected.flagDuplicateHash || selected.flagDuplicateGps || selected.flagSuspectPhoto) && (
               <div style={{ backgroundColor: C.orangeBg, border: `1px solid ${C.orange}40`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
                 {selected.flagSuspectPhoto && <div style={{ color: C.red, fontSize: 13, marginBottom: 4 }}>🤖 AI detected no fish in photo — review carefully</div>}
+                {selected.flagSuspectLength && (
+                  <div style={{ color: C.red, fontSize: 13, marginBottom: 4 }}>
+                    🤖 Length mismatch — submitted {(selected.fishLengthCm / 2.54).toFixed(1)}&quot;
+                    {selected.estimatedLengthCm ? `, AI estimated ${(selected.estimatedLengthCm / 2.54).toFixed(1)}"` : ''}
+                  </div>
+                )}
                 {selected.flagDuplicateHash && <div style={{ color: C.red, fontSize: 13 }}>⚠ Duplicate image hash detected</div>}
                 {selected.flagDuplicateGps && <div style={{ color: C.orange, fontSize: 13 }}>⚠ Duplicate GPS location</div>}
               </div>

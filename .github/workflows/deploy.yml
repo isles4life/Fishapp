@@ -91,6 +91,8 @@ jobs:
           task-definition: task-def.json
           container-name: backend
           image: ${{ steps.build.outputs.image }}
+          environment-variables: |
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
 
       - name: Deploy backend service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
