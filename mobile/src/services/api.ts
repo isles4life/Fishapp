@@ -91,6 +91,10 @@ export function getActiveTournament(): Promise<Tournament> {
   return request('/tournaments/active');
 }
 
+export function getClosedTournaments(): Promise<(Tournament & { _count: { submissions: number } })[]> {
+  return request('/tournaments/history');
+}
+
 // ── Submissions ───────────────────────────────────────────────────────────────
 
 export function getMySubmissions(tournamentId: string): Promise<MySubmission[]> {

@@ -240,6 +240,15 @@ export default function TournamentScreen() {
           </View>
         )}
 
+        {/* Past Tournaments link */}
+        <TouchableOpacity
+          style={styles.historyBtn}
+          onPress={() => navigation.navigate('TournamentHistory')}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.historyBtnText}>View Past Tournaments →</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>
@@ -535,6 +544,12 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
   },
+  historyBtn: {
+    marginHorizontal: 16, marginTop: 20,
+    paddingVertical: 12, alignItems: 'center',
+    borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+  },
+  historyBtnText: { ...typography.label, color: colors.accent },
   emptySubmissions: {
     alignItems: 'center',
     paddingVertical: 24,

@@ -24,6 +24,12 @@ export class TournamentsController {
     return this.tournamentsService.listAll();
   }
 
+  @Get('history')
+  @UseGuards(JwtAuthGuard)
+  listClosed() {
+    return this.tournamentsService.listClosed();
+  }
+
   @Get('active')
   @UseGuards(JwtAuthGuard)
   getActive() {

@@ -59,6 +59,17 @@ export class TournamentsService {
     });
   }
 
+  async listClosed() {
+    return this.prisma.tournament.findMany({
+      where: { isOpen: false },
+      orderBy: [{ year: 'desc' }, { weekNumber: 'desc' }],
+      include: {
+        region: { select: { name: true } },
+        _count: { select: { submissions: { where: { status: 'APPROVED' } } } },
+      },
+    });
+  }
+
   async setOpen(id: string, isOpen: boolean) {
     return this.prisma.tournament.update({
       where: { id },

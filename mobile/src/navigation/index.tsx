@@ -14,6 +14,7 @@ import SubmissionFlowScreen from '../screens/Submission/SubmissionFlowScreen';
 import FishingIntelligenceScreen from '../screens/FishingIntelligence/FishingIntelligenceScreen';
 import HotSpotsScreen from '../screens/Map/HotSpotsScreen';
 import LegalScreen from '../screens/Legal/LegalScreen';
+import TournamentHistoryScreen from '../screens/Tournament/TournamentHistoryScreen';
 import { HomeIcon, LeaderboardIcon, TrophyIcon, ProfileIcon, CameraIcon } from '../components/icons/TabIcons';
 import { colors } from '../theme/colors';
 
@@ -32,6 +33,7 @@ export type RootStackParamList = {
   Forecast: undefined;
   HotSpots: undefined;
   Legal: undefined;
+  TournamentHistory: undefined;
 };
 
 export type TabParamList = {
@@ -192,6 +194,7 @@ export default function Navigation({ isAuthenticated }: { isAuthenticated: boole
           <Stack.Screen name="Forecast" component={FishingIntelligenceScreen} />
           <Stack.Screen name="HotSpots" component={HotSpotsScreen} />
           <Stack.Screen name="Legal" component={LegalScreen} options={{ title: 'Legal' }} />
+          <Stack.Screen name="TournamentHistory" component={TournamentHistoryScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </TournamentContext.Provider>
