@@ -80,6 +80,12 @@ export class SubmissionsController {
     }
   }
 
+  @Get('feed')
+  getFeed(@Query('tournamentId') tournamentId: string) {
+    if (!tournamentId) throw new BadRequestException('tournamentId required');
+    return this.submissionsService.getFeed(tournamentId);
+  }
+
   @Get('hotspots')
   getHotSpots(@Query('tournamentId') tournamentId?: string) {
     return this.submissionsService.getHotSpots(tournamentId);

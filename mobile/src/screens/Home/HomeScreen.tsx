@@ -1,12 +1,13 @@
-import React, { useCallback, useContext, useState, useEffect } from 'react';
+import React, { useCallback, useContext, useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, SafeAreaView, Modal, Alert, Image,
+  TextInput, KeyboardAvoidingView, Platform, FlatList, RefreshControl,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as api from '../../services/api';
-import type { Tournament, LeaderboardEntry, UserWarning, AnglerProfile } from '../../models';
+import type { Tournament, FeedItem, CatchComment, UserWarning, AnglerProfile } from '../../models';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { FishLeagueLogoFull } from '../../components/icons/Logo';
@@ -70,11 +71,11 @@ function TournamentBanner({ tournament }: { tournament: Tournament }) {
   );
 }
 
-function PropButton({ submissionId }: { submissionId: string }) {
+function PropButton({ submissionId, initialCount }: { submissionId: string; initialCount: number }) {
   const [propped, setPropped] = useState(false);
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
-  const initialized = React.useRef(false);
+  const initialized = useRef(false);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -91,11 +92,8 @@ function PropButton({ submissionId }: { submissionId: string }) {
       const r = await api.toggleProp(submissionId);
       setPropped(r.propped);
       setCount(r.count);
-    } catch {
-      // silently handle
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* silent */ }
+    finally { setLoading(false); }
   }
 
   return (
@@ -113,49 +111,126 @@ function PropButton({ submissionId }: { submissionId: string }) {
   );
 }
 
-function FeedCard({ entry, region, onComment }: { entry: LeaderboardEntry; region: string; onComment: () => void }) {
-  const lengthIn = (entry.fishLengthCm / 2.54).toFixed(1);
-  const initials = getInitials(entry.displayName);
-  const firstName = entry.displayName.split(' ')[0].toUpperCase();
+function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: string; myUserId: string | null; onClose: () => void }) {
+  const [comments, setComments] = useState<CatchComment[]>([]);
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    api.getComments(submissionId).then(setComments).catch(() => {});
+  }, [submissionId]);
+
+  async function handleSend() {
+    if (!body.trim() || sending) return;
+    setSending(true);
+    try {
+      const c = await api.addComment(submissionId, body.trim());
+      setComments(prev => [...prev, c]);
+      setBody('');
+    } catch { /* silent */ }
+    finally { setSending(false); }
+  }
+
+  async function handleDelete(commentId: string) {
+    try {
+      await api.deleteComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch { /* silent */ }
+  }
+
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={cm.container}>
+          <View style={cm.header}>
+            <Text style={cm.title}>COMMENTS</Text>
+            <TouchableOpacity onPress={onClose}><Text style={cm.closeBtn}>✕</Text></TouchableOpacity>
+          </View>
+          <FlatList
+            data={comments}
+            keyExtractor={c => c.id}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 16, gap: 12 }}
+            ListEmptyComponent={<Text style={cm.empty}>No comments yet. Be the first!</Text>}
+            renderItem={({ item }) => (
+              <View style={cm.comment}>
+                <View style={{ flex: 1 }}>
+                  <Text style={cm.commentName}>{item.user.displayName}</Text>
+                  <Text style={cm.commentBody}>{item.body}</Text>
+                  <Text style={cm.commentTime}>{timeAgo(item.createdAt)}</Text>
+                </View>
+                {item.user.id === myUserId && (
+                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ paddingLeft: 12 }}>
+                    <Text style={cm.deleteBtn}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          />
+          <View style={cm.inputRow}>
+            <TextInput
+              style={cm.input}
+              placeholder="Add a comment..."
+              placeholderTextColor={colors.textMuted}
+              value={body}
+              onChangeText={setBody}
+              maxLength={500}
+              multiline
+            />
+            <TouchableOpacity
+              style={[cm.sendBtn, (!body.trim() || sending) && { opacity: 0.4 }]}
+              onPress={handleSend}
+              disabled={!body.trim() || sending}
+            >
+              <Text style={cm.sendBtnText}>POST</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function FeedCard({ item, region, onComment }: { item: FeedItem; region: string; onComment: () => void }) {
+  const lengthIn = (item.fishLengthCm / 2.54).toFixed(1);
+  const initials = getInitials(item.displayName);
+  const firstName = item.displayName.split(' ')[0].toUpperCase();
+  const speciesLabel = item.speciesName ? item.speciesName.toUpperCase() : 'FISH';
 
   return (
     <View style={styles.feedCard}>
       {/* Card header */}
       <View style={styles.feedCardHeader}>
         <View style={styles.feedAvatar}>
-          <Text style={styles.feedAvatarText}>{initials}</Text>
+          {item.profilePhotoUrl ? (
+            <Image source={{ uri: item.profilePhotoUrl }} style={styles.feedAvatarImg} />
+          ) : (
+            <Text style={styles.feedAvatarText}>{initials}</Text>
+          )}
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.feedAnglerName}>{entry.displayName}</Text>
-          {entry.username && <Text style={styles.feedUsername}>@{entry.username}</Text>}
+          <Text style={styles.feedAnglerName}>{item.displayName}</Text>
+          {item.username && <Text style={styles.feedUsername}>@{item.username}</Text>}
         </View>
-        {entry.rank <= 3 && (
-          <View style={styles.verifiedBadge}>
-            <Text style={styles.verifiedBadgeText}>✓ VERIFIED</Text>
+        {item.released && (
+          <View style={styles.releasedBadge}>
+            <Text style={styles.releasedBadgeText}>🐟 RELEASED</Text>
           </View>
         )}
-        <Text style={styles.feedDots}>···</Text>
+        <View style={[styles.verifiedBadge, { marginLeft: 6 }]}>
+          <Text style={styles.verifiedBadgeText}>✓ VERIFIED</Text>
+        </View>
       </View>
 
       {/* Fish photo */}
       <View style={styles.feedPhotoPlaceholder}>
-        {entry.photoUrl ? (
-          <Image
-            source={{ uri: entry.photoUrl }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-          />
+        {item.photoUrl ? (
+          <Image source={{ uri: item.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
-        {/* Length overlay */}
-        <View style={[styles.feedFishInfo, entry.photoUrl && styles.feedFishInfoOverlay]}>
-          <Text style={[styles.feedFishLengthLabel, entry.photoUrl && { color: 'rgba(255,255,255,0.8)' }]}>CATCH LENGTH</Text>
-          <Text style={[styles.feedFishLength, entry.photoUrl && { color: '#FFFFFF' }]}>{lengthIn}{'"'}</Text>
+        <View style={[styles.feedFishInfo, item.photoUrl && styles.feedFishInfoOverlay]}>
+          <Text style={[styles.feedFishLengthLabel, item.photoUrl && { color: 'rgba(255,255,255,0.8)' }]}>CATCH LENGTH</Text>
+          <Text style={[styles.feedFishLength, item.photoUrl && { color: '#FFFFFF' }]}>{lengthIn}{'"'}</Text>
         </View>
-        {entry.rank === 1 && (
-          <View style={styles.feedRankBadge}>
-            <Text style={styles.feedRankBadgeText}>#1</Text>
-          </View>
-        )}
       </View>
 
       {/* Caption */}
@@ -164,30 +239,18 @@ function FeedCard({ entry, region, onComment }: { entry: LeaderboardEntry; regio
           <Text style={{ color: colors.charcoal, fontWeight: '700' }}>{firstName} </Text>
           <Text>CAUGHT A </Text>
           <Text style={{ color: colors.accent, fontWeight: '800' }}>{lengthIn}"</Text>
-          <Text> FISH.</Text>
+          <Text> {speciesLabel}.</Text>
         </Text>
         <View style={styles.feedMeta}>
           <Text style={styles.feedMetaText}>📍 {region}</Text>
           <Text style={styles.feedMetaDot}>·</Text>
-          <Text style={styles.feedMetaText}>🕐 {entry.submittedAt ? timeAgo(entry.submittedAt) : 'Recently'}</Text>
+          <Text style={styles.feedMetaText}>🕐 {timeAgo(item.submittedAt)}</Text>
         </View>
       </View>
 
       {/* Action row */}
       <View style={styles.feedActions}>
-        <View style={[styles.feedActionBtn, { opacity: 1 }]}>
-          <Text style={styles.feedActionIcon}>✓</Text>
-          <Text style={styles.feedActionText}>VERIFIED</Text>
-        </View>
-        <View style={styles.feedActionDivider} />
-        {entry.submissionId ? (
-          <PropButton submissionId={entry.submissionId} />
-        ) : (
-          <View style={styles.feedActionBtn}>
-            <Text style={styles.feedActionIcon}>👍</Text>
-            <Text style={styles.feedActionText}>PROPS</Text>
-          </View>
-        )}
+        <PropButton submissionId={item.submissionId} initialCount={item.propsCount} />
         <View style={styles.feedActionDivider} />
         <TouchableOpacity style={styles.feedActionBtn} onPress={onComment} activeOpacity={0.7}>
           <Text style={styles.feedActionIcon}>💬</Text>
@@ -264,10 +327,12 @@ export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { setTournamentId } = useContext(TournamentContext);
   const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [pendingWarnings, setPendingWarnings] = useState<UserWarning[]>([]);
   const [profile, setProfile] = useState<AnglerProfile | null>(null);
+  const [commentSubmissionId, setCommentSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
     api.getMyWarnings()
@@ -279,75 +344,68 @@ export default function HomeScreen() {
     drainQueue()
       .then(({ succeeded }) => {
         if (succeeded > 0) {
-          Alert.alert(
-            'Catch Submitted',
-            `${succeeded} queued catch${succeeded > 1 ? 'es' : ''} submitted successfully.`,
-          );
+          Alert.alert('Catch Submitted', `${succeeded} queued catch${succeeded > 1 ? 'es' : ''} submitted successfully.`);
         }
       })
       .catch(() => {});
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      async function load() {
-        setLoading(true);
-        try {
-          const t = await api.getActiveTournament();
-          if (!active) return;
-          setTournament(t);
-          setTournamentId(t.id);
-          const board = await api.getLeaderboard(t.id);
-          if (!active) return;
-          setEntries(board);
-        } catch {
-          // no active tournament or network issue
-        } finally {
-          if (active) setLoading(false);
-        }
-      }
-      load();
-      return () => { active = false; };
-    }, [])
-  );
+  async function load(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const t = await api.getActiveTournament();
+      setTournament(t);
+      setTournamentId(t.id);
+      const items = await api.getFeed(t.id);
+      setFeed(items);
+    } catch {
+      // no active tournament or network issue
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
 
-  const region = tournament?.region?.name ?? 'Pacific Northwest';
+  useFocusEffect(useCallback(() => { load(); }, []));
+
+  const region = tournament?.region?.name ?? 'All Regions';
 
   function handleSignOut() {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out', style: 'destructive',
-        onPress: async () => {
-          await storage.deleteToken();
-          navigation.replace('Login');
-        },
+        onPress: async () => { await storage.deleteToken(); navigation.replace('Login'); },
       },
     ]);
   }
 
   function handleAvatarPress() {
-    Alert.alert(
-      profile?.displayName ?? 'My Account',
-      undefined,
-      [
-        { text: 'View Profile', onPress: () => navigation.navigate('Profile' as any) },
-        { text: 'Sign Out', style: 'destructive', onPress: handleSignOut },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    Alert.alert(profile?.user?.displayName ?? 'My Account', undefined, [
+      { text: 'View Profile', onPress: () => navigation.navigate('Profile' as any) },
+      { text: 'Sign Out', style: 'destructive', onPress: handleSignOut },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       {pendingWarnings.length > 0 && (
-        <WarningsModal
-          warnings={pendingWarnings}
-          onDismiss={() => setPendingWarnings([])}
+        <WarningsModal warnings={pendingWarnings} onDismiss={() => setPendingWarnings([])} />
+      )}
+      {commentSubmissionId && (
+        <CommentsModal
+          submissionId={commentSubmissionId}
+          myUserId={profile?.userId ?? null}
+          onClose={() => setCommentSubmissionId(null)}
         />
       )}
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.accent} />}
+      >
         {/* Header */}
         <View style={styles.header}>
           <FishLeagueLogoFull width={240} />
@@ -356,9 +414,7 @@ export default function HomeScreen() {
               <Image source={{ uri: profile.profilePhotoUrl }} style={styles.avatarImg} />
             ) : (
               <View style={styles.avatarInitials}>
-                <Text style={styles.avatarInitialsText}>
-                  {getInitials(profile?.displayName ?? '?')}
-                </Text>
+                <Text style={styles.avatarInitialsText}>{getInitials(profile?.user?.displayName ?? '?')}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -371,7 +427,6 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
-            {/* Tournament Banner */}
             {tournament && <TournamentBanner tournament={tournament} />}
             {!tournament && (
               <View style={styles.noTournamentCard}>
@@ -380,7 +435,6 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* Forecast Card */}
             <TouchableOpacity style={styles.forecastCard} onPress={() => navigation.navigate('Forecast')} activeOpacity={0.85}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.forecastLabel}>⚡ FISHING INTELLIGENCE</Text>
@@ -389,7 +443,6 @@ export default function HomeScreen() {
               <Text style={styles.forecastArrow}>›</Text>
             </TouchableOpacity>
 
-            {/* Hot Spots Card */}
             <TouchableOpacity style={styles.hotSpotsCard} onPress={() => navigation.navigate('HotSpots')} activeOpacity={0.85}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.hotSpotsLabel}>🗺️ CATCH HOT SPOTS</Text>
@@ -398,25 +451,24 @@ export default function HomeScreen() {
               <Text style={styles.forecastArrow}>›</Text>
             </TouchableOpacity>
 
-            {/* Recent Catches Section */}
-            {entries.length > 0 && (
+            {feed.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionLabel}>RECENT CATCHES</Text>
                   <View style={styles.sectionLine} />
                 </View>
-                {entries.slice(0, 10).map(entry => (
+                {feed.map(item => (
                   <FeedCard
-                    key={entry.userId}
-                    entry={entry}
+                    key={item.submissionId}
+                    item={item}
                     region={region}
-                    onComment={() => navigation.navigate('MainTabs', { screen: 'Leaderboard' } as any)}
+                    onComment={() => setCommentSubmissionId(item.submissionId)}
                   />
                 ))}
               </>
             )}
 
-            {entries.length === 0 && tournament && (
+            {feed.length === 0 && tournament && (
               <View style={styles.emptyFeed}>
                 <Text style={styles.emptyFeedText}>No catches yet — be the first!</Text>
                 <Text style={styles.emptyFeedSub}>Submit a catch to appear on the leaderboard.</Text>
@@ -604,19 +656,39 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   feedAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.surfaceHigh,
     borderWidth: 1.5,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  feedAvatarImg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   feedAvatarText: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.text,
+  },
+  releasedBadge: {
+    backgroundColor: '#0F3A1E',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: colors.verified + '50',
+  },
+  releasedBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.verified,
+    letterSpacing: 0.5,
   },
   feedAnglerName: {
     fontSize: 14,
@@ -782,6 +854,42 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
   },
+});
+
+const cm = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 20, paddingHorizontal: 20, paddingBottom: 16,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  title: { ...typography.displaySm, color: colors.text },
+  closeBtn: { fontSize: 18, color: colors.textSub, paddingLeft: 16 },
+  empty: { ...typography.bodyMd, color: colors.textMuted, textAlign: 'center', paddingTop: 40 },
+  comment: {
+    flexDirection: 'row', backgroundColor: colors.surface,
+    borderRadius: 10, padding: 12, borderWidth: 1, borderColor: colors.border,
+  },
+  commentName: { ...typography.label, color: colors.accent, marginBottom: 4 },
+  commentBody: { ...typography.bodyMd, color: colors.text, lineHeight: 20 },
+  commentTime: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+  deleteBtn: { color: colors.textMuted, fontSize: 14, paddingTop: 2 },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
+    padding: 16, borderTopWidth: 1, borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  input: {
+    flex: 1, ...typography.bodyMd, color: colors.text,
+    backgroundColor: colors.bg, borderRadius: 10, borderWidth: 1,
+    borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10,
+    maxHeight: 100,
+  },
+  sendBtn: {
+    backgroundColor: colors.accent, borderRadius: 10,
+    paddingHorizontal: 16, paddingVertical: 10,
+  },
+  sendBtnText: { ...typography.button, color: colors.bg, fontSize: 13 },
 });
 
 const warningStyles = StyleSheet.create({

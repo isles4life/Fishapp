@@ -140,6 +140,22 @@ export interface AnglerProfile {
   user: { displayName: string; createdAt: string };
 }
 
+// ── Feed ──────────────────────────────────────────────────────────────────
+
+export interface FeedItem {
+  submissionId: string;
+  userId: string;
+  displayName: string;
+  username: string | null;
+  profilePhotoUrl: string | null;
+  fishLengthCm: number;
+  speciesName: string | null;
+  released: boolean;
+  photoUrl: string | null;
+  submittedAt: string;
+  propsCount: number;
+}
+
 // ── Hot Spots ──────────────────────────────────────────────────────────────
 
 export interface HotSpot {

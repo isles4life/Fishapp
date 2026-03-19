@@ -7,6 +7,7 @@ import type {
   MySubmission,
   SubmissionResult,
   LeaderboardEntry,
+  FeedItem,
   UserRank,
   AnglerProfile,
   UpdateProfilePayload,
@@ -145,6 +146,10 @@ export async function uploadSubmission(fields: {
 export function getLeaderboard(tournamentId: string, species?: string): Promise<LeaderboardEntry[]> {
   const qs = species ? `?species=${encodeURIComponent(species)}` : '';
   return request(`/leaderboard/${tournamentId}${qs}`);
+}
+
+export function getFeed(tournamentId: string): Promise<FeedItem[]> {
+  return request(`/submissions/feed?tournamentId=${encodeURIComponent(tournamentId)}`);
 }
 
 export function getMyRank(tournamentId: string): Promise<UserRank> {

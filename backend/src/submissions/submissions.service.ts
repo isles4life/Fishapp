@@ -281,6 +281,36 @@ export class SubmissionsService {
     }));
   }
 
+  async getFeed(tournamentId: string) {
+    const submissions = await this.prisma.submission.findMany({
+      where: { tournamentId, status: 'APPROVED' },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            displayName: true,
+            profile: { select: { username: true, profilePhotoUrl: true } },
+          },
+        },
+        _count: { select: { props: true } },
+      },
+    });
+
+    return Promise.all(submissions.map(async (s) => ({
+      submissionId: s.id,
+      userId: s.userId,
+      displayName: s.user.displayName,
+      username: s.user.profile?.username ?? null,
+      profilePhotoUrl: s.user.profile?.profilePhotoUrl ?? null,
+      fishLengthCm: s.fishLengthCm,
+      speciesName: s.speciesName ?? null,
+      released: s.released,
+      photoUrl: s.photo2Key ? await this.s3.getPresignedUrl(s.photo2Key, 3600) : null,
+      submittedAt: s.createdAt.toISOString(),
+      propsCount: s._count.props,
+    })));
+  }
+
   async getHotSpots(tournamentId?: string) {
     const submissions = await this.prisma.submission.findMany({
       where: {
