@@ -259,9 +259,16 @@ export function ProfileView({
         {/* Stats grid */}
         <View style={s.statsGrid}>
           <StatCard label="TOTAL CATCHES" value={String(stats.totalCatches)} />
-          <StatCard label="PB" value={stats.largestCatchCm ? `${(stats.largestCatchCm / 2.54).toFixed(1)}"` : '—'} />
-          <StatCard label="LEAGUE RANK" value={stats.tournamentsWon > 0 ? `#${stats.tournamentsWon}` : '—'} />
-          <StatCard label="PROPS" value={String(Math.round(profile.sportsmanshipScore * 10))} />
+          <StatCard label="PERSONAL BEST" value={stats.largestCatchCm ? `${(stats.largestCatchCm / 2.54).toFixed(1)}"` : '—'} />
+          <StatCard label="AVG CATCH" value={stats.averageCatchCm ? `${(stats.averageCatchCm / 2.54).toFixed(1)}"` : '—'} />
+          <StatCard label="TOURNAMENTS" value={String(stats.totalTournamentsEntered)} />
+          <StatCard label="WINS" value={String(stats.tournamentsWon)} />
+          <StatCard
+            label="WIN RATE"
+            value={stats.totalTournamentsEntered > 0
+              ? `${Math.round((stats.tournamentsWon / stats.totalTournamentsEntered) * 100)}%`
+              : '—'}
+          />
         </View>
 
         {/* Achievements */}
@@ -950,7 +957,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.cream,
   },
   statCard: {
-    width: '47%',
+    width: '31%',
     backgroundColor: colors.white,
     borderRadius: 12,
     padding: 14,

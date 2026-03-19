@@ -144,12 +144,19 @@ export default function PublicProfilePage() {
 
             {error && <div style={{ color: C.error, background: C.errorBg, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
-            {/* Stats — 2×2 grid matching mobile layout */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 24 }}>
+            {/* Stats — 3×2 career grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
               <StatCard label="Total Catches" value={profile.stats.totalCatches} />
-              <StatCard label="PB / Best Catch" value={profile.stats.largestCatchCm ? `${(profile.stats.largestCatchCm / 2.54).toFixed(1)}"` : null} />
-              <StatCard label="Tournaments" value={profile.stats.totalTournamentsEntered} />
+              <StatCard label="Personal Best" value={profile.stats.largestCatchCm ? `${(profile.stats.largestCatchCm / 2.54).toFixed(1)}"` : null} />
               <StatCard label="Avg Catch" value={profile.stats.averageCatchCm ? `${(profile.stats.averageCatchCm / 2.54).toFixed(1)}"` : null} />
+              <StatCard label="Tournaments" value={profile.stats.totalTournamentsEntered} />
+              <StatCard label="Wins" value={profile.stats.tournamentsWon} />
+              <StatCard
+                label="Win Rate"
+                value={profile.stats.totalTournamentsEntered > 0
+                  ? `${Math.round((profile.stats.tournamentsWon / profile.stats.totalTournamentsEntered) * 100)}%`
+                  : null}
+              />
             </div>
 
             {/* Badges */}
