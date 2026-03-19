@@ -44,6 +44,7 @@ export interface Tournament {
   startsAt: string; endsAt: string; isOpen: boolean;
   entryFeeCents: number; prizePoolCents: number; scoringMethod?: string;
   description?: string | null;
+  bannerUrl?: string | null;
   region: { name: string };
   director?: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null } | null;
   _count?: { submissions: number; checkIns: number };

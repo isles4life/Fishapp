@@ -126,6 +126,21 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
 
         {!loading && !error && tournament && (
           <>
+            {/* Banner image */}
+            {tournament.bannerUrl && (
+              <div style={{ marginBottom: 20, borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={tournament.bannerUrl} alt={tournament.name} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(46,61,56,0.9) 100%)' }} />
+                <div style={{ position: 'absolute', bottom: 16, left: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: C.accent, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>
+                    {tournament.isOpen ? '🟢 Live' : 'Final Results'}
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{tournament.name}</div>
+                </div>
+              </div>
+            )}
+
             {/* Tournament header */}
             <div style={{
               backgroundColor: C.surface, borderRadius: 16,

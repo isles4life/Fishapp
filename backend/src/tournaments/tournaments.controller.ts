@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request, BadRequestException, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { AdminGuard } from '../common/admin.guard';
 import { TournamentsService } from './tournaments.service';
@@ -115,6 +116,20 @@ export class TournamentsController {
   ) {
     const result = await this.tournamentsService.update(id, body);
     await this.auditService.log('TOURNAMENT_UPDATED', req.user.id, req.user.displayName, id, body);
+    return result;
+  }
+
+  @Post(':id/banner')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseInterceptors(FileInterceptor('banner'))
+  async uploadBanner(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
+  ) {
+    if (!file) throw new BadRequestException('banner file is required');
+    const result = await this.tournamentsService.uploadBanner(id, file.buffer, file.mimetype);
+    await this.auditService.log('TOURNAMENT_BANNER_UPLOADED', req.user.id, req.user.displayName, id, {});
     return result;
   }
 

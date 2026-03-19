@@ -54,6 +54,10 @@ export class TournamentsService {
     });
     if (!tournament) throw new NotFoundException('Tournament not found');
 
+    const bannerUrl = tournament.bannerKey
+      ? await this.s3.getPresignedUrl(tournament.bannerKey, 3600).catch(() => null)
+      : null;
+
     // Top 3 leaderboard entries
     const top3 = await this.prisma.leaderboardEntry.findMany({
       where: { tournamentId: id },
@@ -64,7 +68,7 @@ export class TournamentsService {
       },
     });
 
-    return { ...tournament, top3 };
+    return { ...tournament, top3, bannerUrl };
   }
 
   // Admin only
@@ -251,6 +255,17 @@ export class TournamentsService {
     }).catch(() => { /* non-critical */ });
 
     return { sent: tokens.length };
+  }
+
+  async uploadBanner(id: string, buffer: Buffer, contentType: string): Promise<{ bannerUrl: string }> {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) throw new NotFoundException('Tournament not found');
+    const ext = contentType.split('/')[1] ?? 'jpg';
+    const key = `tournaments/${id}/banner.${ext}`;
+    await this.s3.uploadBuffer(key, buffer, contentType);
+    await this.prisma.tournament.update({ where: { id }, data: { bannerKey: key } });
+    const bannerUrl = await this.s3.getPresignedUrl(key, 3600);
+    return { bannerUrl };
   }
 
   // ── Feed ──────────────────────────────────────────────────────────────────

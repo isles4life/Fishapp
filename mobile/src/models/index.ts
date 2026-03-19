@@ -37,6 +37,7 @@ export interface Tournament {
     profile?: { username?: string | null; profilePhotoUrl?: string | null } | null;
   } | null;
   directorId?: string | null;
+  bannerUrl?: string | null;
   _count?: { submissions: number; checkIns: number };
   top3?: Array<{
     rank: number | null;

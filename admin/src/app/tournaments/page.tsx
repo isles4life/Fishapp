@@ -27,6 +27,8 @@ interface Tournament {
   description?: string | null;
   directorId?: string | null;
   director?: { id: string; displayName: string } | null;
+  bannerKey?: string | null;
+  bannerUrl?: string | null;
 }
 
 const PAGE_SIZE = 20;
@@ -94,6 +96,8 @@ export default function TournamentsPage() {
   const [editDescription, setEditDescription] = useState('');
   const [editDirectorId, setEditDirectorId] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [editBannerPreview, setEditBannerPreview] = useState<string | null>(null);
+  const [editBannerUploading, setEditBannerUploading] = useState(false);
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -181,6 +185,7 @@ export default function TournamentsPage() {
     setEditScoringMethod(t.scoringMethod ?? 'LENGTH');
     setEditDescription(t.description ?? '');
     setEditDirectorId(t.directorId ?? '');
+    setEditBannerPreview(t.bannerUrl ?? null);
   }
 
   async function saveEdit(e: React.FormEvent) {
@@ -202,6 +207,19 @@ export default function TournamentsPage() {
       setEditTarget(null);
     } catch (e: any) { setError(e.message); }
     finally { setEditSaving(false); }
+  }
+
+  async function handleBannerFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editTarget) return;
+    setEditBannerPreview(URL.createObjectURL(file));
+    setEditBannerUploading(true);
+    try {
+      const res = await api.uploadTournamentBanner(editTarget.id, file);
+      setEditBannerPreview(res.bannerUrl);
+      await load();
+    } catch (err: any) { setError(err.message); }
+    finally { setEditBannerUploading(false); }
   }
 
   async function openQrModal(t: Tournament) {
@@ -467,6 +485,31 @@ export default function TournamentsPage() {
           <div style={{ backgroundColor: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 28, maxWidth: 560, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.4)', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ color: C.text, margin: '0 0 20px', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>✏️ Edit Tournament</h3>
             <form onSubmit={saveEdit}>
+
+              {/* Banner photo */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Banner Photo</label>
+                {editBannerPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={editBannerPreview} alt="Banner preview" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.border}`, marginBottom: 10 }} />
+                )}
+                <label style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  backgroundColor: editBannerUploading ? C.surfaceHigh : C.bg,
+                  border: `1px solid ${C.border}`, borderRadius: 8,
+                  padding: '8px 16px', cursor: editBannerUploading ? 'default' : 'pointer',
+                  fontSize: 13, fontWeight: 600, color: editBannerUploading ? C.textMuted : C.textSub,
+                }}>
+                  {editBannerUploading ? 'Uploading...' : editBannerPreview ? '↻ Replace Banner' : '+ Upload Banner'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    disabled={editBannerUploading}
+                    onChange={handleBannerFileChange}
+                  />
+                </label>
+              </div>
 
               <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Name</label>
               <input value={editName} onChange={e => setEditName(e.target.value)} required style={inputStyle} />

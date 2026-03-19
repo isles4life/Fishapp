@@ -126,6 +126,7 @@ model Tournament {
 
   description     String?
   directorId      String?
+  bannerKey       String?
 
   region      Region    @relation(fields: [regionId], references: [id])
   director    User?     @relation("TournamentDirector", fields: [directorId], references: [id], onDelete: SetNull)

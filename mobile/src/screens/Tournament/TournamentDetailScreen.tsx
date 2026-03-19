@@ -294,6 +294,14 @@ export default function TournamentDetailScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* ── Banner ──────────────────────────────────────────────────────── */}
+          {tournament.bannerUrl && (
+            <View style={s.bannerWrap}>
+              <Image source={{ uri: tournament.bannerUrl }} style={s.bannerImage} resizeMode="cover" />
+              <View style={s.bannerOverlay} />
+            </View>
+          )}
+
           {/* ── Hero card ───────────────────────────────────────────────────── */}
           <View style={s.heroCard}>
             <View style={s.heroTop}>
@@ -536,6 +544,11 @@ const s = StyleSheet.create({
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorText: { ...typography.bodyMd, color: colors.error, textAlign: 'center' },
   scroll: { paddingBottom: 32 },
+
+  // Banner
+  bannerWrap: { width: '100%', height: 180, marginBottom: -8 },
+  bannerImage: { width: '100%', height: 180 },
+  bannerOverlay: {},
 
   // Header
   header: { paddingTop: 8, paddingHorizontal: 16, paddingBottom: 4 },

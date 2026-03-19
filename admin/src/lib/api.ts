@@ -94,6 +94,17 @@ export const api = {
     directorId?: string | null;
   }) => apiFetch(`/tournaments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
+  uploadTournamentBanner: (id: string, file: File) => {
+    const form = new FormData();
+    form.append('banner', file);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    return fetch(`${BASE}/tournaments/${id}/banner`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(r => r.json()) as Promise<{ bannerUrl: string }>;
+  },
+
   generateCheckInCode: (id: string) =>
     apiFetch<{ id: string; checkInCode: string }>(`/tournaments/${id}/check-in-code`, { method: 'PATCH' }),
 
