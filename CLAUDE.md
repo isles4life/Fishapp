@@ -219,6 +219,11 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - MVP fully deployed: backend + admin + web live on AWS
 - **New EAS build required** to ship all recent mobile changes (see below)
 - GPS-based region detection deployed: users no longer pick a region at registration; GPS at submission time validates against tournament's region. `User.regionId` is now nullable. Migration `20260318000000_make_user_regionid_optional` drops the NOT NULL constraint.
+- **iAngler gap closures shipped (backend + web deployed; mobile needs new EAS build):**
+  - Rejection note shown in-app on Tournament screen under REJECTED badge
+  - Species quick-pick chips (24 species) in submission flow + custom text fallback
+  - Historical leaderboards: `GET /tournaments/history` + `TournamentHistoryScreen` accordion (tap to expand top-10)
+  - Public spectator view: `/leaderboard/[id]` web page (no login) + mobile share sheet button
 - Mobile fixes shipped (need new EAS build): FishingIntelligenceScreen back button, profile comma-field delete bug, profilePhotoUrl empty string validation, SubmissionFlowScreen inches display
 - iOS TestFlight build #13 (March 18) shipped — includes all design changes, props/comments fix, leaderboard timestamps
 - Backend auto-deployed: leaderboard entries now include presigned `photoUrl` + `submittedAt`
