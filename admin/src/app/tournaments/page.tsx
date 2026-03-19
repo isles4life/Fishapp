@@ -83,6 +83,14 @@ export default function TournamentsPage() {
   const [formDirectorId, setFormDirectorId] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [editTarget, setEditTarget] = useState<Tournament | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editStartsDate, setEditStartsDate] = useState('');
+  const [editStartsTime, setEditStartsTime] = useState('');
+  const [editEndsDate, setEditEndsDate] = useState('');
+  const [editEndsTime, setEditEndsTime] = useState('');
+  const [editEntryFee, setEditEntryFee] = useState('');
+  const [editPrizePool, setEditPrizePool] = useState('');
+  const [editScoringMethod, setEditScoringMethod] = useState('LENGTH');
   const [editDescription, setEditDescription] = useState('');
   const [editDirectorId, setEditDirectorId] = useState('');
   const [editSaving, setEditSaving] = useState(false);
@@ -161,6 +169,16 @@ export default function TournamentsPage() {
 
   function openEditModal(t: Tournament) {
     setEditTarget(t);
+    setEditName(t.name);
+    const starts = new Date(t.startsAt);
+    const ends = new Date(t.endsAt);
+    setEditStartsDate(starts.toISOString().slice(0, 10));
+    setEditStartsTime(starts.toTimeString().slice(0, 5));
+    setEditEndsDate(ends.toISOString().slice(0, 10));
+    setEditEndsTime(ends.toTimeString().slice(0, 5));
+    setEditEntryFee(t.entryFeeCents > 0 ? (t.entryFeeCents / 100).toFixed(2) : '');
+    setEditPrizePool(t.prizePoolCents > 0 ? (t.prizePoolCents / 100).toFixed(2) : '');
+    setEditScoringMethod(t.scoringMethod ?? 'LENGTH');
     setEditDescription(t.description ?? '');
     setEditDirectorId(t.directorId ?? '');
   }
@@ -170,7 +188,13 @@ export default function TournamentsPage() {
     if (!editTarget) return;
     setEditSaving(true);
     try {
-      await (api as any).updateTournament(editTarget.id, {
+      await api.updateTournament(editTarget.id, {
+        name: editName,
+        startsAt: new Date(`${editStartsDate}T${editStartsTime}:00`).toISOString(),
+        endsAt: new Date(`${editEndsDate}T${editEndsTime}:00`).toISOString(),
+        entryFeeCents: editEntryFee ? Math.round(parseFloat(editEntryFee) * 100) : 0,
+        prizePoolCents: editPrizePool ? Math.round(parseFloat(editPrizePool) * 100) : 0,
+        scoringMethod: editScoringMethod,
         description: editDescription || undefined,
         directorId: editDirectorId || null,
       });
@@ -440,16 +464,46 @@ export default function TournamentsPage() {
       {/* Edit tournament modal */}
       {editTarget && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ backgroundColor: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 28, maxWidth: 480, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.4)' }}>
-            <h3 style={{ color: C.text, margin: '0 0 4px', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>✏️ Edit Tournament</h3>
-            <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 20px' }}>{editTarget.name}</p>
+          <div style={{ backgroundColor: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 28, maxWidth: 560, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.4)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ color: C.text, margin: '0 0 20px', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>✏️ Edit Tournament</h3>
             <form onSubmit={saveEdit}>
+
+              <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Name</label>
+              <input value={editName} onChange={e => setEditName(e.target.value)} required style={inputStyle} />
+
+              <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Start Date &amp; Time</label>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <input type="date" value={editStartsDate} onChange={e => setEditStartsDate(e.target.value)} required style={{ ...inputStyle, marginBottom: 0, flex: 2, color: C.accent, borderColor: C.accent + '80', colorScheme: 'dark' }} />
+                <input type="time" value={editStartsTime} onChange={e => setEditStartsTime(e.target.value)} required style={{ ...inputStyle, marginBottom: 0, flex: 1, color: C.accent, borderColor: C.accent + '80', colorScheme: 'dark' }} />
+              </div>
+
+              <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>End Date &amp; Time</label>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <input type="date" value={editEndsDate} onChange={e => setEditEndsDate(e.target.value)} required style={{ ...inputStyle, marginBottom: 0, flex: 2, color: C.accent, borderColor: C.accent + '80', colorScheme: 'dark' }} />
+                <input type="time" value={editEndsTime} onChange={e => setEditEndsTime(e.target.value)} required style={{ ...inputStyle, marginBottom: 0, flex: 1, color: C.accent, borderColor: C.accent + '80', colorScheme: 'dark' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Entry Fee ($)</label>
+                  <input type="number" min="0" step="0.01" value={editEntryFee} onChange={e => setEditEntryFee(e.target.value)} placeholder="0.00" style={inputStyle} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Prize Pool ($)</label>
+                  <input type="number" min="0" step="0.01" value={editPrizePool} onChange={e => setEditPrizePool(e.target.value)} placeholder="0.00" style={inputStyle} />
+                </div>
+              </div>
+
+              <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Scoring Method</label>
+              <select value={editScoringMethod} onChange={e => setEditScoringMethod(e.target.value)} style={{ ...inputStyle, marginBottom: 14 }}>
+                <option value="LENGTH">Longest Fish (inches)</option>
+                <option value="WEIGHT">Heaviest Fish (oz)</option>
+                <option value="FISH_COUNT">Most Fish Caught</option>
+                <option value="SPECIES_COUNT">Most Species</option>
+              </select>
+
               <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Tournament Director</label>
-              <select
-                value={editDirectorId}
-                onChange={e => setEditDirectorId(e.target.value)}
-                style={{ ...inputStyle, marginBottom: 14 }}
-              >
+              <select value={editDirectorId} onChange={e => setEditDirectorId(e.target.value)} style={{ ...inputStyle, marginBottom: 14 }}>
                 <option value="">None assigned</option>
                 {directors.map(d => (
                   <option key={d.id} value={d.id}>{d.displayName}</option>

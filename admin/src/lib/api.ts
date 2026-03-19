@@ -83,8 +83,16 @@ export const api = {
   getUserWarnings: (userId: string) =>
     apiFetch<any[]>(`/admin/warnings?userId=${userId}`),
 
-  updateTournament: (id: string, data: { description?: string; directorId?: string | null }) =>
-    apiFetch(`/tournaments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateTournament: (id: string, data: {
+    name?: string;
+    startsAt?: string;
+    endsAt?: string;
+    entryFeeCents?: number;
+    prizePoolCents?: number;
+    scoringMethod?: string;
+    description?: string;
+    directorId?: string | null;
+  }) => apiFetch(`/tournaments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   generateCheckInCode: (id: string) =>
     apiFetch<{ id: string; checkInCode: string }>(`/tournaments/${id}/check-in-code`, { method: 'PATCH' }),

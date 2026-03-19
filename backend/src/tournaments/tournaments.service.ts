@@ -88,8 +88,26 @@ export class TournamentsService {
     });
   }
 
-  async update(id: string, data: { description?: string; directorId?: string | null }) {
-    return this.prisma.tournament.update({ where: { id }, data });
+  async update(id: string, data: {
+    name?: string;
+    startsAt?: string;
+    endsAt?: string;
+    entryFeeCents?: number;
+    prizePoolCents?: number;
+    scoringMethod?: string;
+    description?: string;
+    directorId?: string | null;
+  }) {
+    const { startsAt, endsAt, ...rest } = data;
+    return this.prisma.tournament.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(startsAt ? { startsAt: new Date(startsAt) } : {}),
+        ...(endsAt ? { endsAt: new Date(endsAt) } : {}),
+        ...(rest.scoringMethod ? { scoringMethod: rest.scoringMethod as any } : {}),
+      },
+    });
   }
 
   async listAll() {
