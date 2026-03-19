@@ -367,9 +367,9 @@ function BirthdayPicker({ value, onChange }: { value?: string; onChange: (iso: s
   const daysInMonth = new Date(selYear, selMonth + 1, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  function confirm() {
-    const safeDay = Math.min(selDay, daysInMonth);
-    const d = new Date(selYear, selMonth, safeDay);
+  function confirm(year = selYear) {
+    const safeDay = Math.min(selDay, new Date(year, selMonth + 1, 0).getDate());
+    const d = new Date(year, selMonth, safeDay);
     onChange(d.toISOString());
     setOpen(false);
   }
@@ -443,7 +443,7 @@ function BirthdayPicker({ value, onChange }: { value?: string; onChange: (iso: s
               data={YEARS}
               keyExtractor={y => String(y)}
               renderItem={({ item }) => (
-                <TouchableOpacity style={[bp.listRow, item === selYear && bp.listRowActive]} onPress={() => { setSelYear(item); confirm(); }}>
+                <TouchableOpacity style={[bp.listRow, item === selYear && bp.listRowActive]} onPress={() => { setSelYear(item); confirm(item); }}>
                   <Text style={[bp.listText, item === selYear && { color: colors.accent, fontWeight: '700' }]}>{item}</Text>
                   {item === selYear && <Text style={{ color: colors.accent }}>✓</Text>}
                 </TouchableOpacity>
