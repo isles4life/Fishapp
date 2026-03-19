@@ -12,7 +12,7 @@ const mockPrisma = {
     findMany: jest.fn(),
     update: jest.fn(),
   },
-  tournament: { update: jest.fn() },
+  tournament: { update: jest.fn(), findUnique: jest.fn() },
 };
 
 const mockGateway = { broadcastLeaderboardUpdate: jest.fn() };
@@ -47,6 +47,8 @@ describe('LeaderboardService', () => {
       tournamentId: 'tourn-1',
       userId: 'user-1',
       fishLengthCm: 45.5,
+      fishWeightOz: null,
+      tournament: { scoringMethod: 'LENGTH' },
     };
     mockPrisma.submission.findUnique.mockResolvedValue(submission);
     mockPrisma.leaderboardEntry.findUnique.mockResolvedValue(null);
@@ -69,6 +71,8 @@ describe('LeaderboardService', () => {
       tournamentId: 'tourn-1',
       userId: 'user-1',
       fishLengthCm: 30.0,
+      fishWeightOz: null,
+      tournament: { scoringMethod: 'LENGTH' },
     };
     mockPrisma.submission.findUnique.mockResolvedValue(submission);
     mockPrisma.leaderboardEntry.findUnique.mockResolvedValue({ fishLengthCm: 50.0 });
@@ -80,9 +84,10 @@ describe('LeaderboardService', () => {
   });
 
   it('getTop25 returns ranked entries', async () => {
+    mockPrisma.tournament.findUnique.mockResolvedValue({ scoringMethod: 'LENGTH' });
     mockPrisma.leaderboardEntry.findMany.mockResolvedValue([
-      { userId: 'u1', fishLengthCm: 60, submissionId: 's1', user: { displayName: 'Alice', profile: null }, submission: { speciesName: null, speciesCategory: null, photo1Key: null, createdAt: new Date() } },
-      { userId: 'u2', fishLengthCm: 50, submissionId: 's2', user: { displayName: 'Bob', profile: null }, submission: { speciesName: null, speciesCategory: null, photo1Key: null, createdAt: new Date() } },
+      { userId: 'u1', fishLengthCm: 60, score: 60, submissionId: 's1', user: { displayName: 'Alice', profile: null }, submission: { speciesName: null, speciesCategory: null, photo1Key: null, createdAt: new Date(), fishWeightOz: null, released: false } },
+      { userId: 'u2', fishLengthCm: 50, score: 50, submissionId: 's2', user: { displayName: 'Bob', profile: null }, submission: { speciesName: null, speciesCategory: null, photo1Key: null, createdAt: new Date(), fishWeightOz: null, released: false } },
     ]);
 
     const result = await service.getTop25('tourn-1');
