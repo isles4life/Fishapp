@@ -139,7 +139,42 @@ export class SubmissionsService {
     // Fire-and-forget confirmation email
     this.email.sendSubmissionReceived(user.email, user.displayName, tournament.name);
 
+    // Fire-and-forget AI fraud check — flags submission if photo contains no fish
+    this.checkIsFish(photo2, submission.id);
+
     return { submissionId: submission.id, status: 'PENDING' };
+  }
+
+  private async checkIsFish(photoBuffer: Buffer, submissionId: string): Promise<void> {
+    try {
+      const blob = new Blob([new Uint8Array(photoBuffer)], { type: 'image/jpeg' });
+      const form = new FormData();
+      form.append('image', blob, 'fish.jpg');
+
+      const res = await fetch('https://api.inaturalist.org/v1/computervision/score_image', {
+        method: 'POST',
+        body: form,
+      });
+      if (!res.ok) return;
+
+      const data: any = await res.json();
+      const fishResults = (data.results ?? []).filter(
+        (r: any) => r.taxon?.iconic_taxon_name === 'Actinopterygii',
+      );
+
+      // Flag if no fish detected at all, or top fish confidence is very low
+      const topFishScore = fishResults[0]?.combined_score ?? 0;
+      const suspect = fishResults.length === 0 || topFishScore < 0.15;
+
+      if (suspect) {
+        await this.prisma.submission.update({
+          where: { id: submissionId },
+          data: { flagSuspectPhoto: true },
+        });
+      }
+    } catch {
+      // Never fail the submission over a fraud check
+    }
   }
 
   async getMySubmissions(userId: string, tournamentId: string) {

@@ -141,6 +141,7 @@ model Submission {
 
   flagDuplicateHash    Boolean @default(false)
   flagDuplicateGps     Boolean @default(false)
+  flagSuspectPhoto     Boolean @default(false)
   released             Boolean @default(false)
 
   createdAt        DateTime @default(now())
