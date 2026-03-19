@@ -66,6 +66,16 @@ export class TournamentsController {
     return tournament;
   }
 
+  @Post(':id/draw')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async draw(@Param('id') id: string, @Body() body: { weighted?: boolean }, @Request() req: any) {
+    const result = await this.tournamentsService.drawPrizeWinner(id, body.weighted ?? false);
+    await this.auditService.log('PRIZE_DRAW', req.user.id, req.user.displayName, id, {
+      winner: result.winner.displayName, email: result.winner.email, pool: result.pool, weighted: body.weighted ?? false,
+    });
+    return result;
+  }
+
   @Post(':id/announce')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async announce(@Param('id') id: string, @Body() body: { title: string; message: string }, @Request() req: any) {

@@ -48,6 +48,11 @@ export const api = {
   announceTournament: (id: string, title: string, message: string) =>
     apiFetch<{ sent: number }>(`/tournaments/${id}/announce`, { method: 'POST', body: JSON.stringify({ title, message }) }),
 
+  drawPrizeWinner: (id: string, weighted = false) =>
+    apiFetch<{ winner: { userId: string; displayName: string; email: string }; pool: number }>(
+      `/tournaments/${id}/draw`, { method: 'POST', body: JSON.stringify({ weighted }) }
+    ),
+
   getLeaderboard: (tournamentId: string) =>
     apiFetch<any[]>(`/leaderboard/${tournamentId}`),
 

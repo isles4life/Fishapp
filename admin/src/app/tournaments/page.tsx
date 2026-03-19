@@ -63,6 +63,10 @@ export default function TournamentsPage() {
   const [announceForm, setAnnounceForm] = useState({ title: '', message: '' });
   const [announceSending, setAnnounceSending] = useState(false);
   const [announceResult, setAnnounceResult] = useState<string | null>(null);
+  const [drawTarget, setDrawTarget] = useState<Tournament | null>(null);
+  const [drawWeighted, setDrawWeighted] = useState(false);
+  const [drawResult, setDrawResult] = useState<{ winner: { displayName: string; email: string }; pool: number } | null>(null);
+  const [drawLoading, setDrawLoading] = useState(false);
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -113,6 +117,17 @@ export default function TournamentsPage() {
     } finally {
       setAnnounceSending(false);
     }
+  }
+
+  async function runDraw() {
+    if (!drawTarget) return;
+    setDrawLoading(true);
+    setDrawResult(null);
+    try {
+      const res = await api.drawPrizeWinner(drawTarget.id, drawWeighted);
+      setDrawResult(res);
+    } catch (e: any) { setError(e.message); }
+    finally { setDrawLoading(false); }
   }
 
   const paginatedTournaments = tournaments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -218,6 +233,47 @@ export default function TournamentsPage() {
         </div>
       )}
 
+      {/* Prize draw modal */}
+      {drawTarget && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ backgroundColor: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 28, maxWidth: 440, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.4)', textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>🎣</div>
+            <h3 style={{ color: C.text, margin: '0 0 4px', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>Prize Draw</h3>
+            <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 20px' }}>{drawTarget.name}</p>
+
+            {!drawResult ? (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: C.textSub, fontSize: 14, marginBottom: 20, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={drawWeighted} onChange={e => setDrawWeighted(e.target.checked)} style={{ width: 16, height: 16 }} />
+                  Weight by catch count (more catches = more entries)
+                </label>
+                <button onClick={runDraw} disabled={drawLoading} style={{ width: '100%', backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '12px 0', fontWeight: 700, fontSize: 15, cursor: drawLoading ? 'default' : 'pointer', opacity: drawLoading ? 0.7 : 1, marginBottom: 10 }}>
+                  {drawLoading ? 'Drawing...' : '🎰 Draw Winner'}
+                </button>
+              </>
+            ) : (
+              <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 12, border: `2px solid ${C.accent}`, padding: '20px 24px', marginBottom: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.accent, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>🏆 Winner</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 4 }}>{drawResult.winner.displayName}</div>
+                <div style={{ fontSize: 14, color: C.textSub, marginBottom: 8 }}>{drawResult.winner.email}</div>
+                <div style={{ fontSize: 12, color: C.textMuted }}>Selected from {drawResult.pool} {drawWeighted ? 'entries' : 'eligible anglers'}</div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              {drawResult && (
+                <button onClick={() => { setDrawResult(null); }} style={{ flex: 1, backgroundColor: C.surfaceHigh, color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 0', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+                  Draw Again
+                </button>
+              )}
+              <button onClick={() => { setDrawTarget(null); setDrawResult(null); setDrawWeighted(false); }} style={{ flex: 1, backgroundColor: 'transparent', color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 0', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -264,6 +320,7 @@ export default function TournamentsPage() {
                       : <button onClick={() => api.openTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.green}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Open</button>
                     }
                     <button onClick={() => { setAnnounceTarget(t); setAnnounceResult(null); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>📢</button>
+                    <button onClick={() => { setDrawTarget(t); setDrawResult(null); setDrawWeighted(false); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>🎁</button>
                   </div>
                 </td>
               </tr>

@@ -82,6 +82,40 @@ export class TournamentsService {
     });
   }
 
+  async drawPrizeWinner(id: string, weighted: boolean): Promise<{
+    winner: { userId: string; displayName: string; email: string };
+    pool: number;
+  }> {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) throw new NotFoundException('Tournament not found');
+
+    const submissions = await this.prisma.submission.findMany({
+      where: { tournamentId: id, status: 'APPROVED' },
+      select: { user: { select: { id: true, displayName: true, email: true } } },
+    });
+
+    if (submissions.length === 0) throw new NotFoundException('No approved submissions in this tournament');
+
+    // Build pool: weighted = 1 entry per catch, unweighted = 1 entry per unique user
+    type PoolEntry = { userId: string; displayName: string; email: string };
+    const toEntry = (u: { id: string; displayName: string; email: string }): PoolEntry =>
+      ({ userId: u.id, displayName: u.displayName, email: u.email });
+
+    let pool: PoolEntry[];
+    if (weighted) {
+      pool = submissions.map(s => toEntry(s.user));
+    } else {
+      const seen = new Set<string>();
+      pool = submissions
+        .map(s => s.user)
+        .filter(u => { if (seen.has(u.id)) return false; seen.add(u.id); return true; })
+        .map(toEntry);
+    }
+
+    const winner = pool[Math.floor(Math.random() * pool.length)];
+    return { winner, pool: pool.length };
+  }
+
   async broadcastAnnouncement(id: string, title: string, message: string): Promise<{ sent: number }> {
     const tournament = await this.prisma.tournament.findUnique({ where: { id } });
     if (!tournament) throw new NotFoundException('Tournament not found');
