@@ -248,6 +248,13 @@ export default function TournamentScreen() {
                 >
                   <Text style={styles.shareBtnText}>🔗 Share Leaderboard</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.checkInBtn}
+                  activeOpacity={0.75}
+                  onPress={() => navigation.navigate('CheckIn')}
+                >
+                  <Text style={styles.checkInBtnText}>📱 Scan QR to Check In</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.emptyCard}>
@@ -654,6 +661,12 @@ const styles = StyleSheet.create({
     borderRadius: 10, borderWidth: 1, borderColor: colors.border,
   },
   shareBtnText: { ...typography.label, color: colors.textSub },
+  checkInBtn: {
+    marginTop: 8, paddingVertical: 11, alignItems: 'center',
+    borderRadius: 10, borderWidth: 1, borderColor: colors.accent + '50',
+    backgroundColor: colors.accent + '10',
+  },
+  checkInBtnText: { ...typography.label, color: colors.accent },
   historyBtn: {
     marginHorizontal: 16, marginTop: 20,
     paddingVertical: 12, alignItems: 'center',

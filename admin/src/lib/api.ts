@@ -82,4 +82,10 @@ export const api = {
 
   getUserWarnings: (userId: string) =>
     apiFetch<any[]>(`/admin/warnings?userId=${userId}`),
+
+  generateCheckInCode: (id: string) =>
+    apiFetch<{ id: string; checkInCode: string }>(`/tournaments/${id}/check-in-code`, { method: 'PATCH' }),
+
+  getCheckIns: (id: string) =>
+    apiFetch<{ count: number; checkIns: { id: string; checkedInAt: string; user: { displayName: string; email: string } }[] }>(`/tournaments/${id}/check-ins`),
 };

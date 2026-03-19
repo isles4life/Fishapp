@@ -84,4 +84,25 @@ export class TournamentsController {
     await this.auditService.log('TOURNAMENT_ANNOUNCED', req.user.id, req.user.displayName, id, { title: body.title, sent: result.sent });
     return result;
   }
+
+  @Patch(':id/check-in-code')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async generateCheckInCode(@Param('id') id: string, @Request() req: any) {
+    const result = await this.tournamentsService.generateCheckInCode(id);
+    await this.auditService.log('CHECK_IN_CODE_GENERATED', req.user.id, req.user.displayName, id, {});
+    return result;
+  }
+
+  @Post('check-in')
+  @UseGuards(JwtAuthGuard)
+  checkIn(@Body('code') code: string, @Request() req: any) {
+    if (!code) throw new BadRequestException('code is required');
+    return this.tournamentsService.checkIn(code, req.user.id);
+  }
+
+  @Get(':id/check-ins')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  getCheckIns(@Param('id') id: string) {
+    return this.tournamentsService.getCheckIns(id);
+  }
 }

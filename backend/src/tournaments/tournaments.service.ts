@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../common/prisma.service';
 import { PushService } from '../push/push.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
@@ -114,6 +115,51 @@ export class TournamentsService {
 
     const winner = pool[Math.floor(Math.random() * pool.length)];
     return { winner, pool: pool.length };
+  }
+
+  async generateCheckInCode(tournamentId: string) {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id: tournamentId } });
+    if (!tournament) throw new NotFoundException('Tournament not found');
+    const checkInCode = uuid();
+    return this.prisma.tournament.update({
+      where: { id: tournamentId },
+      data: { checkInCode },
+      select: { id: true, checkInCode: true },
+    });
+  }
+
+  async checkIn(code: string, userId: string) {
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { checkInCode: code },
+      include: { region: { select: { name: true } } },
+    });
+    if (!tournament) throw new NotFoundException('Invalid check-in code');
+    if (!tournament.isOpen) throw new BadRequestException('Tournament is not currently open');
+
+    await this.prisma.tournamentCheckIn.upsert({
+      where: { userId_tournamentId: { userId, tournamentId: tournament.id } },
+      create: { userId, tournamentId: tournament.id },
+      update: {},
+    });
+
+    return {
+      tournament: {
+        id: tournament.id,
+        name: tournament.name,
+        weekNumber: tournament.weekNumber,
+        region: tournament.region?.name ?? 'All Regions',
+        endsAt: tournament.endsAt,
+      },
+    };
+  }
+
+  async getCheckIns(tournamentId: string) {
+    const checkIns = await this.prisma.tournamentCheckIn.findMany({
+      where: { tournamentId },
+      orderBy: { checkedInAt: 'desc' },
+      include: { user: { select: { displayName: true, email: true } } },
+    });
+    return { count: checkIns.length, checkIns };
   }
 
   async broadcastAnnouncement(id: string, title: string, message: string): Promise<{ sent: number }> {

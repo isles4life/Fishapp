@@ -68,6 +68,7 @@ model User {
   comments         CatchComment[]
   warnings         UserWarning[]
   issuedWarnings   UserWarning[] @relation("IssuedWarnings")
+  checkIns         TournamentCheckIn[]
 
   @@index([regionId])
 }
@@ -101,12 +102,28 @@ model Tournament {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  checkInCode     String?   @unique
+
   region      Region    @relation(fields: [regionId], references: [id])
   submissions Submission[]
   leaderboardEntries LeaderboardEntry[]
+  checkIns    TournamentCheckIn[]
 
   @@unique([regionId, weekNumber, year])
   @@index([regionId, isOpen])
+}
+
+model TournamentCheckIn {
+  id           String     @id @default(uuid())
+  userId       String
+  tournamentId String
+  checkedInAt  DateTime   @default(now())
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tournamentId])
+  @@index([tournamentId])
 }
 
 model MatSerial {

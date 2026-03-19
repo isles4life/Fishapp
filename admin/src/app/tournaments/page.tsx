@@ -21,6 +21,7 @@ interface Tournament {
   startsAt: string; endsAt: string; isOpen: boolean;
   entryFeeCents: number; prizePoolCents: number;
   region: { name: string };
+  checkInCode?: string | null;
 }
 
 const PAGE_SIZE = 20;
@@ -67,6 +68,10 @@ export default function TournamentsPage() {
   const [drawWeighted, setDrawWeighted] = useState(false);
   const [drawResult, setDrawResult] = useState<{ winner: { displayName: string; email: string }; pool: number } | null>(null);
   const [drawLoading, setDrawLoading] = useState(false);
+  const [qrTarget, setQrTarget] = useState<Tournament | null>(null);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrCheckInCount, setQrCheckInCount] = useState<number>(0);
+  const [qrGenerating, setQrGenerating] = useState(false);
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -128,6 +133,30 @@ export default function TournamentsPage() {
       setDrawResult(res);
     } catch (e: any) { setError(e.message); }
     finally { setDrawLoading(false); }
+  }
+
+  async function openQrModal(t: Tournament) {
+    setQrTarget(t);
+    setQrCode(t.checkInCode ?? null);
+    setQrCheckInCount(0);
+    try {
+      if (t.checkInCode) {
+        const res = await api.getCheckIns(t.id);
+        setQrCheckInCount(res.count);
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function regenerateQrCode() {
+    if (!qrTarget || qrGenerating) return;
+    setQrGenerating(true);
+    try {
+      const res = await api.generateCheckInCode(qrTarget.id);
+      setQrCode(res.checkInCode);
+      setQrTarget(prev => prev ? { ...prev, checkInCode: res.checkInCode } : null);
+      await load();
+    } catch (e: any) { setError(e.message); }
+    finally { setQrGenerating(false); }
   }
 
   const paginatedTournaments = tournaments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -274,6 +303,50 @@ export default function TournamentsPage() {
         </div>
       )}
 
+      {/* QR Check-In modal */}
+      {qrTarget && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ backgroundColor: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.4)', textAlign: 'center' }}>
+            <h3 style={{ color: C.text, margin: '0 0 4px', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>📱 Tournament Check-In QR</h3>
+            <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 20px' }}>{qrTarget.name}</p>
+
+            {qrCode ? (
+              <>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrCode)}&bgcolor=2E3D38&color=CFC29C&margin=12`}
+                  alt="Check-in QR code"
+                  style={{ width: 220, height: 220, borderRadius: 12, border: `2px solid ${C.accent}40`, marginBottom: 16 }}
+                />
+                <div style={{ fontSize: 11, color: C.textMuted, fontFamily: 'monospace', marginBottom: 8, wordBreak: 'break-all', padding: '0 8px' }}>{qrCode}</div>
+                <div style={{ fontSize: 13, color: C.textSub, marginBottom: 20 }}>
+                  {qrCheckInCount > 0 ? `${qrCheckInCount} angler${qrCheckInCount !== 1 ? 's' : ''} checked in` : 'No check-ins yet'}
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: '32px 0', color: C.textMuted, fontSize: 14, marginBottom: 16 }}>
+                No QR code generated yet.<br />Generate one so anglers can check in.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={regenerateQrCode}
+                disabled={qrGenerating}
+                style={{ flex: 1, backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 700, fontSize: 13, cursor: qrGenerating ? 'default' : 'pointer', opacity: qrGenerating ? 0.7 : 1 }}
+              >
+                {qrGenerating ? 'Generating...' : qrCode ? '↻ Regenerate' : '+ Generate QR'}
+              </button>
+              <button
+                onClick={() => { setQrTarget(null); setQrCode(null); }}
+                style={{ flex: 1, backgroundColor: 'transparent', color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 0', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -328,6 +401,9 @@ export default function TournamentsPage() {
                     }
                     <button onClick={() => { setAnnounceTarget(t); setAnnounceResult(null); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>📢</button>
                     <button onClick={() => { setDrawTarget(t); setDrawResult(null); setDrawWeighted(false); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>🎁</button>
+                    {t.isOpen && (
+                      <button onClick={() => openQrModal(t)} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>📱</button>
+                    )}
                   </div>
                 </td>
               </tr>

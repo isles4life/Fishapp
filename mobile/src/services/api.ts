@@ -15,6 +15,7 @@ import type {
   UserWarning,
   FishingIntelResponse,
   HotSpot,
+  TournamentCheckIn,
 } from '../models';
 
 const BASE_URL =
@@ -245,6 +246,10 @@ export async function identifyFish(
   });
   if (!res.ok) return { suggestions: [] };
   return res.json();
+}
+
+export function checkInTournament(code: string): Promise<TournamentCheckIn> {
+  return request('/tournaments/check-in', { method: 'POST', body: JSON.stringify({ code }) });
 }
 
 export async function uploadAvatar(uri: string, mimeType: string): Promise<{ avatarUrl: string }> {

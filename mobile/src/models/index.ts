@@ -165,6 +165,16 @@ export interface HotSpot {
   lengthCm: number;
 }
 
+export interface TournamentCheckIn {
+  tournament: {
+    id: string;
+    name: string;
+    weekNumber: number;
+    region: string;
+    endsAt: string;
+  };
+}
+
 // ── Fishing Intelligence ───────────────────────────────────────────────────
 
 export interface FishingSpot {
