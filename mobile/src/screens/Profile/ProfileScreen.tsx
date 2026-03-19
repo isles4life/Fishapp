@@ -396,7 +396,7 @@ function BirthdayPicker({ value, onChange }: { value?: string; onChange: (iso: s
           <View style={bp.header}>
             <TouchableOpacity onPress={clear}><Text style={bp.clearBtn}>Clear</Text></TouchableOpacity>
             <Text style={bp.title}>Birthday</Text>
-            <TouchableOpacity onPress={confirm}><Text style={bp.doneBtn}>Done</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => confirm()}><Text style={bp.doneBtn}>Done</Text></TouchableOpacity>
           </View>
 
           <View style={bp.preview}>
