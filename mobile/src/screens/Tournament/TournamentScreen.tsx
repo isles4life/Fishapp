@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, ActivityIndicator, SafeAreaView, ScrollView, Modal, Pressable, Image,
+  FlatList, ActivityIndicator, SafeAreaView, ScrollView, Modal, Pressable, Image, Share,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../../services/api';
@@ -204,6 +204,16 @@ export default function TournamentScreen() {
                   onPress={() => navigation.navigate('Submission', { tournamentId: tournament.id })}
                 >
                   <Text style={styles.submitCatchBtnText}>SUBMIT A CATCH</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.shareBtn}
+                  activeOpacity={0.75}
+                  onPress={() => Share.share({
+                    message: `Watch the live leaderboard for ${tournament.name} 🎣\nhttps://www.fishleague.app/leaderboard/${tournament.id}`,
+                    url: `https://www.fishleague.app/leaderboard/${tournament.id}`,
+                  })}
+                >
+                  <Text style={styles.shareBtnText}>🔗 Share Leaderboard</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -544,6 +554,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
   },
+  shareBtn: {
+    marginTop: 10, paddingVertical: 11, alignItems: 'center',
+    borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+  },
+  shareBtnText: { ...typography.label, color: colors.textSub },
   historyBtn: {
     marginHorizontal: 16, marginTop: 20,
     paddingVertical: 12, alignItems: 'center',

@@ -37,7 +37,6 @@ export class TournamentsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   getById(@Param('id') id: string) {
     return this.tournamentsService.getById(id);
   }
