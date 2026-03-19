@@ -4,8 +4,6 @@
 
 ---
 
-<!-- Add competitive analysis content below -->
-
 ## iAngler Tournament vs. FishLeague — Gap & Innovation Report
 
 ### Where iAngler Has You Covered (and so do you)
@@ -14,65 +12,63 @@ Both platforms share the same core loop: photo submission → GPS tagging → ad
 
 ---
 
-### Gaps iAngler Has That You Don't
+### Gaps iAngler Had That Are Now Closed ✅
 
-| Feature | iAngler | FishLeague |
-| --- | --- | --- |
-| **Offline submission queue** | Saves locally, auto-syncs on reconnect | Partial — `submissionQueue.ts` exists but UX unclear |
-| **Guest/spectator view** | View leaderboard without account | Requires login |
-| **Rejection notes to angler** | Admin sends explanation on reject | Email/push sent but no free-text note to angler visible on mobile |
-| **Multiple scoring methods** | Length, weight, fish count, species, item count | Length only |
-| **Team tournaments** | Full team registration + scoring | Individual only |
-| **Tournament director messaging** | Broadcast announcements to all participants | Not implemented |
-| **Historical leaderboards** | Past tournaments browsable | Not implemented (closed tournaments disappear) |
-| **Species selection** | Angler selects species on submission | Not implemented |
-| **Weather + tides in-app** | Forecast tab built-in | Separate screen (FishingIntelligenceScreen) — you have this |
-| **Prize/random drawing** | Built-in for prize selection | Not implemented |
+| Feature | iAngler | FishLeague | Shipped |
+| --- | --- | --- | --- |
+| **Offline submission queue** | Saves locally, auto-syncs on reconnect | `submissionQueue.ts` + UX | Build #21 |
+| **Guest/spectator view** | View leaderboard without account | Public `/leaderboard/[id]/` — no login required | Web deploy |
+| **Rejection notes to angler** | Admin sends explanation on reject | Rejection note shown in-app + email/push | Build #21 |
+| **Tournament director messaging** | Broadcast announcements to all participants | `POST /tournaments/:id/announce` → push to all participants | Build #21 |
+| **Historical leaderboards** | Past tournaments browsable | Closed tournaments browsable with submission counts | Build #21 |
+| **Species selection** | Angler selects species on submission | 24-species picker + AI auto-suggest (≥70% confidence) | Build #21 |
+| **Prize/random drawing** | Built-in for prize selection | Weighted or flat random draw in admin | Build #21 |
+| **AI fish identification** | None | iNaturalist species ID + Gemini length estimation, fire-and-forget fraud checks | Backend |
+| **Catch feed / social timeline** | None | HomeScreen photo feed with props + comments | Build #23 |
+| **Angler career stats** | None | 6-card career stats grid on profile | Build #23 |
+| **QR code tournament check-in** | None | Admin generates QR → anglers scan to check in | Build #23 |
+| **Conservation mode** | Tracks "125,870 fish released" counter | Per-catch released toggle + conservation badges | Build #23 |
+
+---
+
+### Gaps That Remain Open ❌
+
+| Feature | iAngler | FishLeague | Notes |
+| --- | --- | --- | --- |
+| **Multiple scoring methods** | Length, weight, fish count, species count, item count | Length only | Medium effort — schema change + tournament creation UI |
+| **Team tournaments** | Full team registration + combined scoring | Individual only | High effort — opens club/org market |
+| **Tournament brackets / head-to-head** | None (iAngler doesn't have this either) | Not built | Medium effort, high engagement |
 
 ---
 
 ### Where You Are More Innovative
 
-This is your real advantage — iAngler's app has a **2.8-star rating** and focuses entirely on operator workflow. You've already built things they haven't:
+iAngler's app has a **2.8-star rating** and focuses entirely on operator workflow. FishLeague leads on UX and social engagement:
 
 | Feature | iAngler | FishLeague |
 | --- | --- | --- |
-| **Props + Comments on catches** | None | Built and shipped |
-| **Social profiles** | None | AnglerProfile with bio, techniques, sponsorTags |
-| **GPS-based region detection** | Fixed region assignment | Auto-detect from GPS (just shipped) |
-| **Design system** | Dated UI (10+ year old app) | Polished dark/cream split, Oswald/Inter |
+| **Props + Comments on catches** | None | Built and shipped (Build #23) |
+| **Comment edit/delete** | None | Long-press to edit or delete own comments (Build #23) |
+| **Social profiles** | None | AnglerProfile — bio, techniques, baits, sponsorTags, career stats |
+| **GPS-based region detection** | Fixed region assignment | Auto-detect from GPS at submission time |
+| **Design system** | Dated UI (10+ year old app) | Polished dark/cream split, Oswald/Inter fonts |
+| **AI fraud detection** | None | iNaturalist fish presence check + Gemini length estimation |
+| **Tournament Director role** | Fixed admin only | Anglers can request TD role, scoped admin panel |
 | **ARKit LiDAR measurement** | None | Planned (post-beta backlog) |
 | **Apple Sign-In** | Email only | Apple + Email |
 
 ---
 
-### Innovation Opportunities (What Neither Platform Does Well)
+### Post-Beta Roadmap
 
-These would clearly differentiate FishLeague:
+Ordered by impact:
 
-1. **AI fish identification** — Angler photos the fish, AI identifies species + estimates length. Eliminates manual entry. Could use a vision model API (Claude, GPT-4V) or a specialized fish-ID model (iNaturalist API). Medium effort.
-2. **Public spectator mode** — Share a live leaderboard link to non-users (family watching from shore). iAngler has guest login; you could do a fully public shareable URL per tournament with no login wall. Low effort.
-3. **Catch feed / social timeline** — Approved catches appear in a public photo feed (like Instagram for fishing). You already have the HomeScreen feed partially built — expanding this is low-hanging fruit.
-4. **Tournament brackets / head-to-head** — Not just raw rankings but structured brackets or divisions. Medium effort, high engagement.
-5. **Angler stats page** — Career stats: total fish, longest catch, total tournaments, win rate. You have the data; it's just a presentation layer. Low effort.
-6. **QR code tournament check-in** — Anglers scan a QR at launch to register for a tournament instead of selecting from a list. Ties into your existing `matSerialId` QR infrastructure.
-7. **Conservation mode** — Catch-and-release tracking (iAngler tracks "125,870 fish released"). Adds a feel-good metric and differentiates you in the conservation-conscious fishing market.
+1. **Multiple scoring methods** — unblock weight-based and species-count tournaments
+2. **Email verification** — needed before wider user acquisition
+3. **Stripe entry fees** — first beta tournament free; payment sheet in mobile
+4. **Team tournaments** — opens club/organization market
+5. **Facebook Sign-In** — mobile + web only (~1 day code, 1–5 days App Review)
+6. **Tournament brackets / head-to-head** — structured divisions, high engagement
+7. **ARKit LiDAR fish measurement** — tap-to-measure AR on iPhone Pro, ~4 days effort
 
----
-
-### Priority Recommendations
-
-**Quick wins** (low effort, high value):
-
-- Public spectator leaderboard link (no login required)
-- Rejection note visible to angler in-app (you already send email, just show it)
-- Historical closed tournaments browsable
-- Species field on submission
-
-**Post-beta but important:**
-
-- Team tournaments (opens up club/organization market)
-- AI species identification
-- Angler career stats page
-
-iAngler's weak spot is clearly UX and social engagement — that's your moat. Their app has a **2.8-star rating** with recent bug reports. If you ship a polished, social-first experience with the core tournament mechanics solid, you have a strong competitive position.
+iAngler's weak spot is clearly UX and social engagement — that's your moat. If you ship a polished, social-first experience with the core tournament mechanics solid, you have a strong competitive position.
