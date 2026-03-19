@@ -247,10 +247,18 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 ## Current Status (as of 2026-03-22)
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS TestFlight build #23 live — all mobile changes shipped
-- Backend deploying: tournament detail + feed + scoring methods + Fishing Intelligence
+- Web parity improvements deployed
 - **New EAS build required** for: tournament detail screen, social feed, scoring method UI, FishingIntelligenceScreen zip/location
 
 ### Recently Shipped
+- **Web feature parity** (deployed):
+  - Home feed: Props + Comments now working (same PropButton/CommentsSection as leaderboard page)
+  - `/leaderboard`: Your Rank banner for logged-in users; highlights their entry
+  - `/leaderboard/[id]`: scoring method badge on tournament header
+  - Profile: expanded stats from 2×2 to 3×2 grid (Catches, PB, Tournaments, Avg Catch, Wins, Verified)
+  - Profile: Sign Out button wired up (was declared but intentionally voided)
+  - Profile: Tournament Director Request section — view existing requests, submit new request with tournament picker + optional message
+  - `web/src/lib/api.ts`: added `getTournaments()`, `getMyTournamentRequests()`, `submitTournamentAdminRequest()`, `TournamentAdminRequest` interface
 - **Tournament Detail Page + Social Feed** (full-stack, backend deploying, mobile pending EAS):
   - Schema: `description`, `directorId` on Tournament; new `TournamentPost` model (`CATCH | ANNOUNCEMENT | CHECK_IN | ANGLER_POST`)
   - Migration: `20260322000000_tournament_detail_and_feed`
