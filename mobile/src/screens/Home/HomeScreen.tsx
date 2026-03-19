@@ -115,6 +115,9 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     api.getComments(submissionId).then(setComments).catch(() => {});
@@ -131,11 +134,37 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
     finally { setSending(false); }
   }
 
+  function startEdit(comment: CatchComment) {
+    setEditingId(comment.id);
+    setEditBody(comment.body);
+  }
+
+  async function handleSaveEdit() {
+    if (!editingId || !editBody.trim() || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const updated = await api.editComment(editingId, editBody.trim());
+      setComments(prev => prev.map(c => c.id === editingId ? updated : c));
+      setEditingId(null);
+      setEditBody('');
+    } catch { /* silent */ }
+    finally { setSavingEdit(false); }
+  }
+
   async function handleDelete(commentId: string) {
     try {
       await api.deleteComment(commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
     } catch { /* silent */ }
+  }
+
+  function handleLongPress(comment: CatchComment) {
+    if (comment.user.id !== myUserId) return;
+    Alert.alert('Your Comment', undefined, [
+      { text: 'Edit', onPress: () => startEdit(comment) },
+      { text: 'Delete', style: 'destructive', onPress: () => handleDelete(comment.id) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }
 
   return (
@@ -153,18 +182,47 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
             contentContainerStyle={{ padding: 16, gap: 12 }}
             ListEmptyComponent={<Text style={cm.empty}>No comments yet. Be the first!</Text>}
             renderItem={({ item }) => (
-              <View style={cm.comment}>
-                <View style={{ flex: 1 }}>
-                  <Text style={cm.commentName}>{item.user.displayName}</Text>
-                  <Text style={cm.commentBody}>{item.body}</Text>
-                  <Text style={cm.commentTime}>{timeAgo(item.createdAt)}</Text>
+              <TouchableOpacity
+                onLongPress={() => handleLongPress(item)}
+                delayLongPress={400}
+                activeOpacity={0.85}
+              >
+                <View style={cm.comment}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={cm.commentName}>{item.user.displayName}</Text>
+                    {editingId === item.id ? (
+                      <View style={cm.editRow}>
+                        <TextInput
+                          style={cm.editInput}
+                          value={editBody}
+                          onChangeText={setEditBody}
+                          maxLength={500}
+                          multiline
+                          autoFocus
+                        />
+                        <View style={cm.editActions}>
+                          <TouchableOpacity
+                            style={[cm.editSaveBtn, (!editBody.trim() || savingEdit) && { opacity: 0.4 }]}
+                            onPress={handleSaveEdit}
+                            disabled={!editBody.trim() || savingEdit}
+                          >
+                            <Text style={cm.editSaveBtnText}>{savingEdit ? '…' : 'SAVE'}</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={cm.editCancelBtn} onPress={() => setEditingId(null)}>
+                            <Text style={cm.editCancelBtnText}>CANCEL</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <Text style={cm.commentBody}>{item.body}</Text>
+                    )}
+                    <Text style={cm.commentTime}>{timeAgo(item.createdAt)}</Text>
+                  </View>
+                  {item.user.id === myUserId && editingId !== item.id && (
+                    <Text style={cm.editHint}>···</Text>
+                  )}
                 </View>
-                {item.user.id === myUserId && (
-                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ paddingLeft: 12 }}>
-                    <Text style={cm.deleteBtn}>✕</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              </TouchableOpacity>
             )}
           />
           <View style={cm.inputRow}>
@@ -873,7 +931,25 @@ const cm = StyleSheet.create({
   commentName: { ...typography.label, color: colors.accent, marginBottom: 4 },
   commentBody: { ...typography.bodyMd, color: colors.text, lineHeight: 20 },
   commentTime: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
-  deleteBtn: { color: colors.textMuted, fontSize: 14, paddingTop: 2 },
+  editHint: { color: colors.textMuted, fontSize: 18, paddingLeft: 12, alignSelf: 'center', letterSpacing: 1 },
+  editRow: { marginTop: 6 },
+  editInput: {
+    ...typography.bodyMd, color: colors.text,
+    backgroundColor: colors.bg, borderRadius: 8, borderWidth: 1,
+    borderColor: colors.accent + '80', paddingHorizontal: 10, paddingVertical: 8,
+    maxHeight: 80,
+  },
+  editActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  editSaveBtn: {
+    backgroundColor: colors.accent, borderRadius: 6,
+    paddingHorizontal: 14, paddingVertical: 6,
+  },
+  editSaveBtnText: { ...typography.button, color: colors.bg, fontSize: 12 },
+  editCancelBtn: {
+    borderRadius: 6, paddingHorizontal: 14, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  editCancelBtnText: { ...typography.button, color: colors.textMuted, fontSize: 12 },
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
     padding: 16, borderTopWidth: 1, borderTopColor: colors.border,

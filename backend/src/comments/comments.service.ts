@@ -24,6 +24,21 @@ export class CommentsService {
     });
   }
 
+  async editComment(commentId: string, requestingUserId: string, body: string) {
+    const comment = await this.prisma.catchComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.userId !== requestingUserId) {
+      throw new ForbiddenException('Cannot edit another user\'s comment');
+    }
+    return this.prisma.catchComment.update({
+      where: { id: commentId },
+      data: { body },
+      include: { user: { select: { id: true, displayName: true } } },
+    });
+  }
+
   async deleteComment(commentId: string, requestingUserId: string, isAdmin: boolean) {
     const comment = await this.prisma.catchComment.findUnique({
       where: { id: commentId },

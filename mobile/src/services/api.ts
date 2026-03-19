@@ -176,6 +176,10 @@ export function addComment(submissionId: string, body: string): Promise<CatchCom
   return request(`/submissions/${submissionId}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
 }
 
+export function editComment(commentId: string, body: string): Promise<CatchComment> {
+  return request(`/comments/${commentId}`, { method: 'PATCH', body: JSON.stringify({ body }) });
+}
+
 export function deleteComment(commentId: string): Promise<{ ok: boolean }> {
   return request(`/comments/${commentId}`, { method: 'DELETE' });
 }
