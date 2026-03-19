@@ -224,6 +224,9 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Species quick-pick chips (24 species) in submission flow + custom text fallback
   - Historical leaderboards: `GET /tournaments/history` + `TournamentHistoryScreen` accordion (tap to expand top-10)
   - Public spectator view: `/leaderboard/[id]` web page (no login) + mobile share sheet button
+  - Tournament director announcements: `POST /tournaments/:id/announce` + admin 📢 button broadcasts push to all participants
+  - Prize random draw: `POST /tournaments/:id/draw` + admin 🎁 button (flat or weighted by catch count, logs to audit)
+  - Offline queue UX: TournamentScreen shows pending uploads with per-item discard + Retry Now button
 - Mobile fixes shipped (need new EAS build): FishingIntelligenceScreen back button, profile comma-field delete bug, profilePhotoUrl empty string validation, SubmissionFlowScreen inches display
 - iOS TestFlight build #13 (March 18) shipped — includes all design changes, props/comments fix, leaderboard timestamps
 - Backend auto-deployed: leaderboard entries now include presigned `photoUrl` + `submittedAt`
