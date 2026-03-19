@@ -78,7 +78,8 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={s.safeArea}>
         <View style={s.center}>
-          <ActivityIndicator color={colors.accent} size="large" />
+          <Image source={require('../../../assets/icon.png')} style={{ width: 100, height: 100 }} resizeMode="contain" />
+          <ActivityIndicator color={colors.accent} size="small" style={{ marginTop: 16 }} />
         </View>
       </SafeAreaView>
     );

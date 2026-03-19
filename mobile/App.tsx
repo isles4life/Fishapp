@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Image, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import {
   Oswald_600SemiBold,
@@ -37,7 +37,8 @@ export default function App() {
   if (!fontsLoaded || authLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg }}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <Image source={require('./assets/icon.png')} style={{ width: 120, height: 120 }} resizeMode="contain" />
+        <ActivityIndicator size="small" color={colors.accent} style={{ marginTop: 20 }} />
       </View>
     );
   }

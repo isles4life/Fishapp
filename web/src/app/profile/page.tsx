@@ -338,7 +338,7 @@ export default function MyProfilePage() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}><Nav active="profile" /><div style={{ textAlign: 'center', color: C.textMuted, padding: 80 }}>Loading...</div></div>
+    <div style={{ minHeight: '100vh', backgroundColor: C.bg }}><Nav active="profile" /><div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 80 }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/icon.png" alt="FishLeague" style={{ width: 80, height: 80, objectFit: 'contain', opacity: 0.7 }} /><span style={{ color: C.textMuted, fontSize: 13 }}>Loading...</span></div></div>
   );
 
   if (editing) return (

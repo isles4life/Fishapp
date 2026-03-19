@@ -104,7 +104,11 @@ export default function HomePage() {
 
         {/* ── Hero / Tournament Banner ─────────────────────────────── */}
         {loading && (
-          <div style={{ textAlign: 'center', color: C.textMuted, padding: 60 }}>Loading...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 80 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.png" alt="FishLeague" style={{ width: 80, height: 80, objectFit: 'contain', opacity: 0.7 }} />
+            <span style={{ color: C.textMuted, fontSize: 13 }}>Loading...</span>
+          </div>
         )}
 
         {error && !loading && (

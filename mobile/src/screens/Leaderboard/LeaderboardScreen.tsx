@@ -327,7 +327,8 @@ export default function LeaderboardScreen() {
       {/* Loading */}
       {loading && tournamentId && (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.accent} />
+          <Image source={require('../../../assets/icon.png')} style={{ width: 100, height: 100 }} resizeMode="contain" />
+          <ActivityIndicator size="small" color={colors.accent} style={{ marginTop: 16 }} />
         </View>
       )}
 
