@@ -247,10 +247,19 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 ## Current Status (as of 2026-03-22)
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS TestFlight build #23 live — all mobile changes shipped
-- Backend deploying: multiple scoring methods + Fishing Intelligence cache/timeout improvements
-- **New EAS build required** for scoring method mobile changes + FishingIntelligenceScreen zip/location updates
+- Backend deploying: tournament detail + feed + scoring methods + Fishing Intelligence
+- **New EAS build required** for: tournament detail screen, social feed, scoring method UI, FishingIntelligenceScreen zip/location
 
 ### Recently Shipped
+- **Tournament Detail Page + Social Feed** (full-stack, backend deploying, mobile pending EAS):
+  - Schema: `description`, `directorId` on Tournament; new `TournamentPost` model (`CATCH | ANNOUNCEMENT | CHECK_IN | ANGLER_POST`)
+  - Migration: `20260322000000_tournament_detail_and_feed`
+  - `GET /tournaments/:id` returns director, participant counts, top 3 leaderboard
+  - Feed endpoints: `GET /tournaments/:id/feed` (paginated cursor), `POST /tournaments/:id/posts`
+  - Auto-posts: CATCH on approval, CHECK_IN on first check-in, ANNOUNCEMENT on broadcast
+  - Mobile `TournamentDetailScreen`: hero card, director section, QR code (admin/director) or scan button (angler), top 3 leaderboard, full social feed with compose bar
+  - "Tournament Details →" button on TournamentScreen active card
+  - Admin: description textarea + director dropdown in create form
 - **Multiple scoring methods** (full-stack, backend deployed):
   - `ScoringMethod` enum: `LENGTH | WEIGHT | FISH_COUNT | SPECIES_COUNT` on Tournament
   - `fishWeightOz Float?` on Submission; `score Float` on LeaderboardEntry
@@ -260,8 +269,8 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Mobile: `scoringMethod` flows through TournamentContext + route params; weight input for WEIGHT mode; length optional for count modes
   - Tournament Director request picker: replaced auto-fill with full tournament list picker
 - **Fishing Intelligence improvements** (backend deployed, mobile pending EAS build):
-  - Backend: 15-min in-memory response cache keyed by ~1km grid cell — repeat requests return instantly
-  - Backend: `withTimeout()` caps slow external APIs: Overpass 6s, Nominatim 5s, NOAA tides 8s (was 22s)
+  - Backend: per-source caches — spots/label 24h TTL, tides until midnight; weather always fresh
+  - Backend: `withTimeout()` caps slow external APIs: Overpass 6s, Nominatim 5s, NOAA tides 8s
   - Mobile: no longer auto-loads current location on mount — user chooses zip code or "Use My Location"
   - Mobile: idle state shows logo + prompt before any location is selected
 
