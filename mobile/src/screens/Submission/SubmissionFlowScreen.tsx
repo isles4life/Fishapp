@@ -43,6 +43,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<{ species: string; confidence: number }[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [photoSource, setPhotoSource] = useState<'camera' | 'library'>('camera');
   const [errorMessage, setErrorMessage] = useState('');
   const [failedFields, setFailedFields] = useState<Parameters<typeof uploadSubmission>[0] | null>(null);
   const cameraRef = useRef<CameraView>(null);
@@ -62,6 +63,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
     if (!photo) return;
     setPhotoUri(photo.uri);
     setAiSuggestions([]);
+    setPhotoSource('camera');
     setStep('measure');
     // Fire AI identification in background while user measures
     setAiLoading(true);
@@ -92,6 +94,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
     const uri = result.assets[0].uri;
     setPhotoUri(uri);
     setAiSuggestions([]);
+    setPhotoSource('library');
     setStep('measure');
     setAiLoading(true);
     identifyFish(uri, 'image/jpeg')
@@ -238,7 +241,10 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.detailsHeader}>
-          <TouchableOpacity onPress={() => setStep('photo')} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => photoSource === 'library' ? handlePickPhoto() : setStep('photo')}
+            style={styles.backBtn}
+          >
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
           <Text style={styles.detailsTitle}>ENTER LENGTH</Text>
