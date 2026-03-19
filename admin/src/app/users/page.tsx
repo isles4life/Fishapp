@@ -234,7 +234,7 @@ export default function UsersPage() {
 
       {/* Table */}
       <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflowX: 'auto' }}>
-        <table style={{ width: '100%', minWidth: 980, borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', minWidth: 820, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${C.border}` }}>
               <th style={thStyle}>Angler</th>
@@ -341,7 +341,7 @@ export default function UsersPage() {
                 {/* Actions */}
                 <td style={{ padding: '14px 20px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
                       {u.role === 'USER'
                         ? <ActionBtn onClick={() => setRole(u, 'ADMIN')} disabled={!!loading} color={C.accent} bg={C.accent + '18'}>Make Admin</ActionBtn>
                         : <ActionBtn onClick={() => setRole(u, 'USER')} disabled={!!loading} color={C.orange} bg={C.orangeBg}>Revoke Admin</ActionBtn>
