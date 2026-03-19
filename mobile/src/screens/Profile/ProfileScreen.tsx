@@ -628,6 +628,33 @@ function EditProfileForm({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
+  async function handleAvatarPress() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Allow photo library access to upload a profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    const mimeType = asset.mimeType ?? 'image/jpeg';
+    setAvatarLoading(true);
+    try {
+      const { avatarUrl: url } = await uploadAvatar(asset.uri, mimeType);
+      setForm(f => ({ ...f, profilePhotoUrl: url }));
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message);
+    } finally {
+      setAvatarLoading(false);
+    }
+  }
   const [techniquesRaw, setTechniquesRaw] = useState((existing?.favoriteTechniques ?? []).join(', '));
   const [baitsRaw, setBaitsRaw] = useState((existing?.favoriteBaits ?? []).join(', '));
   const [sponsorRaw, setSponsorRaw] = useState((existing?.sponsorTags ?? []).join(', '));
@@ -668,6 +695,31 @@ function EditProfileForm({
         ) : null}
 
         <FormSection title="Identity">
+          {/* Avatar picker */}
+          <View style={{ alignItems: 'center', marginBottom: 16 }}>
+            <TouchableOpacity onPress={handleAvatarPress} disabled={avatarLoading} activeOpacity={0.8}>
+              <View style={s.avatarRing}>
+                {form.profilePhotoUrl ? (
+                  <Image source={{ uri: form.profilePhotoUrl }} style={s.avatarImg} />
+                ) : (
+                  <View style={s.avatarFallback}>
+                    <Text style={s.avatarFallbackEmoji}>🎣</Text>
+                  </View>
+                )}
+                {avatarLoading && (
+                  <View style={s.avatarOverlay}>
+                    <ActivityIndicator color={colors.accent} size="small" />
+                  </View>
+                )}
+              </View>
+              {!avatarLoading && (
+                <View style={s.avatarEditBadge}>
+                  <Text style={{ fontSize: 9, color: colors.bg }}>✏️</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 6 }}>Tap to change photo</Text>
+          </View>
           <FLInput label="Username (3–20 chars)" value={form.username ?? ''} onChangeText={v => setForm(f => ({ ...f, username: v }))} placeholder="bass_master_99" />
           <FLInput label="Bio (max 250 chars)" value={form.bio ?? ''} onChangeText={v => setForm(f => ({ ...f, bio: v }))} placeholder="Tell the community about yourself..." multiline />
           <Text style={s.fieldLabel}>Birthday</Text>

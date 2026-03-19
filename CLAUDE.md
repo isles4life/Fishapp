@@ -216,7 +216,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-19)
+## Current Status (as of 2026-03-20)
 - MVP fully deployed: backend + admin + web live on AWS
 - **New EAS build required** to ship all recent mobile changes (see below)
 - GPS-based region detection deployed: users no longer pick a region at registration; GPS at submission time validates against tournament's region. `User.regionId` is now nullable. Migration `20260318000000_make_user_regionid_optional` drops the NOT NULL constraint.
@@ -230,8 +230,8 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Offline queue UX: TournamentScreen shows pending uploads with per-item discard + Retry Now button
   - **Angler career stats**: ProfileScreen + public profile page expanded to 6-card (3×2) stats grid — TOTAL CATCHES, PERSONAL BEST, AVG CATCH, TOURNAMENTS, WINS, WIN RATE
   - **Conservation mode**: `released` Boolean on Submission; toggle in submission flow details step; "↩ Released" badge in tournament list, leaderboard (mobile + web); migration `20260319000000_add_released_to_submission`
-- Mobile fixes shipped (need new EAS build): FishingIntelligenceScreen back button, profile comma-field delete bug, profilePhotoUrl empty string validation, SubmissionFlowScreen inches display
-- iOS TestFlight build #13 (March 18) shipped — includes all design changes, props/comments fix, leaderboard timestamps
+- Mobile fixes pending EAS build: FishingIntelligenceScreen back button, profile comma-field delete bug, profilePhotoUrl empty string validation, SubmissionFlowScreen inches display, profile photo URL field removed from edit form, avatar picker added to EditProfileForm (tap photo to change)
+- iOS TestFlight build #20 shipped — includes career stats, conservation mode, birthday year fix, leaderboard prop count fix
 - Backend auto-deployed: leaderboard entries now include presigned `photoUrl` + `submittedAt`
 - Home feed: Props + Comment buttons now functional (Props calls API, Comment navigates to Leaderboard tab)
 - Leaderboard comments: relative timestamps shown (timeAgo) on both mobile and web
@@ -239,3 +239,5 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Admin: pagination added to Users (PAGE_SIZE 50), Tournaments (PAGE_SIZE 20), and History (server-side paging)
 - CI/CD: deploy workflow has `concurrency: cancel-in-progress: true`
 - Design system fully implemented: Oswald/Inter fonts, new palette, light/dark split screens across mobile + web + admin
+- Admin tournaments table fixed: dates no longer show seconds (date + time on two lines), status badge no longer wraps
+- Competitive analysis doc added: `docs/competitive-analysis.md`

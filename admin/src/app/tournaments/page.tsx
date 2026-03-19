@@ -293,8 +293,14 @@ export default function TournamentsPage() {
                 <td style={{ padding: '12px 16px', color: C.text, fontWeight: 600 }}>{t.name}</td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 14 }}>{t.region?.name}</td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 14 }}>Wk {t.weekNumber}</td>
-                <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>{new Date(t.startsAt).toLocaleString()}</td>
-                <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>{new Date(t.endsAt).toLocaleString()}</td>
+                <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>
+                  <div>{new Date(t.startsAt).toLocaleDateString()}</div>
+                  <div style={{ color: C.textMuted, fontSize: 12 }}>{new Date(t.startsAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
+                </td>
+                <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>
+                  <div>{new Date(t.endsAt).toLocaleDateString()}</div>
+                  <div style={{ color: C.textMuted, fontSize: 12 }}>{new Date(t.endsAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
+                </td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>
                   {t.entryFeeCents > 0 ? `$${(t.entryFeeCents / 100).toFixed(2)}` : <span style={{ color: C.textMuted }}>Free</span>}
                 </td>
@@ -309,6 +315,7 @@ export default function TournamentsPage() {
                     backgroundColor: t.isOpen ? C.greenBg : C.surfaceHigh,
                     border: `1px solid ${t.isOpen ? C.green + '50' : C.border}`,
                     borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700,
+                    whiteSpace: 'nowrap', display: 'inline-block',
                   }}>
                     {t.isOpen ? '● Open' : '○ Closed'}
                   </span>
