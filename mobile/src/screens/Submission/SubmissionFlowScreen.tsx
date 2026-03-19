@@ -1,8 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, Image, TextInput, SafeAreaView, ScrollView,
+  ActivityIndicator, Alert, Image, TextInput, SafeAreaView, ScrollView, FlatList,
 } from 'react-native';
+
+const COMMON_SPECIES = [
+  'Largemouth Bass', 'Smallmouth Bass', 'Striped Bass', 'Spotted Bass',
+  'Crappie', 'Bluegill', 'Walleye', 'Northern Pike', 'Muskie',
+  'Rainbow Trout', 'Brown Trout', 'Brook Trout', 'Salmon', 'Catfish',
+  'Redfish', 'Flounder', 'Snook', 'Tarpon', 'Grouper', 'Mahi-Mahi',
+  'Speckled Trout', 'King Mackerel', 'Cobia', 'Wahoo',
+];
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -382,9 +390,29 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
           {/* Species */}
           <View style={styles.detailsCard}>
             <Text style={styles.detailsFieldLabel}>SPECIES (OPTIONAL)</Text>
+            <FlatList
+              data={COMMON_SPECIES}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={item => item}
+              style={{ marginBottom: 10 }}
+              renderItem={({ item }) => {
+                const selected = speciesName === item;
+                return (
+                  <TouchableOpacity
+                    onPress={() => setSpeciesName(selected ? '' : item)}
+                    style={[styles.speciesChip, selected && styles.speciesChipSelected]}
+                  >
+                    <Text style={[styles.speciesChipText, selected && styles.speciesChipTextSelected]}>
+                      {item}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }}
+            />
             <TextInput
               style={styles.lengthInput}
-              placeholder="e.g. Largemouth Bass"
+              placeholder="Or type a custom species..."
               placeholderTextColor={colors.textMuted}
               value={speciesName}
               onChangeText={setSpeciesName}
@@ -540,6 +568,15 @@ const styles = StyleSheet.create({
     borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14,
   },
   detailsFieldLabel: { ...typography.label, color: colors.textMuted, marginBottom: 6 },
+  speciesChip: {
+    borderRadius: 20, borderWidth: 1, borderColor: colors.border,
+    paddingHorizontal: 12, paddingVertical: 6, marginRight: 8, backgroundColor: colors.bg,
+  },
+  speciesChipSelected: {
+    borderColor: colors.accent, backgroundColor: colors.accent + '20',
+  },
+  speciesChipText: { ...typography.caption, color: colors.textSub },
+  speciesChipTextSelected: { color: colors.accent, fontWeight: '600' },
   lengthInput: {
     ...typography.numMd, color: colors.accent,
     borderBottomWidth: 1, borderBottomColor: colors.borderGold, paddingVertical: 4,
