@@ -6,7 +6,9 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../../services/api';
 import { storage } from '../../services/storage';
+import { getPendingQueue, drainQueue, removeFromQueue } from '../../services/submissionQueue';
 import type { Tournament, MySubmission, AnglerProfile } from '../../models';
+import type { QueuedSubmission } from '../../services/submissionQueue';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { TournamentContext } from '../../navigation';
@@ -57,6 +59,8 @@ export default function TournamentScreen() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'upcoming'>('active');
+  const [pendingQueue, setPendingQueue] = useState<QueuedSubmission[]>([]);
+  const [retrying, setRetrying] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -64,19 +68,24 @@ export default function TournamentScreen() {
       async function load() {
         setLoading(true);
         try {
-          const [t, p] = await Promise.all([
+          const [t, p, pq] = await Promise.all([
             api.getActiveTournament(),
             api.getMyProfile().catch(() => null),
+            getPendingQueue(),
           ]);
           if (!active) return;
           setTournament(t);
           setProfile(p);
+          setPendingQueue(pq);
           setTournamentId(t.id);
           const subs = await api.getMySubmissions(t.id);
           if (!active) return;
           setSubmissions(subs);
         } catch {
-          if (active) setTournament(null);
+          if (active) {
+            setTournament(null);
+            getPendingQueue().then(pq => { if (active) setPendingQueue(pq); }).catch(() => {});
+          }
         } finally {
           if (active) setLoading(false);
         }
@@ -89,6 +98,28 @@ export default function TournamentScreen() {
   async function handleLogout() {
     await storage.deleteToken();
     navigation.replace('Login');
+  }
+
+  async function handleRetryQueue() {
+    setRetrying(true);
+    try {
+      const { succeeded, failed } = await drainQueue();
+      const updated = await getPendingQueue();
+      setPendingQueue(updated);
+      if (succeeded > 0 && tournament) {
+        const subs = await api.getMySubmissions(tournament.id);
+        setSubmissions(subs);
+      }
+      if (succeeded > 0 && failed === 0) Alert.alert('All Uploaded', `${succeeded} catch${succeeded > 1 ? 'es' : ''} submitted successfully.`);
+      else if (succeeded > 0) Alert.alert('Partial Upload', `${succeeded} uploaded, ${failed} still pending.`);
+      else Alert.alert('Still Offline', 'Could not reach the server. Catches remain saved locally.');
+    } catch { /* ignore */ }
+    setRetrying(false);
+  }
+
+  async function handleDiscardQueued(id: string) {
+    await removeFromQueue(id);
+    setPendingQueue(prev => prev.filter(q => q.id !== id));
   }
 
   const initials = (name: string) =>
@@ -221,6 +252,40 @@ export default function TournamentScreen() {
                 <Text style={styles.emptyTitle}>NO ACTIVE TOURNAMENT</Text>
                 <Text style={styles.emptySub}>Check back when a new week opens.</Text>
               </View>
+            )}
+
+            {/* Pending Upload Queue */}
+            {pendingQueue.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionLabel, { color: colors.warning }]}>⏳ PENDING UPLOADS</Text>
+                  <View style={[styles.sectionLine, { backgroundColor: colors.warning + '40' }]} />
+                </View>
+                <View style={styles.queueBanner}>
+                  <Text style={styles.queueBannerText}>
+                    {pendingQueue.length} catch{pendingQueue.length > 1 ? 'es' : ''} saved locally — not yet submitted.
+                  </Text>
+                  {pendingQueue.map(q => (
+                    <View key={q.id} style={styles.queueItem}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.queueItemLength}>
+                          {(parseFloat(q.fields.fishLengthCm) / 2.54).toFixed(1)}"
+                          {q.fields.speciesName ? `  ·  ${q.fields.speciesName}` : ''}
+                        </Text>
+                        <Text style={styles.queueItemDate}>
+                          Saved {new Date(q.queuedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                      <TouchableOpacity onPress={() => handleDiscardQueued(q.id)} style={styles.queueDiscard}>
+                        <Text style={styles.queueDiscardText}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TouchableOpacity style={styles.retryBtn} onPress={handleRetryQueue} disabled={retrying} activeOpacity={0.8}>
+                    <Text style={styles.retryBtnText}>{retrying ? 'Retrying...' : '↑ Retry Upload Now'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
 
             {/* My Submissions */}
@@ -498,6 +563,28 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
   },
+  queueBanner: {
+    marginHorizontal: 16, marginBottom: 16,
+    backgroundColor: colors.warning + '12',
+    borderRadius: 12, borderWidth: 1, borderColor: colors.warning + '40',
+    padding: 14,
+  },
+  queueBannerText: { ...typography.caption, color: colors.warning, marginBottom: 10 },
+  queueItem: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.surface, borderRadius: 8,
+    padding: 10, marginBottom: 6,
+  },
+  queueItemLength: { ...typography.label, color: colors.text },
+  queueItemDate: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  queueDiscard: { padding: 6 },
+  queueDiscardText: { color: colors.textMuted, fontSize: 16 },
+  retryBtn: {
+    marginTop: 8, paddingVertical: 10, alignItems: 'center',
+    backgroundColor: colors.warning + '20', borderRadius: 8,
+    borderWidth: 1, borderColor: colors.warning + '60',
+  },
+  retryBtnText: { ...typography.label, color: colors.warning },
   submissionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

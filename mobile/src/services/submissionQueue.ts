@@ -37,6 +37,19 @@ export async function getPendingCount(): Promise<number> {
   return queue.length;
 }
 
+export async function getPendingQueue(): Promise<QueuedSubmission[]> {
+  return getQueue();
+}
+
+export async function removeFromQueue(id: string): Promise<void> {
+  const queue = await getQueue();
+  const filtered = queue.filter(q => q.id !== id);
+  await saveQueue(filtered);
+  // Clean up persisted photo
+  const item = queue.find(q => q.id === id);
+  if (item) await FileSystem.deleteAsync(item.fields.photoUri, { idempotent: true }).catch(() => {});
+}
+
 export async function drainQueue(): Promise<{ succeeded: number; failed: number }> {
   const queue = await getQueue();
   if (queue.length === 0) return { succeeded: 0, failed: 0 };
