@@ -15,7 +15,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
-import { uploadSubmission } from '../../services/api';
+import { uploadSubmission, identifyFish } from '../../services/api';
 import { enqueue } from '../../services/submissionQueue';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -72,6 +72,8 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const [speciesName, setSpeciesName] = useState('');
   const [released, setReleased] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<{ species: string; confidence: number }[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [failedFields, setFailedFields] = useState<Parameters<typeof uploadSubmission>[0] | null>(null);
   const cameraRef = useRef<CameraView>(null);
@@ -100,7 +102,20 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
     setCardPoints([]);
     setFishPoints([]);
     setMeasuredCm(null);
+    setAiSuggestions([]);
     setStep('measure');
+    // Fire AI identification in background while user measures
+    setAiLoading(true);
+    identifyFish(photo.uri, 'image/jpeg')
+      .then(result => {
+        setAiSuggestions(result.suggestions);
+        // Auto-select top suggestion if high confidence and user hasn't picked yet
+        if (result.suggestions[0]?.confidence >= 70) {
+          setSpeciesName(prev => prev || result.suggestions[0].species);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAiLoading(false));
   }
 
   function handleMeasureTap(x: number, y: number) {
@@ -393,6 +408,34 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
           {/* Species */}
           <View style={styles.detailsCard}>
             <Text style={styles.detailsFieldLabel}>SPECIES (OPTIONAL)</Text>
+
+            {/* AI identification banner */}
+            {aiLoading && (
+              <View style={styles.aiBanner}>
+                <ActivityIndicator size="small" color={colors.accent} />
+                <Text style={styles.aiLabel}>Identifying species…</Text>
+              </View>
+            )}
+            {!aiLoading && aiSuggestions.length > 0 && (
+              <View style={styles.aiBanner}>
+                <Text style={styles.aiLabel}>🤖 AI identified</Text>
+                <View style={styles.aiChips}>
+                  {aiSuggestions.map(s => (
+                    <TouchableOpacity
+                      key={s.species}
+                      style={[styles.aiChip, speciesName === s.species && styles.aiChipSelected]}
+                      onPress={() => setSpeciesName(speciesName === s.species ? '' : s.species)}
+                    >
+                      <Text style={[styles.aiChipText, speciesName === s.species && styles.aiChipTextSelected]}>
+                        {s.species}
+                      </Text>
+                      <Text style={styles.aiConfidence}>{s.confidence}%</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <FlatList
               data={COMMON_SPECIES}
               horizontal
@@ -595,6 +638,30 @@ const styles = StyleSheet.create({
   },
   speciesChipText: { ...typography.caption, color: colors.textSub },
   speciesChipTextSelected: { color: colors.accent, fontWeight: '600' },
+  aiBanner: {
+    backgroundColor: colors.surfaceHigh,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.accent + '30',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  aiLabel: { ...typography.label, color: colors.accent, fontSize: 11 },
+  aiChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, flex: 1 },
+  aiChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.surface, borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.accent + '50',
+  },
+  aiChipSelected: { backgroundColor: colors.accent + '20', borderColor: colors.accent },
+  aiChipText: { ...typography.caption, color: colors.textSub, fontSize: 13 },
+  aiChipTextSelected: { color: colors.accent, fontWeight: '700' },
+  aiConfidence: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
   lengthInput: {
     ...typography.numMd, color: colors.accent,
     borderBottomWidth: 1, borderBottomColor: colors.borderGold, paddingVertical: 4,

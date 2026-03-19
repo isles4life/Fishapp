@@ -221,6 +221,23 @@ export function getHotSpots(tournamentId?: string): Promise<HotSpot[]> {
   return request<HotSpot[]>(`/submissions/hotspots${qs}`);
 }
 
+export async function identifyFish(
+  uri: string,
+  mimeType: string,
+): Promise<{ suggestions: { species: string; confidence: number }[] }> {
+  const token = await storage.getToken();
+  const ext = mimeType.split('/')[1] ?? 'jpg';
+  const form = new FormData();
+  form.append('photo', { uri, name: `fish.${ext}`, type: mimeType } as any);
+  const res = await fetch(`${BASE_URL}/submissions/identify`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) return { suggestions: [] };
+  return res.json();
+}
+
 export async function uploadAvatar(uri: string, mimeType: string): Promise<{ avatarUrl: string }> {
   const token = await storage.getToken();
   const ext = mimeType.split('/')[1] ?? 'jpg';
