@@ -57,8 +57,9 @@ export class AuthService {
   }
 
   async appleLogin(dto: AppleLoginDto, platform?: string) {
+    const audiences = [process.env.APPLE_BUNDLE_ID, process.env.APPLE_WEB_CLIENT_ID].filter(Boolean) as string[];
     const payload = await appleSignin.verifyIdToken(dto.identityToken, {
-      audience: process.env.APPLE_BUNDLE_ID,
+      audience: audiences,
       ignoreExpiration: false,
     });
 
