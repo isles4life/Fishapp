@@ -34,6 +34,7 @@ export interface MySubmission {
   status: string;
   fishLengthCm: number;
   capturedAt: string;
+  rejectionNote?: string | null;
 }
 
 export interface SubmissionResult {

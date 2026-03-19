@@ -142,7 +142,7 @@ export class SubmissionsService {
   }
 
   async getMySubmissions(userId: string, tournamentId: string) {
-    return this.prisma.submission.findMany({
+    const submissions = await this.prisma.submission.findMany({
       where: { userId, tournamentId },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -151,8 +151,23 @@ export class SubmissionsService {
         fishLengthCm: true,
         capturedAt: true,
         createdAt: true,
+        moderationActions: {
+          where: { actionType: 'REJECT' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { note: true },
+        },
       },
     });
+
+    return submissions.map(s => ({
+      id: s.id,
+      status: s.status,
+      fishLengthCm: s.fishLengthCm,
+      capturedAt: s.capturedAt,
+      createdAt: s.createdAt,
+      rejectionNote: s.moderationActions[0]?.note ?? null,
+    }));
   }
 
   async getHotSpots(tournamentId?: string) {

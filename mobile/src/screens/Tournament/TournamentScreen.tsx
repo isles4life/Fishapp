@@ -32,11 +32,14 @@ function SubmissionRow({ item }: { item: MySubmission }) {
   const sc = statusColor(item.status);
   return (
     <View style={styles.submissionRow}>
-      <View>
+      <View style={{ flex: 1 }}>
         <Text style={styles.submissionLength}>{(item.fishLengthCm / 2.54).toFixed(1)}"</Text>
         <Text style={styles.submissionDate}>
           {new Date(item.capturedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </Text>
+        {item.status === 'REJECTED' && item.rejectionNote ? (
+          <Text style={styles.rejectionNote}>"{item.rejectionNote}"</Text>
+        ) : null}
       </View>
       <View style={[styles.statusBadge, { backgroundColor: sc + '20', borderColor: sc + '50' }]}>
         <Text style={[styles.statusText, { color: sc }]}>{statusLabel(item.status)}</Text>
@@ -496,6 +499,12 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  rejectionNote: {
+    ...typography.caption,
+    color: colors.error,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   statusBadge: {
     borderRadius: 8,
