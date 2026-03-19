@@ -260,6 +260,11 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Mobile `TournamentDetailScreen`: hero card, director section, QR code (admin/director) or scan button (angler), top 3 leaderboard, full social feed with compose bar
   - "Tournament Details →" button on TournamentScreen active card
   - Admin: description textarea + director dropdown in create form
+  - **Additional admin improvements (this session):**
+    - Admin edit modal expanded to all fields: name, start/end dates, entry fee, prize pool, scoring method, director, description
+    - Tournament banner photo: `POST /tournaments/:id/banner` (admin, multipart); stored as `bannerKey` in DB; presigned URL returned on `getById`; shown as hero image on web detail page and mobile TournamentDetailScreen
+    - Web `/tournaments` and home page now link to `/leaderboard/[id]` (tournament detail) instead of generic `/leaderboard`
+    - Leaderboard page tournament name is a clickable link to detail page
   - **Gap fixes (this session):**
     - Announcement feed post now uses `actorId` (admin/director who sent it) instead of a random participant
     - Admin: ✏️ edit button on tournament rows → modal to update description + director
