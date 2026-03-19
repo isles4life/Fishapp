@@ -38,17 +38,19 @@ FishAPP/
 │       ├── email/            # Transactional emails
 │       ├── audit/            # AuditLog service
 │       ├── websocket/        # Socket.IO leaderboard gateway
-│       └── common/           # Prisma service, JWT guard, Admin guard
+│       ├── tournament-admin/ # Role request/approve flow + scope helper
+│       └── common/           # Prisma service, JWT guard, Admin guard, TournamentScopedGuard
 ├── admin/                    # Next.js admin dashboard (port 3001)
 │   └── src/app/
 │       ├── moderation/       # Review queue with photos + AI flags
-│       ├── tournaments/      # Create / open / close / announce / draw
+│       ├── tournaments/      # Create / open / close / announce / draw / QR check-in
 │       ├── leaderboard/      # Live standings
 │       ├── users/            # User list, role, suspend, warnings, impersonate
-│       └── history/          # Audit log + submission history
+│       ├── history/          # Audit log + submission history
+│       └── requests/         # Tournament director request approval queue (ADMIN only)
 ├── mobile/                   # React Native (Expo) — iOS only
 │   └── src/
-│       ├── screens/          # Auth, Submission, Leaderboard, Tournament, Profile
+│       ├── screens/          # Auth, Submission, Leaderboard, Tournament, Profile, CheckIn
 │       ├── services/         # API client, offline submission queue
 │       ├── navigation/       # React Navigation stack + bottom tabs
 │       └── theme/            # Colors, typography
@@ -122,8 +124,10 @@ Set backend URL in `mobile/app.config.js` → `extra.apiBaseUrl`:
 - Email/password (bcrypt) on all platforms
 - Apple Sign-In (iOS only)
 - JWT (30-day expiry) — Keychain on mobile, localStorage on web/admin
-- Roles: `USER` (default) and `ADMIN`
-- Admin panel protected by `AdminGuard` — non-admin JWT returns 403
+- Roles: `USER` (default), `ADMIN`, and `TOURNAMENT_ADMIN`
+- Admin panel protected by `AdminGuard` (full admin) or `TournamentScopedGuard` (moderation endpoints — allows either role)
+- `TOURNAMENT_ADMIN` sees a scoped admin panel filtered to their assigned tournament(s); cannot access Users or Requests pages
+- Role changes take effect immediately — JWT strategy fetches live user from DB on every request, no re-login needed
 
 ## AI Features
 
@@ -167,6 +171,15 @@ Both flags appear as badges in the admin moderation queue alongside submitted vs
 | POST | /submissions/:id/props | Toggle prop (like) |
 | POST | /submissions/:id/comments | Add comment |
 
+### Tournament Director (JWT + any authenticated user)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /tournament-admin/request | Request TOURNAMENT_ADMIN role for a tournament |
+| GET | /tournament-admin/my-requests | User's own role requests + status |
+| GET | /tournament-admin/my-tournaments | Assigned tournament IDs (used by admin panel) |
+| POST | /tournaments/check-in | Scan QR check-in code (body: `{ code }`) |
+
 ### Admin only (JWT + ADMIN role)
 
 | Method | Path | Description |
@@ -183,6 +196,11 @@ Both flags appear as badges in the admin moderation queue alongside submitted vs
 | PATCH | /tournaments/:id/close | Close tournament |
 | POST | /tournaments/:id/announce | Push announcement to all participants |
 | POST | /tournaments/:id/draw | Random prize draw (flat or weighted) |
+| PATCH | /tournaments/:id/check-in-code | Generate / regenerate QR check-in code |
+| GET | /tournaments/:id/check-ins | List anglers who checked in |
+| GET | /admin/tournament-admin/requests | All pending role requests |
+| PATCH | /admin/tournament-admin/requests/:id/approve | Approve — sets user role to TOURNAMENT_ADMIN |
+| PATCH | /admin/tournament-admin/requests/:id/reject | Reject with optional note |
 
 ## Database Schema
 
@@ -190,10 +208,12 @@ Key models (see `backend/prisma/schema.prisma` for full definitions):
 
 | Model | Key fields |
 |-------|-----------|
-| `User` | email, appleId, role (USER/ADMIN), suspended, pushToken, regionId (nullable) |
+| `User` | email, appleId, role (USER/ADMIN/TOURNAMENT_ADMIN), suspended, pushToken, regionId (nullable) |
 | `AnglerProfile` | username, bio, birthday, homeState, primarySpecies[], sportsmanshipScore |
 | `Region` | name, minLat/maxLat/minLng/maxLng (bounding box) |
-| `Tournament` | name, weekNumber, year, isOpen, startsAt, endsAt, entryFeeCents, prizePoolCents |
+| `Tournament` | name, weekNumber, year, isOpen, startsAt, endsAt, entryFeeCents, prizePoolCents, checkInCode (nullable, unique) |
+| `TournamentCheckIn` | userId, tournamentId, checkedInAt — unique on (userId, tournamentId) |
+| `TournamentAdminRequest` | userId, tournamentId, status (PENDING/APPROVED/REJECTED), message, reviewedById, reviewedAt |
 | `Submission` | fishLengthCm, gpsLat/Lng, photo1Key/photo2Key (S3), status, flagDuplicateHash, flagDuplicateGps, flagSuspectPhoto, flagSuspectLength, estimatedLengthCm, released |
 | `LeaderboardEntry` | rank, fishLengthCm, submissionId, userId, tournamentId |
 | `ModerationAction` | actionType (APPROVE/REJECT/FLAG/SUSPEND_USER), note |
