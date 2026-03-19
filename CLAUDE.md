@@ -244,22 +244,26 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-21)
+## Current Status (as of 2026-03-22)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #23 live — all mobile changes shipped (see below)
-- Backend fully deployed: TOURNAMENT_ADMIN role, QR check-in, comment edit/delete all live
-- **New backend deploy required** for multiple scoring methods
-- **New EAS build required** for scoring method mobile changes (weight input, count-based flow)
+- iOS TestFlight build #23 live — all mobile changes shipped
+- Backend deploying: multiple scoring methods + Fishing Intelligence cache/timeout improvements
+- **New EAS build required** for scoring method mobile changes + FishingIntelligenceScreen zip/location updates
 
-### Recently Shipped (not yet deployed)
-- **Multiple scoring methods** (full-stack, pending deploy + EAS build):
+### Recently Shipped
+- **Multiple scoring methods** (full-stack, backend deployed):
   - `ScoringMethod` enum: `LENGTH | WEIGHT | FISH_COUNT | SPECIES_COUNT` on Tournament
   - `fishWeightOz Float?` on Submission; `score Float` on LeaderboardEntry
   - Migration `20260321000002_add_scoring_method` back-fills score from fishLengthCm
-  - Leaderboard service branches on scoringMethod: LENGTH/WEIGHT keep best-per-user, FISH_COUNT/SPECIES_COUNT aggregate counts; all ranked by `score desc`
-  - Admin: scoring method dropdown in tournament creation; badge on tournament list; formatScore() in leaderboard view
-  - Mobile: `scoringMethod` flows through TournamentContext + route params; weight input shown for WEIGHT tournaments; length field optional for count-based modes
+  - Leaderboard service branches on scoringMethod; all ranked by `score desc`
+  - Admin: scoring method dropdown in create form; badge on list; formatScore() in leaderboard view
+  - Mobile: `scoringMethod` flows through TournamentContext + route params; weight input for WEIGHT mode; length optional for count modes
   - Tournament Director request picker: replaced auto-fill with full tournament list picker
+- **Fishing Intelligence improvements** (backend deployed, mobile pending EAS build):
+  - Backend: 15-min in-memory response cache keyed by ~1km grid cell — repeat requests return instantly
+  - Backend: `withTimeout()` caps slow external APIs: Overpass 6s, Nominatim 5s, NOAA tides 8s (was 22s)
+  - Mobile: no longer auto-loads current location on mount — user chooses zip code or "Use My Location"
+  - Mobile: idle state shows logo + prompt before any location is selected
 
 ### Previously Shipped
 - **iOS TestFlight build #23** — ships all pending mobile changes:
