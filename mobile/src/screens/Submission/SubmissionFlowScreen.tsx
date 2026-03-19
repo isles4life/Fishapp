@@ -17,16 +17,12 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation';
 import { uploadSubmission, identifyFish } from '../../services/api';
 import { enqueue } from '../../services/submissionQueue';
+import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Submission'>;
 type Step = 'photo' | 'measure' | 'details' | 'uploading' | 'success' | 'error';
-type Point = { x: number; y: number };
-
-// Credit card ISO standard long edge = 85.6 mm
-const CARD_LONG_EDGE_CM = 8.56;
-const DOT_R = 9;
 
 function cmToIn(cm: number): string {
   return (cm / 2.54).toFixed(1);
@@ -34,33 +30,6 @@ function cmToIn(cm: number): string {
 
 function inToCm(inches: number): number {
   return Math.round(inches * 2.54 * 10) / 10;
-}
-
-function ptDist(a: Point, b: Point) {
-  return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
-}
-
-function MeasureLine({ p1, p2, color }: { p1: Point; p2: Point; color: string }) {
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const len = Math.sqrt(dx * dx + dy * dy);
-  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-  return (
-    <View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        left: (p1.x + p2.x) / 2 - len / 2,
-        top: (p1.y + p2.y) / 2 - 1.5,
-        width: len,
-        height: 3,
-        backgroundColor: color,
-        opacity: 0.9,
-        borderRadius: 2,
-        transform: [{ rotate: `${angle}deg` }],
-      }}
-    />
-  );
 }
 
 export default function SubmissionFlowScreen({ navigation, route }: Props) {
@@ -78,12 +47,6 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const [failedFields, setFailedFields] = useState<Parameters<typeof uploadSubmission>[0] | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
-  // Measure state
-  const [measurePhase, setMeasurePhase] = useState<'card' | 'fish' | 'done'>('card');
-  const [cardPoints, setCardPoints] = useState<Point[]>([]);
-  const [fishPoints, setFishPoints] = useState<Point[]>([]);
-  const [measuredCm, setMeasuredCm] = useState<number | null>(null);
-
   useEffect(() => {
     Location.requestForegroundPermissionsAsync().then(({ status }) => {
       if (status === 'granted') {
@@ -98,10 +61,6 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
     const photo = await cameraRef.current?.takePictureAsync({ quality: 0.85 });
     if (!photo) return;
     setPhotoUri(photo.uri);
-    setMeasurePhase('card');
-    setCardPoints([]);
-    setFishPoints([]);
-    setMeasuredCm(null);
     setAiSuggestions([]);
     setStep('measure');
     // Fire AI identification in background while user measures
@@ -118,40 +77,32 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
       .finally(() => setAiLoading(false));
   }
 
-  function handleMeasureTap(x: number, y: number) {
-    if (measurePhase === 'card') {
-      const next = [...cardPoints, { x, y }];
-      setCardPoints(next);
-      if (next.length === 2) setMeasurePhase('fish');
-    } else if (measurePhase === 'fish') {
-      const next = [...fishPoints, { x, y }];
-      setFishPoints(next);
-      if (next.length === 2) {
-        const cardPx = ptDist(cardPoints[0], cardPoints[1]);
-        const fishPx = ptDist(next[0], next[1]);
-        const cm = Math.round((fishPx / cardPx) * CARD_LONG_EDGE_CM * 10) / 10;
-        setMeasuredCm(cm); // stored internally as cm for conversion
-        setMeasurePhase('done');
-      }
+  async function handlePickPhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow photo library access to upload a photo.');
+      return;
     }
-  }
-
-  function handleMeasureUndo() {
-    if (fishPoints.length > 0 || measurePhase === 'done') {
-      setFishPoints(fishPoints.slice(0, -1));
-      setMeasurePhase('fish');
-      setMeasuredCm(null);
-    } else if (measurePhase === 'fish') {
-      setCardPoints(cardPoints.slice(0, -1));
-      setMeasurePhase('card');
-    } else if (cardPoints.length > 0) {
-      setCardPoints(cardPoints.slice(0, -1));
-    }
-  }
-
-  function handleUseMeasurement() {
-    if (measuredCm !== null) setFishLength(cmToIn(measuredCm));
-    setStep('details');
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const uri = result.assets[0].uri;
+    setPhotoUri(uri);
+    setAiSuggestions([]);
+    setStep('measure');
+    setAiLoading(true);
+    identifyFish(uri, 'image/jpeg')
+      .then(r => {
+        setAiSuggestions(r.suggestions);
+        if (r.suggestions[0]?.confidence >= 70) {
+          setSpeciesName(prev => prev || r.suggestions[0].species);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAiLoading(false));
   }
 
   async function handleSubmit() {
@@ -284,81 +235,47 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   // ── Measure ───────────────────────────────────────────────────────────────
 
   if (step === 'measure') {
-    const done = measurePhase === 'done';
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.detailsHeader}>
           <TouchableOpacity onPress={() => setStep('photo')} style={styles.backBtn}>
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.detailsTitle}>MEASURE FISH</Text>
+          <Text style={styles.detailsTitle}>ENTER LENGTH</Text>
           <TouchableOpacity onPress={() => setStep('details')} style={styles.skipBtn}>
             <Text style={styles.skipBtnText}>SKIP</Text>
           </TouchableOpacity>
         </View>
 
-        <View
-          style={styles.measureImageWrap}
-          onTouchStart={!done ? (e) => handleMeasureTap(e.nativeEvent.locationX, e.nativeEvent.locationY) : undefined}
-        >
+        <View style={styles.measureImageWrap}>
           <Image
             source={{ uri: photoUri! }}
             style={StyleSheet.absoluteFill}
             resizeMode="contain"
-            pointerEvents="none"
           />
-          {cardPoints.length === 2 && <MeasureLine p1={cardPoints[0]} p2={cardPoints[1]} color="#4CAF50" />}
-          {fishPoints.length === 2 && <MeasureLine p1={fishPoints[0]} p2={fishPoints[1]} color={colors.accent} />}
-          {cardPoints.map((pt, i) => (
-            <View key={`c${i}`} pointerEvents="none"
-              style={[styles.measureDot, { left: pt.x - DOT_R, top: pt.y - DOT_R, backgroundColor: '#4CAF50' }]} />
-          ))}
-          {fishPoints.map((pt, i) => (
-            <View key={`f${i}`} pointerEvents="none"
-              style={[styles.measureDot, { left: pt.x - DOT_R, top: pt.y - DOT_R, backgroundColor: colors.accent }]} />
-          ))}
         </View>
 
         <View style={styles.measurePanel}>
-          {done ? (
-            <>
-              <Text style={styles.measureResultNum}>📏 {measuredCm !== null ? cmToIn(measuredCm) : ''}″</Text>
-              <Text style={styles.measureResultSub}>Measured via credit card (85.6 mm reference)</Text>
-              <TouchableOpacity style={[styles.goldBtn, { marginTop: 16 }]} onPress={handleUseMeasurement}>
-                <Text style={styles.goldBtnText}>USE {measuredCm !== null ? cmToIn(measuredCm) : ''}"</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.outlineBtn, { marginTop: 10 }]}
-                onPress={() => { setMeasurePhase('card'); setCardPoints([]); setFishPoints([]); setMeasuredCm(null); }}
-              >
-                <Text style={styles.outlineBtnText}>RETAP</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <View style={styles.measureSteps}>
-                <View style={[styles.measureStepPill, measurePhase === 'card' && styles.measureStepPillActive]}>
-                  <View style={[styles.measureStepDot, { backgroundColor: '#4CAF50' }]} />
-                  <Text style={[styles.measureStepText, measurePhase === 'card' && { color: colors.text }]}>
-                    {cardPoints.length < 2 ? `Tap card long edge  ${cardPoints.length}/2` : '✓ Card set'}
-                  </Text>
-                </View>
-                <View style={[styles.measureStepPill, measurePhase === 'fish' && styles.measureStepPillActive]}>
-                  <View style={[styles.measureStepDot, { backgroundColor: colors.accent }]} />
-                  <Text style={[styles.measureStepText, measurePhase === 'fish' && { color: colors.text }]}>
-                    {`Tap fish nose & tail  ${fishPoints.length}/2`}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[styles.outlineBtn, { marginTop: 12, opacity: cardPoints.length === 0 ? 0.3 : 1 }]}
-                onPress={handleMeasureUndo}
-                disabled={cardPoints.length === 0}
-              >
-                <Text style={styles.outlineBtnText}>UNDO LAST TAP</Text>
-              </TouchableOpacity>
-            </>
+          <Text style={styles.measurePrompt}>Read your mat, ruler, or tape — enter length below</Text>
+          <TextInput
+            style={styles.measureInput}
+            placeholder="e.g. 16.5"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="decimal-pad"
+            value={fishLength}
+            onChangeText={setFishLength}
+            autoFocus
+          />
+          {fishLength !== '' && !isNaN(Number(fishLength)) && (
+            <Text style={styles.measureResultNum}>{fishLength}″</Text>
           )}
+          <TouchableOpacity
+            style={[styles.goldBtn, { marginTop: 16, opacity: (!fishLength || isNaN(Number(fishLength))) ? 0.4 : 1 }]}
+            onPress={() => setStep('details')}
+            disabled={!fishLength || isNaN(Number(fishLength))}
+          >
+            <Text style={styles.goldBtnText}>NEXT →</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -399,9 +316,6 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             />
             {fishLength !== '' && !isNaN(Number(fishLength)) && (
               <Text style={styles.lengthPreview}>{fishLength}"</Text>
-            )}
-            {measuredCm !== null && (
-              <Text style={styles.measuredBadge}>📏 Auto-measured via credit card</Text>
             )}
           </View>
 
@@ -520,14 +434,14 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
           <View style={styles.guideContainer}>
             <View style={styles.guideDashed}>
-              <Text style={styles.guideLabel}>FISH + CREDIT CARD VISIBLE</Text>
+              <Text style={styles.guideLabel}>FISH + MEASURING DEVICE VISIBLE</Text>
             </View>
           </View>
 
           <View style={styles.checklistSide}>
             <View style={styles.checklistItem}>
-              <Text style={{ fontSize: 22 }}>💳</Text>
-              <Text style={styles.checklistText}>Credit card in frame</Text>
+              <Text style={{ fontSize: 22 }}>📏</Text>
+              <Text style={styles.checklistText}>Mat, ruler, or tape in frame</Text>
             </View>
             <View style={styles.checklistItem}>
               <Text style={{ fontSize: 22 }}>🐟</Text>
@@ -539,9 +453,15 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.shutterBtn} onPress={takePicture} activeOpacity={0.8}>
-            <View style={styles.shutterInner} />
-          </TouchableOpacity>
+          <View style={styles.shutterRow}>
+            <TouchableOpacity style={styles.uploadBtn} onPress={handlePickPhoto} activeOpacity={0.8}>
+              <Text style={styles.uploadBtnText}>⬆ Upload</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.shutterBtn} onPress={takePicture} activeOpacity={0.8}>
+              <View style={styles.shutterInner} />
+            </TouchableOpacity>
+            <View style={{ width: 64 }} />
+          </View>
         </View>
       </CameraView>
     </View>
@@ -589,26 +509,18 @@ const styles = StyleSheet.create({
 
   // Measure
   measureImageWrap: { flex: 1, backgroundColor: '#000' },
-  measureDot: {
-    position: 'absolute', width: DOT_R * 2, height: DOT_R * 2,
-    borderRadius: DOT_R, borderWidth: 2, borderColor: '#fff',
-  },
   measurePanel: {
     backgroundColor: colors.surface, borderTopWidth: 1,
     borderTopColor: colors.border, paddingHorizontal: 20,
     paddingTop: 16, paddingBottom: 20,
   },
-  measureSteps: { gap: 10 },
-  measureStepPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 10, paddingHorizontal: 14,
-    borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg,
+  measurePrompt: { ...typography.bodyMd, color: colors.textSub, textAlign: 'center', marginBottom: 12 },
+  measureInput: {
+    ...typography.numLg, color: colors.accent,
+    borderBottomWidth: 1, borderBottomColor: colors.borderGold,
+    paddingVertical: 4, textAlign: 'center', fontSize: 28,
   },
-  measureStepPillActive: { borderColor: colors.borderGold, backgroundColor: 'rgba(201,164,80,0.08)' },
-  measureStepDot: { width: 10, height: 10, borderRadius: 5 },
-  measureStepText: { ...typography.bodyMd, color: colors.textMuted, flex: 1 },
-  measureResultNum: { ...typography.numLg, color: colors.accent, textAlign: 'center', fontSize: 32 },
-  measureResultSub: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: 4 },
+  measureResultNum: { ...typography.numLg, color: colors.accent, textAlign: 'center', fontSize: 32, marginTop: 8 },
   skipBtn: { width: 44, alignItems: 'flex-end', justifyContent: 'center' },
   skipBtnText: { ...typography.labelSm, color: colors.textSub },
 
@@ -667,7 +579,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.borderGold, paddingVertical: 4,
   },
   lengthPreview: { ...typography.numLg, color: colors.accent, marginTop: 8 },
-  measuredBadge: { ...typography.caption, color: colors.textMuted, marginTop: 6 },
   gpsValue: { ...typography.bodyMd, color: colors.textSub },
   releaseRow: { flexDirection: 'row', alignItems: 'center' },
   releaseSubtext: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
@@ -712,11 +623,22 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.accent + '50',
   },
   checklistText: { ...typography.caption, color: colors.accent },
+  shutterRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 40, gap: 20,
+  },
   shutterBtn: {
-    alignSelf: 'center', marginBottom: 40, width: 72, height: 72,
+    width: 72, height: 72,
     borderRadius: 36, borderWidth: 3, borderColor: colors.accent,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(207,194,156,0.15)',
   },
   shutterInner: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.cream },
+  uploadBtn: {
+    width: 64, height: 64, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.accent + '80',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(46,61,56,0.85)',
+  },
+  uploadBtnText: { ...typography.caption, color: colors.accent, textAlign: 'center', fontSize: 11 },
 });
