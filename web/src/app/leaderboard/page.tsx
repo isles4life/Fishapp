@@ -263,7 +263,10 @@ export default function LeaderboardPage() {
           </h1>
           {tournament && (
             <p style={{ color: C.textSub, fontSize: 15, margin: '0 0 4px' }}>
-              {tournament.name} · {tournament.region.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
+              <a href={`/leaderboard/${tournament.id}`} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>
+                {tournament.name}
+              </a>
+              {' · '}{tournament.region.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
             </p>
           )}
           {tournament && (tournament.entryFeeCents > 0 || tournament.prizePoolCents > 0) && (

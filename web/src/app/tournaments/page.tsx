@@ -146,12 +146,12 @@ export default function TournamentsPage() {
 
                   {/* Actions */}
                   <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Link href="/leaderboard" style={{
+                    <Link href={`/leaderboard/${tournament.id}`} style={{
                       backgroundColor: C.accent, color: C.bg, fontWeight: 700,
                       padding: '11px 24px', borderRadius: 10, textDecoration: 'none',
                       fontSize: 14, letterSpacing: 1, textTransform: 'uppercase', display: 'inline-block',
                     }}>
-                      View Leaderboard
+                      Tournament Details &amp; Leaderboard
                     </Link>
                     <span style={{ color: C.textMuted, fontSize: 13 }}>
                       📱 Get the app to compete

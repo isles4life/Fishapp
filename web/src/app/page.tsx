@@ -145,8 +145,8 @@ export default function HomePage() {
               {tournament.region.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/leaderboard" style={accentBtn}>📊 View Leaderboard</Link>
-              <Link href="/tournaments" style={ghostBtn}>🏆 View Tournaments</Link>
+              <Link href={`/leaderboard/${tournament.id}`} style={accentBtn}>🏆 Tournament Details</Link>
+              <Link href="/leaderboard" style={ghostBtn}>📊 Leaderboard</Link>
             </div>
           </div>
         )}
