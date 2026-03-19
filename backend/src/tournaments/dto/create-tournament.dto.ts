@@ -36,4 +36,8 @@ export class CreateTournamentDto {
   @IsOptional()
   @IsObject()
   prizeStructure?: Record<string, any>;
+
+  @IsOptional()
+  @IsString()
+  scoringMethod?: string;
 }

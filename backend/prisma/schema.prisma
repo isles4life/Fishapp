@@ -28,6 +28,13 @@ enum ModerationActionType {
   FLAG
 }
 
+enum ScoringMethod {
+  LENGTH
+  WEIGHT
+  FISH_COUNT
+  SPECIES_COUNT
+}
+
 enum UserRole {
   USER
   ADMIN
@@ -106,6 +113,7 @@ model Tournament {
   updatedAt       DateTime  @updatedAt
 
   checkInCode     String?   @unique
+  scoringMethod   ScoringMethod @default(LENGTH)
 
   region      Region    @relation(fields: [regionId], references: [id])
   submissions Submission[]
@@ -168,6 +176,7 @@ model Submission {
   estimatedLengthCm    Float?
   aiSuggestedSpecies   String?
   released             Boolean @default(false)
+  fishWeightOz         Float?
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -192,6 +201,7 @@ model LeaderboardEntry {
   tournamentId String
   userId       String
   fishLengthCm Float
+  score        Float    @default(0)
   submissionId String   @unique
   rank         Int?
   createdAt    DateTime @default(now())

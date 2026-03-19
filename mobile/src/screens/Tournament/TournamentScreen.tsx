@@ -53,7 +53,7 @@ function SubmissionRow({ item }: { item: MySubmission }) {
 
 export default function TournamentScreen() {
   const navigation = useNavigation<NavProp>();
-  const { setTournamentId } = useContext(TournamentContext);
+  const { setTournamentId, setScoringMethod } = useContext(TournamentContext);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [submissions, setSubmissions] = useState<MySubmission[]>([]);
   const [profile, setProfile] = useState<AnglerProfile | null>(null);
@@ -79,6 +79,7 @@ export default function TournamentScreen() {
           setProfile(p);
           setPendingQueue(pq);
           setTournamentId(t.id);
+          setScoringMethod(t.scoringMethod ?? 'LENGTH');
           const subs = await api.getMySubmissions(t.id);
           if (!active) return;
           setSubmissions(subs);
@@ -234,7 +235,7 @@ export default function TournamentScreen() {
                 <TouchableOpacity
                   style={styles.submitCatchBtn}
                   activeOpacity={0.85}
-                  onPress={() => navigation.navigate('Submission', { tournamentId: tournament.id })}
+                  onPress={() => navigation.navigate('Submission', { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod ?? 'LENGTH' })}
                 >
                   <Text style={styles.submitCatchBtnText}>SUBMIT A CATCH</Text>
                 </TouchableOpacity>

@@ -33,11 +33,12 @@ function inToCm(inches: number): number {
 }
 
 export default function SubmissionFlowScreen({ navigation, route }: Props) {
-  const { tournamentId } = route.params;
+  const { tournamentId, scoringMethod } = route.params;
   const [permission, requestPermission] = useCameraPermissions();
   const [step, setStep] = useState<Step>('photo');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [fishLength, setFishLength] = useState('');
+  const [fishWeight, setFishWeight] = useState('');
   const [speciesName, setSpeciesName] = useState('');
   const [released, setReleased] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -112,10 +113,15 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
     if (!photoUri || !location) {
       return Alert.alert('Missing data', 'Ensure photo is taken and GPS is available.');
     }
-    if (!fishLength || isNaN(Number(fishLength))) {
-      return Alert.alert('Missing data', 'Enter a valid fish length in inches.');
+    if (scoringMethod !== 'FISH_COUNT' && scoringMethod !== 'SPECIES_COUNT') {
+      if (!fishLength || isNaN(Number(fishLength))) {
+        return Alert.alert('Missing data', 'Enter a valid fish length in inches.');
+      }
     }
-    const fishLengthCm = String(inToCm(Number(fishLength)));
+    const fishLengthCm = fishLength ? String(inToCm(Number(fishLength))) : '0';
+    const weightFields = scoringMethod === 'WEIGHT' && fishWeight && !isNaN(Number(fishWeight))
+      ? { fishWeightOz: String(Number(fishWeight)) }
+      : {};
     setStep('uploading');
     try {
       await uploadSubmission({
@@ -127,6 +133,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         photoUri,
         speciesName: speciesName.trim() || undefined,
         released: String(released),
+        ...weightFields,
       });
       setStep('success');
     } catch (e: any) {
@@ -140,6 +147,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         photoUri: photoUri!,
         speciesName: speciesName.trim() || undefined,
         released: String(released),
+        ...weightFields,
       });
       setStep('error');
     }
@@ -247,7 +255,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
           >
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.detailsTitle}>ENTER LENGTH</Text>
+          <Text style={styles.detailsTitle}>{scoringMethod === 'WEIGHT' ? 'ENTER WEIGHT' : 'ENTER LENGTH'}</Text>
           <TouchableOpacity onPress={() => setStep('details')} style={styles.skipBtn}>
             <Text style={styles.skipBtnText}>SKIP</Text>
           </TouchableOpacity>
@@ -262,7 +270,11 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.measurePanel}>
-          <Text style={styles.measurePrompt}>Read your mat, ruler, or tape — enter length below</Text>
+          <Text style={styles.measurePrompt}>
+            {scoringMethod === 'FISH_COUNT' || scoringMethod === 'SPECIES_COUNT'
+              ? 'Optionally enter fish length for your records'
+              : 'Read your mat, ruler, or tape — enter length below'}
+          </Text>
           <TextInput
             style={styles.measureInput}
             placeholder="e.g. 16.5"
@@ -275,13 +287,36 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
           {fishLength !== '' && !isNaN(Number(fishLength)) && (
             <Text style={styles.measureResultNum}>{fishLength}″</Text>
           )}
-          <TouchableOpacity
-            style={[styles.goldBtn, { marginTop: 16, opacity: (!fishLength || isNaN(Number(fishLength))) ? 0.4 : 1 }]}
-            onPress={() => setStep('details')}
-            disabled={!fishLength || isNaN(Number(fishLength))}
-          >
-            <Text style={styles.goldBtnText}>NEXT →</Text>
-          </TouchableOpacity>
+          {scoringMethod === 'WEIGHT' && (
+            <>
+              <Text style={[styles.measurePrompt, { marginTop: 16 }]}>Enter fish weight</Text>
+              <TextInput
+                style={styles.measureInput}
+                placeholder="e.g. 24.5"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="decimal-pad"
+                value={fishWeight}
+                onChangeText={setFishWeight}
+              />
+              {fishWeight !== '' && !isNaN(Number(fishWeight)) && (
+                <Text style={styles.measureResultNum}>{fishWeight} oz</Text>
+              )}
+            </>
+          )}
+          {(() => {
+            const canProceed = scoringMethod === 'FISH_COUNT' || scoringMethod === 'SPECIES_COUNT'
+              ? true
+              : (!!fishLength && !isNaN(Number(fishLength)));
+            return (
+              <TouchableOpacity
+                style={[styles.goldBtn, { marginTop: 16, opacity: canProceed ? 1 : 0.4 }]}
+                onPress={() => setStep('details')}
+                disabled={!canProceed}
+              >
+                <Text style={styles.goldBtnText}>NEXT →</Text>
+              </TouchableOpacity>
+            );
+          })()}
         </View>
       </SafeAreaView>
     );

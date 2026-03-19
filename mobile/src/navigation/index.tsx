@@ -20,16 +20,23 @@ import { HomeIcon, LeaderboardIcon, TrophyIcon, ProfileIcon, CameraIcon } from '
 import { colors } from '../theme/colors';
 
 // Tournament context — lets leaderboard/submission know the active tournamentId
-export const TournamentContext = createContext<{ tournamentId: string | null; setTournamentId: (id: string | null) => void }>({
+export const TournamentContext = createContext<{
+  tournamentId: string | null;
+  setTournamentId: (id: string | null) => void;
+  scoringMethod: string;
+  setScoringMethod: (m: string) => void;
+}>({
   tournamentId: null,
   setTournamentId: () => {},
+  scoringMethod: 'LENGTH',
+  setScoringMethod: () => {},
 });
 
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   MainTabs: undefined;
-  Submission: { tournamentId: string };
+  Submission: { tournamentId: string; scoringMethod: string };
   PublicProfile: { username: string };
   Forecast: undefined;
   HotSpots: undefined;
@@ -153,7 +160,7 @@ const tabStyles = StyleSheet.create({
 });
 
 function MainTabs() {
-  const { tournamentId } = useContext(TournamentContext);
+  const { tournamentId, scoringMethod } = useContext(TournamentContext);
 
   return (
     <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
@@ -166,7 +173,7 @@ function MainTabs() {
           tabPress: (e) => {
             e.preventDefault();
             if (tournamentId) {
-              navigation.navigate('Submission', { tournamentId });
+              navigation.navigate('Submission', { tournamentId, scoringMethod });
             } else {
               Alert.alert('No Active Tournament', 'There is no active tournament right now. Check back when a new week opens.');
             }
@@ -181,8 +188,9 @@ function MainTabs() {
 
 export default function Navigation({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [tournamentId, setTournamentId] = useState<string | null>(null);
+  const [scoringMethod, setScoringMethod] = useState('LENGTH');
   return (
-    <TournamentContext.Provider value={{ tournamentId, setTournamentId }}>
+    <TournamentContext.Provider value={{ tournamentId, setTournamentId, scoringMethod, setScoringMethod }}>
       <NavigationContainer>
         <Stack.Navigator
           initialRouteName={isAuthenticated ? 'MainTabs' : 'Login'}

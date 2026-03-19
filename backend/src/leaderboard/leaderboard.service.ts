@@ -13,57 +13,89 @@ export class LeaderboardService {
     private readonly s3: S3Service,
   ) {}
 
-  /**
-   * Called after moderation approves a submission.
-   * Upserts the leaderboard entry (keeps longest fish per user),
-   * recomputes ranks, and broadcasts update via WebSocket.
-   */
   async onSubmissionApproved(submissionId: string) {
     const submission = await this.prisma.submission.findUnique({
       where: { id: submissionId },
+      include: { tournament: true },
     });
     if (!submission) return;
 
-    // Upsert: keep best (longest) fish per user per tournament
-    const existing = await this.prisma.leaderboardEntry.findUnique({
-      where: { tournamentId_userId: { tournamentId: submission.tournamentId, userId: submission.userId } },
-    });
+    const { tournamentId, userId, fishLengthCm, fishWeightOz } = submission;
+    const scoringMethod = submission.tournament.scoringMethod;
 
-    if (!existing || submission.fishLengthCm > existing.fishLengthCm) {
-      await this.prisma.leaderboardEntry.upsert({
-        where: { tournamentId_userId: { tournamentId: submission.tournamentId, userId: submission.userId } },
-        create: {
-          tournamentId: submission.tournamentId,
-          userId: submission.userId,
-          fishLengthCm: submission.fishLengthCm,
-          submissionId: submission.id,
-        },
-        update: {
-          fishLengthCm: submission.fishLengthCm,
-          submissionId: submission.id,
-        },
+    if (scoringMethod === 'LENGTH') {
+      const existing = await this.prisma.leaderboardEntry.findUnique({
+        where: { tournamentId_userId: { tournamentId, userId } },
       });
+      if (!existing || fishLengthCm > existing.fishLengthCm) {
+        await this.prisma.leaderboardEntry.upsert({
+          where: { tournamentId_userId: { tournamentId, userId } },
+          create: { tournamentId, userId, fishLengthCm, score: fishLengthCm, submissionId: submission.id },
+          update: { fishLengthCm, score: fishLengthCm, submissionId: submission.id },
+        });
+      }
+    } else if (scoringMethod === 'WEIGHT') {
+      const weightOz = fishWeightOz ?? 0;
+      const existing = await this.prisma.leaderboardEntry.findUnique({
+        where: { tournamentId_userId: { tournamentId, userId } },
+      });
+      if (!existing || weightOz > existing.score) {
+        await this.prisma.leaderboardEntry.upsert({
+          where: { tournamentId_userId: { tournamentId, userId } },
+          create: { tournamentId, userId, fishLengthCm, score: weightOz, submissionId: submission.id },
+          update: { fishLengthCm, score: weightOz, submissionId: submission.id },
+        });
+      }
+    } else if (scoringMethod === 'FISH_COUNT') {
+      const count = await this.prisma.submission.count({
+        where: { tournamentId, userId, status: 'APPROVED' },
+      });
+      const latest = await this.prisma.submission.findFirst({
+        where: { tournamentId, userId, status: 'APPROVED' },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (latest) {
+        await this.prisma.leaderboardEntry.upsert({
+          where: { tournamentId_userId: { tournamentId, userId } },
+          create: { tournamentId, userId, fishLengthCm, score: count, submissionId: latest.id },
+          update: { score: count, submissionId: latest.id },
+        });
+      }
+    } else if (scoringMethod === 'SPECIES_COUNT') {
+      const approved = await this.prisma.submission.findMany({
+        where: { tournamentId, userId, status: 'APPROVED' },
+        select: { speciesName: true, id: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      const uniqueSpecies = new Set(approved.map(s => s.speciesName).filter(Boolean));
+      const count = Math.max(uniqueSpecies.size, 1);
+      if (approved[0]) {
+        await this.prisma.leaderboardEntry.upsert({
+          where: { tournamentId_userId: { tournamentId, userId } },
+          create: { tournamentId, userId, fishLengthCm, score: count, submissionId: approved[0].id },
+          update: { score: count, submissionId: approved[0].id },
+        });
+      }
     }
 
-    await this.recomputeRanks(submission.tournamentId);
-
-    const top25 = await this.getTop25(submission.tournamentId);
-    this.gateway.broadcastLeaderboardUpdate(submission.tournamentId, top25);
+    await this.recomputeRanks(tournamentId);
+    const top25 = await this.getTop25(tournamentId);
+    this.gateway.broadcastLeaderboardUpdate(tournamentId, top25);
   }
 
   async getTop25(tournamentId: string, speciesCategory?: string) {
+    const tournament = await this.prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { scoringMethod: true },
+    });
+    const scoringMethod = tournament?.scoringMethod ?? 'LENGTH';
+
     const entries = await this.prisma.leaderboardEntry.findMany({
       where: {
         tournamentId,
-        ...(speciesCategory
-          ? {
-              submission: {
-                speciesCategory,
-              },
-            }
-          : {}),
+        ...(speciesCategory ? { submission: { speciesCategory } } : {}),
       },
-      orderBy: { fishLengthCm: 'desc' },
+      orderBy: { score: 'desc' },
       take: TOP_N,
       include: {
         user: {
@@ -73,7 +105,7 @@ export class LeaderboardService {
           },
         },
         submission: {
-          select: { speciesName: true, speciesCategory: true, photo1Key: true, createdAt: true, released: true },
+          select: { speciesName: true, speciesCategory: true, photo1Key: true, createdAt: true, released: true, fishWeightOz: true },
         },
       },
     });
@@ -89,6 +121,9 @@ export class LeaderboardService {
         userId: e.userId,
         displayName: e.user.displayName,
         fishLengthCm: e.fishLengthCm,
+        score: e.score,
+        scoringMethod,
+        fishWeightOz: e.submission?.fishWeightOz ?? null,
         profilePhotoUrl: e.user.profile?.profilePhotoUrl ?? null,
         username: e.user.profile?.username ?? null,
         speciesName: e.submission?.speciesName ?? null,
@@ -105,17 +140,15 @@ export class LeaderboardService {
     const entry = await this.prisma.leaderboardEntry.findUnique({
       where: { tournamentId_userId: { tournamentId, userId } },
     });
-    if (!entry) return { rank: null, fishLengthCm: null };
-    return { rank: entry.rank, fishLengthCm: entry.fishLengthCm };
+    if (!entry) return { rank: null, fishLengthCm: null, score: null };
+    return { rank: entry.rank, fishLengthCm: entry.fishLengthCm, score: entry.score };
   }
 
-  /** Recomputes integer ranks ordered by fishLengthCm desc */
   private async recomputeRanks(tournamentId: string) {
     const entries = await this.prisma.leaderboardEntry.findMany({
       where: { tournamentId },
-      orderBy: { fishLengthCm: 'desc' },
+      orderBy: { score: 'desc' },
     });
-
     await Promise.all(
       entries.map((e, idx) =>
         this.prisma.leaderboardEntry.update({
@@ -126,9 +159,7 @@ export class LeaderboardService {
     );
   }
 
-  /** Archive + clear leaderboard for a tournament (called by weekly reset) */
   async archiveTournament(tournamentId: string) {
-    // Entries remain in DB (historical), tournament is just closed
     await this.prisma.tournament.update({
       where: { id: tournamentId },
       data: { isOpen: false },

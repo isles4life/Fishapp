@@ -1,4 +1,4 @@
-import { IsUUID, IsNumber, IsString, IsDateString, IsOptional, IsBoolean, Min, Max } from 'class-validator';
+import { IsUUID, IsNumber, IsString, IsDateString, IsOptional, IsBoolean, Min, Max, IsInt } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class CreateSubmissionDto {
@@ -42,4 +42,11 @@ export class CreateSubmissionDto {
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   released?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(9999)
+  fishWeightOz?: number;
 }

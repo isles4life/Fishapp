@@ -27,6 +27,7 @@ export interface Tournament {
   entryFeeCents: number;
   prizePoolCents: number;
   region?: { name: string };
+  scoringMethod?: string;
 }
 
 export interface MySubmission {

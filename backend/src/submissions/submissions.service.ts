@@ -133,6 +133,7 @@ export class SubmissionsService {
         speciesName: dto.speciesName,
         speciesCategory: dto.speciesCategory,
         released: dto.released ?? false,
+        fishWeightOz: dto.fishWeightOz,
       },
     });
 

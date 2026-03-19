@@ -23,6 +23,7 @@ interface Tournament {
   entryFeeCents: number; prizePoolCents: number;
   region: { name: string };
   checkInCode?: string | null;
+  scoringMethod?: string;
 }
 
 const PAGE_SIZE = 20;
@@ -74,6 +75,7 @@ export default function TournamentsPage() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCheckInCount, setQrCheckInCount] = useState<number>(0);
   const [qrGenerating, setQrGenerating] = useState(false);
+  const [scoringMethod, setScoringMethod] = useState('LENGTH');
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -104,6 +106,7 @@ export default function TournamentsPage() {
         endsAt: new Date(`${form.endsDate}T${form.endsTime}:00`).toISOString(),
         entryFeeCents: form.entryFee ? Math.round(parseFloat(form.entryFee) * 100) : 0,
         prizePoolCents: form.prizePool ? Math.round(parseFloat(form.prizePool) * 100) : 0,
+        scoringMethod,
       });
       await load();
       setForm(f => ({ ...f, name: '', weekNumber: '', startsDate: '', startsTime: '08:00', endsDate: '', endsTime: '20:00', entryFee: '', prizePool: '' }));
@@ -221,6 +224,20 @@ export default function TournamentsPage() {
             <label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Prize Pool ($)</label>
             <input type="number" min="0" step="0.01" value={form.prizePool} onChange={e => setForm(f => ({ ...f, prizePool: e.target.value }))} placeholder="0.00" style={inputStyle} />
           </div>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: 'block', fontSize: 11, color: C.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Scoring Method</label>
+          <select
+            value={scoringMethod}
+            onChange={e => setScoringMethod(e.target.value)}
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text, fontSize: 14 }}
+          >
+            <option value="LENGTH">Longest Fish (inches)</option>
+            <option value="WEIGHT">Heaviest Fish (oz)</option>
+            <option value="FISH_COUNT">Most Fish Caught</option>
+            <option value="SPECIES_COUNT">Most Species</option>
+          </select>
         </div>
 
         <button type="submit" style={{ marginTop: 8, backgroundColor: C.accent, color: C.bg, padding: '10px 24px', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.8 }}>
@@ -370,7 +387,17 @@ export default function TournamentsPage() {
             )}
             {paginatedTournaments.map((t) => (
               <tr key={t.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                <td style={{ padding: '12px 16px', color: C.text, fontWeight: 600 }}>{t.name}</td>
+                <td style={{ padding: '12px 16px', color: C.text, fontWeight: 600 }}>
+                  {t.name}
+                  {t.scoringMethod && t.scoringMethod !== 'LENGTH' && (
+                    <span style={{ marginLeft: 8, fontSize: 11, color: C.textMuted, fontWeight: 400 }}>
+                      {t.scoringMethod === 'WEIGHT' ? '⚖️ Weight' : t.scoringMethod === 'FISH_COUNT' ? '🐟 Count' : '🎣 Species'}
+                    </span>
+                  )}
+                  {(!t.scoringMethod || t.scoringMethod === 'LENGTH') && (
+                    <span style={{ marginLeft: 8, fontSize: 11, color: C.textMuted, fontWeight: 400 }}>📏 Length</span>
+                  )}
+                </td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 14 }}>{t.region?.name}</td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 14 }}>Wk {t.weekNumber}</td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 13 }}>

@@ -53,6 +53,7 @@ export class TournamentsService {
         entryFeeCents: dto.entryFeeCents ?? 0,
         prizePoolCents: dto.prizePoolCents ?? 0,
         prizeStructure: dto.prizeStructure,
+        scoringMethod: (dto.scoringMethod as any) ?? 'LENGTH',
       },
     });
   }

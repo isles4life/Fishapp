@@ -8,7 +8,16 @@ const C = {
   red: '#C0392B', text: '#F0EDE4', textSub: '#9DB5A8', textMuted: '#6B7D73',
 };
 
-interface Entry { rank: number; displayName: string; fishLengthCm: number; userId: string; }
+interface Entry { rank: number; displayName: string; fishLengthCm: number; userId: string; score: number; scoringMethod: string; fishWeightOz?: number | null; }
+
+function formatScore(entry: Entry): string {
+  switch (entry.scoringMethod) {
+    case 'WEIGHT': return `${entry.fishWeightOz?.toFixed(1) ?? entry.score.toFixed(1)} oz`;
+    case 'FISH_COUNT': return `${entry.score} fish`;
+    case 'SPECIES_COUNT': return `${entry.score} species`;
+    default: return `${(entry.fishLengthCm / 2.54).toFixed(1)}"`;
+  }
+}
 
 const rankColor = (r: number) => r === 1 ? C.gold : r === 2 ? C.silver : r === 3 ? C.bronze : C.textMuted;
 const medal = (r: number) => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `#${r}`;
@@ -66,7 +75,7 @@ export default function LeaderboardPage() {
                 {medal(e.rank)}
               </div>
               <div style={{ flex: 1, color: C.text, fontWeight: 600 }}>{e.displayName}</div>
-              <div style={{ color: C.accent, fontWeight: 800, fontSize: 18 }}>{(e.fishLengthCm / 2.54).toFixed(1)}"</div>
+              <div style={{ color: C.accent, fontWeight: 800, fontSize: 18 }}>{formatScore(e)}</div>
             </div>
           ))}
         </div>

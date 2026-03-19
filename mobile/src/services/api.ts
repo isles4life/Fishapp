@@ -117,6 +117,7 @@ export async function uploadSubmission(fields: {
   photoUri: string;
   speciesName?: string;
   released?: string; // 'true' | 'false' — FormData is strings
+  fishWeightOz?: string;
 }): Promise<SubmissionResult> {
   const token = await storage.getToken();
   const form = new FormData();
