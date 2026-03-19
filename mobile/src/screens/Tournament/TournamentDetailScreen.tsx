@@ -98,8 +98,21 @@ function PostCard({ post, currentUserId }: { post: TournamentPost; currentUserId
         </View>
       )}
 
-      {/* ANNOUNCEMENT / ANGLER_POST / CHECK_IN body */}
-      {post.body ? <Text style={ps.body}>{post.body}</Text> : null}
+      {/* ANNOUNCEMENT — render title bold, message below */}
+      {post.type === 'ANNOUNCEMENT' && post.body && (() => {
+        const [titleLine, ...rest] = post.body.split('\n');
+        const title = titleLine.replace(/\*\*(.*?)\*\*/g, '$1');
+        const message = rest.join('\n').trim();
+        return (
+          <>
+            <Text style={ps.announceTitle}>{title}</Text>
+            {message ? <Text style={ps.body}>{message}</Text> : null}
+          </>
+        );
+      })()}
+
+      {/* ANGLER_POST / CHECK_IN body */}
+      {post.type !== 'ANNOUNCEMENT' && post.body ? <Text style={ps.body}>{post.body}</Text> : null}
 
       {post.type === 'CHECK_IN' && !post.body && (
         <Text style={ps.body}>Checked in to the tournament 🎣</Text>
@@ -158,6 +171,7 @@ const ps = StyleSheet.create({
   catchMeta: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   catchLength: { fontSize: 15, fontWeight: '700', color: colors.text },
   releasedBadge: { ...typography.caption, color: colors.verified, fontSize: 11 },
+  announceTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 4 },
   body: { ...typography.bodyMd, color: colors.text, lineHeight: 20 },
   anglerPhoto: { width: '100%', height: 200, borderRadius: 10, marginTop: 8 },
 });
