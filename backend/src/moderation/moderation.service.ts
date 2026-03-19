@@ -5,6 +5,7 @@ import { LeaderboardService } from '../leaderboard/leaderboard.service';
 import { EmailService } from '../email/email.service';
 import { PushService } from '../push/push.service';
 import { S3Service } from '../submissions/s3.service';
+import { TournamentsService } from '../tournaments/tournaments.service';
 import { ModerateSubmissionDto } from './dto/moderate-submission.dto';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class ModerationService {
     private readonly email: EmailService,
     private readonly push: PushService,
     private readonly s3: S3Service,
+    private readonly tournaments: TournamentsService,
   ) {}
 
   async getPendingSubmissions(tournamentId?: string) {
@@ -86,9 +88,10 @@ export class ModerationService {
       }),
     ]);
 
-    // If approved, update leaderboard
+    // If approved, update leaderboard + create feed post
     if (dto.action === 'APPROVE') {
       await this.leaderboard.onSubmissionApproved(submissionId);
+      this.tournaments.createCatchPost(submissionId, submission.tournamentId, submission.userId);
       this.email.sendSubmissionApproved(
         submission.user.email,
         submission.user.displayName,

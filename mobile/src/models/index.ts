@@ -26,8 +26,46 @@ export interface Tournament {
   isOpen: boolean;
   entryFeeCents: number;
   prizePoolCents: number;
-  region?: { name: string };
+  prizeStructure?: Record<string, any> | null;
+  description?: string | null;
+  region?: { name: string; minLat?: number; maxLat?: number; minLng?: number; maxLng?: number };
   scoringMethod?: string;
+  checkInCode?: string | null;
+  director?: {
+    id: string;
+    displayName: string;
+    profile?: { username?: string | null; profilePhotoUrl?: string | null } | null;
+  } | null;
+  directorId?: string | null;
+  _count?: { submissions: number; checkIns: number };
+  top3?: Array<{
+    rank: number | null;
+    score: number;
+    fishLengthCm: number;
+    user: { displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null };
+  }>;
+}
+
+export interface TournamentPost {
+  id: string;
+  tournamentId: string;
+  userId: string;
+  type: 'CATCH' | 'ANNOUNCEMENT' | 'CHECK_IN' | 'ANGLER_POST';
+  body: string | null;
+  photoUrl: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    displayName: string;
+    profile?: { username?: string | null; profilePhotoUrl?: string | null } | null;
+  };
+  submission?: {
+    id: string;
+    fishLengthCm: number;
+    fishWeightOz?: number | null;
+    speciesName?: string | null;
+    released: boolean;
+  } | null;
 }
 
 export interface MySubmission {

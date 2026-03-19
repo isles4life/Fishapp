@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../common/prisma.service';
 import { PushService } from '../push/push.service';
+import { S3Service } from '../submissions/s3.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class TournamentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushService,
+    private readonly s3: S3Service,
   ) {}
 
   async getFirstOpenTournament() {
@@ -33,10 +35,36 @@ export class TournamentsService {
   async getById(id: string) {
     const tournament = await this.prisma.tournament.findUnique({
       where: { id },
-      include: { region: { select: { name: true } } },
+      include: {
+        region: true,
+        director: {
+          select: {
+            id: true,
+            displayName: true,
+            profile: { select: { username: true, profilePhotoUrl: true } },
+          },
+        },
+        _count: {
+          select: {
+            submissions: { where: { status: 'APPROVED' } },
+            checkIns: true,
+          },
+        },
+      },
     });
     if (!tournament) throw new NotFoundException('Tournament not found');
-    return tournament;
+
+    // Top 3 leaderboard entries
+    const top3 = await this.prisma.leaderboardEntry.findMany({
+      where: { tournamentId: id },
+      orderBy: { score: 'desc' },
+      take: 3,
+      include: {
+        user: { select: { displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } },
+      },
+    });
+
+    return { ...tournament, top3 };
   }
 
   // Admin only
@@ -54,8 +82,14 @@ export class TournamentsService {
         prizePoolCents: dto.prizePoolCents ?? 0,
         prizeStructure: dto.prizeStructure,
         scoringMethod: (dto.scoringMethod as any) ?? 'LENGTH',
+        description: dto.description,
+        directorId: dto.directorId,
       },
     });
+  }
+
+  async update(id: string, data: { description?: string; directorId?: string | null }) {
+    return this.prisma.tournament.update({ where: { id }, data });
   }
 
   async listAll() {
@@ -137,11 +171,22 @@ export class TournamentsService {
     if (!tournament) throw new NotFoundException('Invalid check-in code');
     if (!tournament.isOpen) throw new BadRequestException('Tournament is not currently open');
 
+    const isNew = !(await this.prisma.tournamentCheckIn.findUnique({
+      where: { userId_tournamentId: { userId, tournamentId: tournament.id } },
+    }));
+
     await this.prisma.tournamentCheckIn.upsert({
       where: { userId_tournamentId: { userId, tournamentId: tournament.id } },
       create: { userId, tournamentId: tournament.id },
       update: {},
     });
+
+    // Auto-post check-in to the tournament feed (only on first check-in)
+    if (isNew) {
+      await this.prisma.tournamentPost.create({
+        data: { tournamentId: tournament.id, userId, type: 'CHECK_IN' },
+      }).catch(() => { /* non-critical */ });
+    }
 
     return {
       tournament: {
@@ -182,6 +227,86 @@ export class TournamentsService {
       this.push.sendToToken(token, title, message, { type: 'announcement', tournamentId: id })
     ));
 
+    // Also write the announcement as a feed post (use the first admin/director userId)
+    const adminId = submissions[0]?.user?.id ?? null;
+    if (adminId) {
+      await this.prisma.tournamentPost.create({
+        data: { tournamentId: id, userId: adminId, type: 'ANNOUNCEMENT', body: `**${title}**\n${message}` },
+      }).catch(() => { /* non-critical */ });
+    }
+
     return { sent: tokens.length };
+  }
+
+  // ── Feed ──────────────────────────────────────────────────────────────────
+
+  async createPost(
+    tournamentId: string,
+    userId: string,
+    body: string,
+    photoKey?: string,
+  ) {
+    return this.prisma.tournamentPost.create({
+      data: { tournamentId, userId, type: 'ANGLER_POST', body, photoKey },
+    });
+  }
+
+  async getFeed(tournamentId: string, cursor?: string) {
+    const take = 20;
+    const posts = await this.prisma.tournamentPost.findMany({
+      where: { tournamentId },
+      orderBy: { createdAt: 'desc' },
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: {
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            profile: { select: { username: true, profilePhotoUrl: true } },
+          },
+        },
+        submission: {
+          select: {
+            id: true,
+            fishLengthCm: true,
+            fishWeightOz: true,
+            speciesName: true,
+            released: true,
+            photo2Key: true,
+          },
+        },
+      },
+    });
+
+    const hasMore = posts.length > take;
+    const page = posts.slice(0, take);
+
+    // Add presigned URLs for catch photos and angler post photos
+    const withUrls = await Promise.all(
+      page.map(async (post) => {
+        let photoUrl: string | null = null;
+        if (post.type === 'CATCH' && post.submission?.photo2Key) {
+          photoUrl = await this.s3.getPresignedUrl(post.submission.photo2Key).catch(() => null);
+        } else if (post.type === 'ANGLER_POST' && post.photoKey) {
+          photoUrl = await this.s3.getPresignedUrl(post.photoKey).catch(() => null);
+        }
+        return { ...post, photoUrl };
+      }),
+    );
+
+    return {
+      posts: withUrls,
+      nextCursor: hasMore ? page[page.length - 1].id : null,
+    };
+  }
+
+  // Called by moderation service when a submission is approved
+  async createCatchPost(submissionId: string, tournamentId: string, userId: string) {
+    await this.prisma.tournamentPost.upsert({
+      where: { submissionId },
+      create: { tournamentId, userId, type: 'CATCH', submissionId },
+      update: {},
+    }).catch(() => { /* non-critical */ });
   }
 }

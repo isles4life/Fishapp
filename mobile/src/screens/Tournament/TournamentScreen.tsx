@@ -256,6 +256,13 @@ export default function TournamentScreen() {
                 >
                   <Text style={styles.checkInBtnText}>📱 Scan QR to Check In</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.detailBtn}
+                  activeOpacity={0.75}
+                  onPress={() => navigation.navigate('TournamentDetail', { tournamentId: tournament.id })}
+                >
+                  <Text style={styles.detailBtnText}>Tournament Details →</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.emptyCard}>
@@ -668,6 +675,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent + '10',
   },
   checkInBtnText: { ...typography.label, color: colors.accent },
+  detailBtn: {
+    marginTop: 8, paddingVertical: 11, alignItems: 'center',
+    borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+  },
+  detailBtnText: { ...typography.label, color: colors.textSub },
   historyBtn: {
     marginHorizontal: 16, marginTop: 20,
     paddingVertical: 12, alignItems: 'center',

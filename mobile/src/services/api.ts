@@ -17,6 +17,7 @@ import type {
   HotSpot,
   TournamentCheckIn,
   TournamentAdminRequest,
+  TournamentPost,
 } from '../models';
 
 const BASE_URL =
@@ -100,6 +101,19 @@ export function getTournaments(): Promise<Tournament[]> {
 
 export function getClosedTournaments(): Promise<(Tournament & { _count: { submissions: number } })[]> {
   return request('/tournaments/history');
+}
+
+export function getTournamentDetail(id: string): Promise<Tournament> {
+  return request(`/tournaments/${id}`);
+}
+
+export function getTournamentFeed(id: string, cursor?: string): Promise<{ posts: TournamentPost[]; nextCursor: string | null }> {
+  const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+  return request(`/tournaments/${id}/feed${qs}`);
+}
+
+export function postToTournamentFeed(tournamentId: string, body: string): Promise<TournamentPost> {
+  return request(`/tournaments/${tournamentId}/posts`, { method: 'POST', body: JSON.stringify({ body }) });
 }
 
 // ── Submissions ───────────────────────────────────────────────────────────────

@@ -24,6 +24,9 @@ interface Tournament {
   region: { name: string };
   checkInCode?: string | null;
   scoringMethod?: string;
+  description?: string | null;
+  directorId?: string | null;
+  director?: { id: string; displayName: string } | null;
 }
 
 const PAGE_SIZE = 20;
@@ -61,6 +64,7 @@ export default function TournamentsPage() {
   const { isTournamentAdmin, assignedTournamentIds } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+  const [directors, setDirectors] = useState<{ id: string; displayName: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
   const [announceTarget, setAnnounceTarget] = useState<Tournament | null>(null);
@@ -76,6 +80,8 @@ export default function TournamentsPage() {
   const [qrCheckInCount, setQrCheckInCount] = useState<number>(0);
   const [qrGenerating, setQrGenerating] = useState(false);
   const [scoringMethod, setScoringMethod] = useState('LENGTH');
+  const [formDirectorId, setFormDirectorId] = useState('');
+  const [formDescription, setFormDescription] = useState('');
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -85,9 +91,14 @@ export default function TournamentsPage() {
 
   async function load() {
     try {
-      const [ts, rs] = await Promise.all([api.getTournaments(), api.getRegions()]);
+      const [ts, rs, users] = await Promise.all([api.getTournaments(), api.getRegions(), api.getUsers()]);
       setTournaments(Array.isArray(ts) ? ts : []);
       setRegions(Array.isArray(rs) ? rs : []);
+      // Director dropdown: ADMIN + TOURNAMENT_ADMIN users
+      const eligible = (Array.isArray(users) ? users : []).filter(
+        (u: any) => u.role === 'ADMIN' || u.role === 'TOURNAMENT_ADMIN'
+      );
+      setDirectors(eligible);
     } catch (e: any) { setError(e.message); }
   }
 
@@ -107,9 +118,13 @@ export default function TournamentsPage() {
         entryFeeCents: form.entryFee ? Math.round(parseFloat(form.entryFee) * 100) : 0,
         prizePoolCents: form.prizePool ? Math.round(parseFloat(form.prizePool) * 100) : 0,
         scoringMethod,
+        description: formDescription || undefined,
+        directorId: formDirectorId || undefined,
       });
       await load();
       setForm(f => ({ ...f, name: '', weekNumber: '', startsDate: '', startsTime: '08:00', endsDate: '', endsTime: '20:00', entryFee: '', prizePool: '' }));
+      setFormDescription('');
+      setFormDirectorId('');
     } catch (e: any) { setError(e.message); }
   }
 
@@ -238,6 +253,32 @@ export default function TournamentsPage() {
             <option value="FISH_COUNT">Most Fish Caught</option>
             <option value="SPECIES_COUNT">Most Species</option>
           </select>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: 'block', fontSize: 11, color: C.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tournament Director</label>
+          <select
+            value={formDirectorId}
+            onChange={e => setFormDirectorId(e.target.value)}
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, backgroundColor: C.surface, border: `1px solid ${C.border}`, color: C.text, fontSize: 14 }}
+          >
+            <option value="">None assigned</option>
+            {directors.map(d => (
+              <option key={d.id} value={d.id}>{d.displayName}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: 'block', fontSize: 11, color: C.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Description / Rules (optional)</label>
+          <textarea
+            value={formDescription}
+            onChange={e => setFormDescription(e.target.value)}
+            maxLength={2000}
+            rows={4}
+            placeholder="Tournament rules, target species, registration info, etc."
+            style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit', marginBottom: 0 }}
+          />
         </div>
 
         <button type="submit" style={{ marginTop: 8, backgroundColor: C.accent, color: C.bg, padding: '10px 24px', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: 0.8 }}>
@@ -396,6 +437,11 @@ export default function TournamentsPage() {
                   )}
                   {(!t.scoringMethod || t.scoringMethod === 'LENGTH') && (
                     <span style={{ marginLeft: 8, fontSize: 11, color: C.textMuted, fontWeight: 400 }}>📏 Length</span>
+                  )}
+                  {t.director && (
+                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 400, marginTop: 3 }}>
+                      🎯 {t.director.displayName}
+                    </div>
                   )}
                 </td>
                 <td style={{ padding: '12px 16px', color: C.textSub, fontSize: 14 }}>{t.region?.name}</td>

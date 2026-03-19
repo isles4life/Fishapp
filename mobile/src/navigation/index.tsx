@@ -16,6 +16,7 @@ import HotSpotsScreen from '../screens/Map/HotSpotsScreen';
 import LegalScreen from '../screens/Legal/LegalScreen';
 import TournamentHistoryScreen from '../screens/Tournament/TournamentHistoryScreen';
 import CheckInScreen from '../screens/Tournament/CheckInScreen';
+import TournamentDetailScreen from '../screens/Tournament/TournamentDetailScreen';
 import { HomeIcon, LeaderboardIcon, TrophyIcon, ProfileIcon, CameraIcon } from '../components/icons/TabIcons';
 import { colors } from '../theme/colors';
 
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   Legal: undefined;
   TournamentHistory: undefined;
   CheckIn: { code?: string } | undefined;
+  TournamentDetail: { tournamentId: string };
 };
 
 export type TabParamList = {
@@ -216,6 +218,7 @@ export default function Navigation({ isAuthenticated }: { isAuthenticated: boole
           <Stack.Screen name="Legal" component={LegalScreen} options={{ title: 'Legal' }} />
           <Stack.Screen name="TournamentHistory" component={TournamentHistoryScreen} />
           <Stack.Screen name="CheckIn" component={CheckInScreen} />
+          <Stack.Screen name="TournamentDetail" component={TournamentDetailScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </TournamentContext.Provider>

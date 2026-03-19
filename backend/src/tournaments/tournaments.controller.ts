@@ -105,4 +105,35 @@ export class TournamentsController {
   getCheckIns(@Param('id') id: string) {
     return this.tournamentsService.getCheckIns(id);
   }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async updateTournament(
+    @Param('id') id: string,
+    @Body() body: { description?: string; directorId?: string | null },
+    @Request() req: any,
+  ) {
+    const result = await this.tournamentsService.update(id, body);
+    await this.auditService.log('TOURNAMENT_UPDATED', req.user.id, req.user.displayName, id, body);
+    return result;
+  }
+
+  // ── Feed ───────────────────────────────────────────────────────────────────
+
+  @Get(':id/feed')
+  @UseGuards(JwtAuthGuard)
+  getFeed(@Param('id') id: string, @Query('cursor') cursor?: string) {
+    return this.tournamentsService.getFeed(id, cursor);
+  }
+
+  @Post(':id/posts')
+  @UseGuards(JwtAuthGuard)
+  createPost(
+    @Param('id') tournamentId: string,
+    @Body() body: { body: string },
+    @Request() req: any,
+  ) {
+    if (!body.body?.trim()) throw new BadRequestException('body is required');
+    return this.tournamentsService.createPost(tournamentId, req.user.id, body.body.trim());
+  }
 }

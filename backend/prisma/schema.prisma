@@ -35,6 +35,13 @@ enum ScoringMethod {
   SPECIES_COUNT
 }
 
+enum TournamentPostType {
+  CATCH
+  ANNOUNCEMENT
+  CHECK_IN
+  ANGLER_POST
+}
+
 enum UserRole {
   USER
   ADMIN
@@ -79,6 +86,8 @@ model User {
   checkIns         TournamentCheckIn[]
   tournamentAdminRequests TournamentAdminRequest[]
   reviewedRequests TournamentAdminRequest[] @relation("ReviewedRequests")
+  directedTournaments Tournament[] @relation("TournamentDirector")
+  tournamentPosts  TournamentPost[]
 
   @@index([regionId])
 }
@@ -115,11 +124,16 @@ model Tournament {
   checkInCode     String?   @unique
   scoringMethod   ScoringMethod @default(LENGTH)
 
+  description     String?
+  directorId      String?
+
   region      Region    @relation(fields: [regionId], references: [id])
+  director    User?     @relation("TournamentDirector", fields: [directorId], references: [id], onDelete: SetNull)
   submissions Submission[]
   leaderboardEntries LeaderboardEntry[]
   checkIns    TournamentCheckIn[]
   tournamentAdminRequests TournamentAdminRequest[]
+  posts       TournamentPost[]
 
   @@unique([regionId, weekNumber, year])
   @@index([regionId, isOpen])
@@ -188,6 +202,7 @@ model Submission {
   leaderboardEntry  LeaderboardEntry?
   props            CatchProp[]
   comments         CatchComment[]
+  tournamentPost   TournamentPost?
 
   @@index([tournamentId, status])
   @@index([userId, tournamentId])
@@ -373,4 +388,22 @@ model Follower {
 
   @@unique([actorId, targetId])
   @@index([targetId])
+}
+
+model TournamentPost {
+  id           String              @id @default(uuid())
+  tournamentId String
+  userId       String
+  type         TournamentPostType
+  body         String?             @db.VarChar(1000)
+  photoKey     String?             // S3 key for ANGLER_POST photos
+  submissionId String?             @unique // only set on CATCH posts
+
+  createdAt    DateTime            @default(now())
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id])
+  submission   Submission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId, createdAt(sort: Desc)])
 }

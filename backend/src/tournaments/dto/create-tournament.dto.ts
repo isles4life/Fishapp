@@ -40,4 +40,12 @@ export class CreateTournamentDto {
   @IsOptional()
   @IsString()
   scoringMethod?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  directorId?: string;
 }
