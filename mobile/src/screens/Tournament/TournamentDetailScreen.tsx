@@ -286,14 +286,9 @@ export default function TournamentDetailScreen() {
     if (!q.trim()) return;
     setGifSearching(true);
     try {
-      const key = 'dc6zaTOxFJmzC'; // replace with GIPHY_API_KEY env var in production
-      const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${key}&q=${encodeURIComponent(q)}&limit=20&rating=g`);
+      const res = await fetch(`${api.BASE_URL}/gifs/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
-      setGifResults((data.data ?? []).map((g: any) => ({
-        id: g.id,
-        preview: g.images?.fixed_height_small?.url ?? g.images?.preview_gif?.url ?? '',
-        full: g.images?.downsized?.url ?? g.images?.fixed_height?.url ?? '',
-      })));
+      setGifResults(data.data ?? []);
     } catch { setGifResults([]); }
     finally { setGifSearching(false); }
   }, []);

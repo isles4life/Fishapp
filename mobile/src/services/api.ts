@@ -20,7 +20,7 @@ import type {
   TournamentPost,
 } from '../models';
 
-const BASE_URL =
+export const BASE_URL =
   (Constants.expoConfig?.extra?.apiBaseUrl as string) ?? 'https://api.fishleague.app';
 
 async function request<T>(

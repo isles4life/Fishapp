@@ -142,14 +142,10 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
     if (!q.trim()) return;
     setGifSearching(true);
     try {
-      const key = process.env.NEXT_PUBLIC_GIPHY_API_KEY ?? 'dc6zaTOxFJmzC';
-      const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${key}&q=${encodeURIComponent(q)}&limit=20&rating=g`);
+      const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app';
+      const res = await fetch(`${BASE}/gifs/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
-      setGifResults((data.data ?? []).map((g: any) => ({
-        id: g.id,
-        preview: g.images?.fixed_height_small?.url ?? g.images?.preview_gif?.url ?? '',
-        full: g.images?.downsized?.url ?? g.images?.fixed_height?.url ?? '',
-      })));
+      setGifResults(data.data ?? []);
     } catch { setGifResults([]); }
     finally { setGifSearching(false); }
   }
