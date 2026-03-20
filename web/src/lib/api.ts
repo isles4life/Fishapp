@@ -1,4 +1,4 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app';
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app'; // v2
 
 /** Rewrite internal Docker hostnames to browser-accessible equivalents for local dev. */
 export function fixS3Url(url: string | null | undefined): string | null | undefined {
@@ -29,6 +29,15 @@ export function getMyUserId(): string | null {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.sub ?? null;
+  } catch { return null; }
+}
+
+export function getMyRole(): string | null {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role ?? null;
   } catch { return null; }
 }
 
@@ -287,4 +296,8 @@ export const api = {
     form.append('photo', file);
     return apiUpload<{ photoKey: string }>(`/tournaments/${tournamentId}/posts/media`, form);
   },
+  editTournamentPost: (postId: string, body: string) =>
+    apiFetch<TournamentPost>(`/tournaments/posts/${postId}`, { method: 'PATCH', body: JSON.stringify({ body }) }, true),
+  deleteTournamentPost: (postId: string) =>
+    apiFetch<{ ok: boolean }>(`/tournaments/posts/${postId}`, { method: 'DELETE' }, true),
 };
