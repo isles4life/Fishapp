@@ -58,10 +58,37 @@ function scoringLabel(method?: string): string {
 
 // ── Post card ─────────────────────────────────────────────────────────────────
 
-function PostCard({ post, currentUserId }: { post: TournamentPost; currentUserId: string | null }) {
+interface PostCardProps {
+  post: TournamentPost;
+  currentUserId: string | null;
+  userRole: string;
+  directorId?: string | null;
+  onEdit: (post: TournamentPost) => void;
+  onDelete: (postId: string) => void;
+}
+
+function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete }: PostCardProps) {
   const username = post.user.profile?.username ?? post.user.displayName;
   const avatar = post.user.profile?.profilePhotoUrl;
   const initials = post.user.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  const isAuthor = currentUserId && post.user.id === currentUserId;
+  const isAdmin = userRole === 'ADMIN' || userRole === 'TOURNAMENT_ADMIN';
+  const isDirector = currentUserId && directorId === currentUserId;
+  const canEdit = post.type === 'ANGLER_POST' && isAuthor;
+  const canDelete = post.type === 'ANGLER_POST' && (isAuthor || isAdmin || isDirector);
+
+  function showMenu() {
+    const options: string[] = [];
+    if (canEdit) options.push('Edit');
+    if (canDelete) options.push('Delete');
+    options.push('Cancel');
+    Alert.alert('Post Options', undefined, [
+      ...(canEdit ? [{ text: 'Edit', onPress: () => onEdit(post) }] : []),
+      ...(canDelete ? [{ text: 'Delete', style: 'destructive' as const, onPress: () => onDelete(post.id) }] : []),
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
 
   return (
     <View style={ps.card}>
@@ -79,6 +106,11 @@ function PostCard({ post, currentUserId }: { post: TournamentPost; currentUserId
           <Text style={ps.time}>{relativeTime(post.createdAt)}</Text>
         </View>
         <PostTypeBadge type={post.type} />
+        {(canEdit || canDelete) && (
+          <TouchableOpacity onPress={showMenu} style={ps.menuBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={ps.menuBtnText}>⋮</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* CATCH post */}
@@ -151,6 +183,8 @@ const ps = StyleSheet.create({
     marginBottom: 10,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  menuBtn: { padding: 4, marginLeft: 4 },
+  menuBtnText: { color: colors.textMuted, fontSize: 20, fontWeight: '700', lineHeight: 20 },
   avatar: { width: 36, height: 36, borderRadius: 18 },
   avatarFallback: {
     backgroundColor: colors.surfaceHigh,
@@ -203,6 +237,9 @@ export default function TournamentDetailScreen() {
   const [gifQuery, setGifQuery] = useState('');
   const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
   const [gifSearching, setGifSearching] = useState(false);
+  const [editingPost, setEditingPost] = useState<TournamentPost | null>(null);
+  const [editBody, setEditBody] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     storage.getToken().then(async (token) => {
@@ -263,6 +300,34 @@ export default function TournamentDetailScreen() {
     }
     setPosting(false);
   }, [composeText, postPhotoUri, postGifUrl, tournamentId]);
+
+  const handleEditPress = useCallback((post: TournamentPost) => {
+    setEditingPost(post);
+    setEditBody(post.body ?? '');
+  }, []);
+
+  const handleDeletePress = useCallback((postId: string) => {
+    Alert.alert('Delete Post', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await api.deleteTournamentPost(postId);
+          setPosts(prev => prev.filter(p => p.id !== postId));
+        } catch { Alert.alert('Error', 'Could not delete post.'); }
+      }},
+    ]);
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingPost || editSaving) return;
+    setEditSaving(true);
+    try {
+      const updated = await api.editTournamentPost(editingPost.id, editBody.trim());
+      setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, body: updated.body } : p));
+      setEditingPost(null);
+    } catch { Alert.alert('Error', 'Could not save edit.'); }
+    finally { setEditSaving(false); }
+  }, [editingPost, editBody, editSaving]);
 
   const handlePickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -582,6 +647,35 @@ export default function TournamentDetailScreen() {
               </View>
             </View>
 
+            {/* Edit Post Modal */}
+            <Modal visible={!!editingPost} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEditingPost(null)}>
+              <SafeAreaView style={s.modalSafe}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>Edit Post</Text>
+                  <TouchableOpacity onPress={() => setEditingPost(null)} style={s.modalClose}>
+                    <Text style={s.modalCloseTxt}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ padding: 16, flex: 1 }}>
+                  <TextInput
+                    value={editBody}
+                    onChangeText={setEditBody}
+                    multiline
+                    style={[s.composeInput, { minHeight: 120, textAlignVertical: 'top' }]}
+                    autoFocus
+                  />
+                  <TouchableOpacity
+                    style={[s.postBtn, (!editBody.trim() || editSaving) && s.postBtnDisabled, { marginTop: 12 }]}
+                    onPress={handleSaveEdit}
+                    disabled={!editBody.trim() || editSaving}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={s.postBtnText}>{editSaving ? 'Saving…' : 'Save'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </SafeAreaView>
+            </Modal>
+
             {/* GIF Picker Modal */}
             <Modal visible={showGifPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowGifPicker(false)}>
               <SafeAreaView style={s.modalSafe}>
@@ -668,7 +762,9 @@ export default function TournamentDetailScreen() {
             ) : (
               <>
                 {posts.map(p => (
-                  <PostCard key={p.id} post={p} currentUserId={currentUserId} />
+                  <PostCard key={p.id} post={p} currentUserId={currentUserId} userRole={userRole}
+                    directorId={tournament?.directorId}
+                    onEdit={handleEditPress} onDelete={handleDeletePress} />
                 ))}
                 {feedCursor && (
                   <TouchableOpacity style={s.loadMoreBtn} onPress={loadMoreFeed} disabled={loadingMore} activeOpacity={0.8}>
