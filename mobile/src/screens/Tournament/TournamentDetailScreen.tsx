@@ -560,10 +560,10 @@ export default function TournamentDetailScreen() {
               {/* Action row */}
               <View style={s.composeActions}>
                 <TouchableOpacity onPress={handlePickPhoto} style={s.composeActionBtn}>
-                  <Text style={s.composeActionIcon}>📷</Text>
+                  <Text style={s.composeActionIcon}>📎</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => { setShowGifPicker(true); setShowEmojiPicker(false); }} style={s.composeActionBtn}>
-                  <Text style={[s.composeActionIcon, { fontSize: 12, fontWeight: '800', color: colors.textSub }]}>GIF</Text>
+                  <Text style={s.composeActionGif}>GIF</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => { setShowEmojiPicker(true); setShowGifPicker(false); }} style={s.composeActionBtn}>
                   <Text style={s.composeActionIcon}>😊</Text>
@@ -843,8 +843,9 @@ const s = StyleSheet.create({
   mediaRemoveBtn: { position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.surfaceHigh, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
   mediaRemoveTxt: { color: colors.text, fontSize: 14, lineHeight: 22 },
   composeActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  composeActionBtn: { backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 8, alignItems: 'center', justifyContent: 'center', minWidth: 38 },
-  composeActionIcon: { fontSize: 18 },
+  composeActionBtn: { backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, borderRadius: 8, width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  composeActionIcon: { fontSize: 18, lineHeight: 22 },
+  composeActionGif: { fontSize: 11, fontWeight: '800' as const, color: colors.textSub, letterSpacing: 0.5 },
   // GIF / Emoji Modals
   modalSafe: { flex: 1, backgroundColor: colors.surface },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
