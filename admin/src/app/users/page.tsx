@@ -418,6 +418,7 @@ export default function UsersPage() {
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <input
                           type="password"
+                          autoComplete="new-password"
                           placeholder="New password (min 8)"
                           value={pwInputs[u.id] ?? ''}
                           onChange={e => setPwInputs(prev => ({ ...prev, [u.id]: e.target.value }))}
