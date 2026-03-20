@@ -302,14 +302,14 @@ export class TournamentsService {
     return { ...post, photoUrl };
   }
 
-  async editPost(postId: string, userId: string, body: string) {
+  async editPost(postId: string, userId: string, body: string, removePhoto?: boolean) {
     const post = await this.prisma.tournamentPost.findUnique({ where: { id: postId } });
     if (!post) throw new Error('Post not found');
     if (post.userId !== userId) throw new Error('Not authorized');
     if (post.type !== 'ANGLER_POST') throw new Error('Only angler posts can be edited');
     return this.prisma.tournamentPost.update({
       where: { id: postId },
-      data: { body },
+      data: { body, ...(removePhoto ? { photoKey: null } : {}) },
       include: { user: { select: { id: true, displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } } },
     });
   }

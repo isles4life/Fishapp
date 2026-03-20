@@ -161,9 +161,9 @@ export class TournamentsController {
 
   @Patch('posts/:postId')
   @UseGuards(JwtAuthGuard)
-  async editPost(@Param('postId') postId: string, @Body() body: { body: string }, @Request() req: any) {
-    if (!body.body?.trim()) throw new BadRequestException('body is required');
-    try { return await this.tournamentsService.editPost(postId, req.user.id, body.body.trim()); }
+  async editPost(@Param('postId') postId: string, @Body() body: { body: string; removePhoto?: boolean }, @Request() req: any) {
+    if (!body.body?.trim() && !body.removePhoto) throw new BadRequestException('body is required');
+    try { return await this.tournamentsService.editPost(postId, req.user.id, body.body?.trim() ?? '', body.removePhoto); }
     catch (e: any) { if (e.message === 'Not authorized') throw new ForbiddenException(); throw e; }
   }
 

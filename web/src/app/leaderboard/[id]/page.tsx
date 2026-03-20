@@ -76,6 +76,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editPostBody, setEditPostBody] = useState('');
   const [editPostSaving, setEditPostSaving] = useState(false);
+  const [editRemovePhoto, setEditRemovePhoto] = useState(false);
 
   useEffect(() => {
     setIsLoggedIn(checkLogin());
@@ -203,12 +204,13 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
 
   async function handleEditPost(postId: string) {
     const trimmed = editPostBody.trim();
-    if (!trimmed || editPostSaving) return;
+    if ((!trimmed && !editRemovePhoto) || editPostSaving) return;
     setEditPostSaving(true);
     try {
-      const updated = await api.editTournamentPost(postId, trimmed);
-      setFeed(prev => prev.map(p => p.id === postId ? { ...p, body: updated.body } : p));
+      const updated = await api.editTournamentPost(postId, trimmed, editRemovePhoto || undefined);
+      setFeed(prev => prev.map(p => p.id === postId ? { ...p, body: updated.body, photoUrl: editRemovePhoto ? null : p.photoUrl } : p));
       setEditingPostId(null);
+      setEditRemovePhoto(false);
     } catch { /* silently fail */ }
     finally { setEditPostSaving(false); }
   }
@@ -592,7 +594,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                           {(canEdit || canDelete) && !isEditing && (
                             <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
                               {canEdit && (
-                                <button onClick={() => { setEditingPostId(post.id); setEditPostBody(post.body ?? ''); }}
+                                <button onClick={() => { setEditingPostId(post.id); setEditPostBody(post.body ?? ''); setEditRemovePhoto(false); }}
                                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 14, padding: '2px 6px', borderRadius: 4 }}
                                   title="Edit post">✏️</button>
                               )}
@@ -638,12 +640,27 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                               style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
                               autoFocus
                             />
+                            {post.photoUrl && !editRemovePhoto && (
+                              <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={post.photoUrl} alt="" style={{ maxHeight: 120, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block', opacity: 0.8 }} />
+                                <button type="button" onClick={() => setEditRemovePhoto(true)}
+                                  style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.75)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                                  title="Remove image">×</button>
+                              </div>
+                            )}
+                            {post.photoUrl && editRemovePhoto && (
+                              <div style={{ marginTop: 6, fontSize: 12, color: C.textMuted }}>
+                                Image will be removed on save.{' '}
+                                <button type="button" onClick={() => setEditRemovePhoto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.accent, fontSize: 12, padding: 0 }}>Undo</button>
+                              </div>
+                            )}
                             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                              <button onClick={() => handleEditPost(post.id)} disabled={editPostSaving || !editPostBody.trim()}
+                              <button onClick={() => handleEditPost(post.id)} disabled={editPostSaving || (!editPostBody.trim() && !editRemovePhoto)}
                                 style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: editPostSaving ? 0.6 : 1 }}>
                                 {editPostSaving ? 'Saving…' : 'Save'}
                               </button>
-                              <button onClick={() => setEditingPostId(null)}
+                              <button onClick={() => { setEditingPostId(null); setEditRemovePhoto(false); }}
                                 style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', color: C.textSub, fontSize: 13 }}>
                                 Cancel
                               </button>
