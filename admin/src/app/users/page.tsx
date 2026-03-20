@@ -58,7 +58,7 @@ interface WarningForm {
   submitting: boolean;
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 10;
 
 function Pagination({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -236,7 +236,7 @@ export default function UsersPage() {
       )}
 
       {/* Table */}
-      <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflowX: 'auto' }}>
+      <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflowX: 'auto', overflowY: 'visible' }}>
         <table style={{ width: '100%', minWidth: 820, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${C.border}` }}>
