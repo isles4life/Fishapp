@@ -107,12 +107,6 @@ export default function UsersPage() {
   const [warnSuccess, setWarnSuccess] = useState<string | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  useEffect(() => {
-    const close = () => setOpenMenu(null);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, []);
-
   async function load() {
     try {
       const [us, rs] = await Promise.all([api.getUsers(), api.getRegions()]);
@@ -210,7 +204,9 @@ export default function UsersPage() {
   const suspendedCount = users.filter(u => u.suspended).length;
 
   return (
-    <div>
+    <>
+      {openMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpenMenu(null)} />}
+      <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
@@ -454,6 +450,7 @@ export default function UsersPage() {
         {filtered.length} of {users.length} users
       </div>
     </div>
+    </>
   );
 }
 

@@ -99,12 +99,6 @@ export default function TournamentsPage() {
   const [editBannerPreview, setEditBannerPreview] = useState<string | null>(null);
   const [editBannerUploading, setEditBannerUploading] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-
-  useEffect(() => {
-    const close = () => setOpenMenu(null);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, []);
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -259,7 +253,9 @@ export default function TournamentsPage() {
   const paginatedTournaments = filteredTournaments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <div>
+    <>
+      {openMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpenMenu(null)} />}
+      <div>
       <h2 style={{ color: C.text, marginBottom: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tournaments</h2>
       {error && <div style={{ color: C.red, background: C.redBg, padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 14, border: `1px solid ${C.red}50` }}>{error}</div>}
 
@@ -681,5 +677,6 @@ export default function TournamentsPage() {
       </div>
       <Pagination page={currentPage} total={filteredTournaments.length} onChange={setCurrentPage} />
     </div>
+    </>
   );
 }
