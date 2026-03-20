@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import Nav from '../../../components/Nav';
-import { api, isLoggedIn as checkLogin } from '../../../lib/api';
+import { api, isLoggedIn as checkLogin, getMyUserId, getMyRole } from '../../../lib/api';
 import type { Tournament, LeaderboardEntry, TournamentPost } from '../../../lib/api';
 
 const C = {
@@ -71,6 +71,11 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
   const [gifSearching, setGifSearching] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const [myUserId] = useState<string | null>(() => getMyUserId());
+  const [myRole] = useState<string | null>(() => getMyRole());
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editPostBody, setEditPostBody] = useState('');
+  const [editPostSaving, setEditPostSaving] = useState(false);
 
   useEffect(() => {
     setIsLoggedIn(checkLogin());
@@ -194,6 +199,26 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
       setPostGifPreview(null);
     } catch { /* silently fail */ }
     finally { setPosting(false); }
+  }
+
+  async function handleEditPost(postId: string) {
+    const trimmed = editPostBody.trim();
+    if (!trimmed || editPostSaving) return;
+    setEditPostSaving(true);
+    try {
+      const updated = await api.editTournamentPost(postId, trimmed);
+      setFeed(prev => prev.map(p => p.id === postId ? { ...p, body: updated.body } : p));
+      setEditingPostId(null);
+    } catch { /* silently fail */ }
+    finally { setEditPostSaving(false); }
+  }
+
+  async function handleDeletePost(postId: string) {
+    if (!confirm('Delete this post?')) return;
+    try {
+      await api.deleteTournamentPost(postId);
+      setFeed(prev => prev.filter(p => p.id !== postId));
+    } catch { /* silently fail */ }
   }
 
   return (
@@ -542,6 +567,12 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                   {feed.map(post => {
                     const badgeColor = post.type === 'ANNOUNCEMENT' ? '#D4820A' : post.type === 'CATCH' ? '#3DAF5A' : post.type === 'CHECK_IN' ? C.textSub : C.accent;
                     const badgeLabel = post.type === 'ANNOUNCEMENT' ? '📢 Announcement' : post.type === 'CATCH' ? '🎣 Catch' : post.type === 'CHECK_IN' ? '✅ Check-In' : '💬 Post';
+                    const isAuthor = myUserId && post.user.id === myUserId;
+                    const isAdmin = myRole === 'ADMIN' || myRole === 'TOURNAMENT_ADMIN';
+                    const isDirector = myUserId && tournament?.director?.id === myUserId;
+                    const canEdit = post.type === 'ANGLER_POST' && isAuthor;
+                    const canDelete = post.type === 'ANGLER_POST' && (isAuthor || isAdmin || isDirector);
+                    const isEditing = editingPostId === post.id;
                     return (
                       <div key={post.id} style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -558,6 +589,20 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                             <div style={{ fontSize: 11, color: C.textMuted }}>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
                           </div>
                           <span style={{ fontSize: 11, fontWeight: 700, color: badgeColor, backgroundColor: badgeColor + '20', border: `1px solid ${badgeColor}40`, borderRadius: 6, padding: '2px 8px' }}>{badgeLabel}</span>
+                          {(canEdit || canDelete) && !isEditing && (
+                            <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+                              {canEdit && (
+                                <button onClick={() => { setEditingPostId(post.id); setEditPostBody(post.body ?? ''); }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 14, padding: '2px 6px', borderRadius: 4 }}
+                                  title="Edit post">✏️</button>
+                              )}
+                              {canDelete && (
+                                <button onClick={() => handleDeletePost(post.id)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 14, padding: '2px 6px', borderRadius: 4 }}
+                                  title="Delete post">🗑</button>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {post.type === 'CATCH' && post.submission && (
@@ -580,11 +625,33 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                           <div style={{ fontSize: 13, color: C.textSub }}>{post.user.displayName} checked in to the tournament.</div>
                         )}
 
-                        {(post.type === 'ANNOUNCEMENT' || post.type === 'ANGLER_POST') && post.body && (
+                        {(post.type === 'ANNOUNCEMENT' || post.type === 'ANGLER_POST') && !isEditing && post.body && (
                           <div style={{ fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.body.replace(/\*\*(.*?)\*\*/g, '$1')}</div>
                         )}
 
-                        {post.type === 'ANGLER_POST' && post.photoUrl && (
+                        {isEditing && (
+                          <div style={{ marginTop: 4 }}>
+                            <textarea
+                              value={editPostBody}
+                              onChange={e => setEditPostBody(e.target.value)}
+                              rows={3}
+                              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                              autoFocus
+                            />
+                            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                              <button onClick={() => handleEditPost(post.id)} disabled={editPostSaving || !editPostBody.trim()}
+                                style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: editPostSaving ? 0.6 : 1 }}>
+                                {editPostSaving ? 'Saving…' : 'Save'}
+                              </button>
+                              <button onClick={() => setEditingPostId(null)}
+                                style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', color: C.textSub, fontSize: 13 }}>
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {post.type === 'ANGLER_POST' && post.photoUrl && !isEditing && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={post.photoUrl} alt="" style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}` }} />
                         )}
