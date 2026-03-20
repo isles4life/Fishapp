@@ -28,14 +28,14 @@ const C = {
 type Tab = 'active' | 'upcoming';
 
 export default function TournamentsPage() {
-  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('active');
 
   useEffect(() => {
-    api.getActiveTournament()
-      .then(t => { setTournament(t); setError(''); })
+    api.getActiveTournaments()
+      .then(ts => { setTournaments(ts); setError(''); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -84,7 +84,7 @@ export default function TournamentsPage() {
         {/* ACTIVE TAB */}
         {!loading && tab === 'active' && (
           <>
-            {(error || !tournament) ? (
+            {(error || tournaments.length === 0) ? (
               <div style={{
                 textAlign: 'center', padding: '60px 20px',
                 backgroundColor: C.surface, borderRadius: 16, border: `1px solid ${C.border}`,
@@ -93,71 +93,48 @@ export default function TournamentsPage() {
                 <p style={{ color: C.textMuted, fontSize: 14, margin: 0 }}>Check back when the next week opens.</p>
               </div>
             ) : (
-              <div style={{
-                backgroundColor: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: 16,
-                overflow: 'hidden',
-              }}>
-                {/* Card top accent bar */}
-                <div style={{ height: 4, backgroundColor: C.accent }} />
-                <div style={{ padding: '16px' }}>
-                  {/* Status badge */}
-                  <div style={{ marginBottom: 12 }}>
-                    <span style={{
-                      backgroundColor: C.accent, color: C.bg,
-                      borderRadius: 20, padding: '4px 12px',
-                      fontSize: 11, fontWeight: 800, letterSpacing: 1.5,
-                      textTransform: 'uppercase',
-                    }}>
-                      Active
-                    </span>
-                  </div>
-
-                  {/* Tournament name */}
-                  <h2 style={{
-                    fontSize: 22, fontWeight: 900, color: C.text,
-                    margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: 0.5,
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {tournaments.map(tournament => (
+                  <div key={tournament.id} style={{
+                    backgroundColor: C.surface, border: `1px solid ${C.border}`,
+                    borderRadius: 16, overflow: 'hidden',
                   }}>
-                    {tournament.name}
-                  </h2>
-
-                  {/* Stat chips */}
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
-                    <div style={{
-                      backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`,
-                      borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600,
-                    }}>
-                      📍 {tournament.region.name}
-                    </div>
-                    <div style={{
-                      backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`,
-                      borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600,
-                    }}>
-                      📅 Ends {new Date(tournament.endsAt).toLocaleDateString()}
-                    </div>
-                    <div style={{
-                      backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`,
-                      borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600,
-                    }}>
-                      📆 Week {tournament.weekNumber} · {tournament.year}
+                    <div style={{ height: 4, backgroundColor: C.accent }} />
+                    <div style={{ padding: '16px' }}>
+                      <div style={{ marginBottom: 12 }}>
+                        <span style={{
+                          backgroundColor: C.accent, color: C.bg,
+                          borderRadius: 20, padding: '4px 12px',
+                          fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase',
+                        }}>Active</span>
+                      </div>
+                      <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        {tournament.name}
+                      </h2>
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+                        <div style={{ backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600 }}>
+                          📍 {tournament.region?.name ?? 'All Regions'}
+                        </div>
+                        <div style={{ backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600 }}>
+                          📅 Ends {new Date(tournament.endsAt).toLocaleDateString()}
+                        </div>
+                        <div style={{ backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 14px', fontSize: 13, color: C.textSub, fontWeight: 600 }}>
+                          📆 Week {tournament.weekNumber} · {tournament.year}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Link href={`/leaderboard/${tournament.id}`} style={{
+                          backgroundColor: C.accent, color: C.bg, fontWeight: 700,
+                          padding: '11px 24px', borderRadius: 10, textDecoration: 'none',
+                          fontSize: 14, letterSpacing: 1, textTransform: 'uppercase', display: 'inline-block',
+                        }}>
+                          Tournament Details &amp; Leaderboard
+                        </Link>
+                        <span style={{ color: C.textMuted, fontSize: 13 }}>📱 Get the app to compete</span>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Link href={`/leaderboard/${tournament.id}`} style={{
-                      backgroundColor: C.accent, color: C.bg, fontWeight: 700,
-                      padding: '11px 24px', borderRadius: 10, textDecoration: 'none',
-                      fontSize: 14, letterSpacing: 1, textTransform: 'uppercase', display: 'inline-block',
-                    }}>
-                      Tournament Details &amp; Leaderboard
-                    </Link>
-                    <span style={{ color: C.textMuted, fontSize: 13 }}>
-                      📱 Get the app to compete
-                    </span>
-                  </div>
-                </div>
+                ))}
               </div>
             )}
           </>
