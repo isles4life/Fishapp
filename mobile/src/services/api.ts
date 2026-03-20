@@ -103,8 +103,8 @@ export function getOpenTournaments(): Promise<Tournament[]> {
   return request('/tournaments/open-all');
 }
 
-export function editTournamentPost(postId: string, body: string, removePhoto?: boolean): Promise<TournamentPost> {
-  return request(`/tournaments/posts/${postId}`, { method: 'PATCH', body: JSON.stringify({ body, removePhoto }) });
+export function editTournamentPost(postId: string, body: string, removePhoto?: boolean, photoKey?: string, gifUrl?: string): Promise<TournamentPost> {
+  return request(`/tournaments/posts/${postId}`, { method: 'PATCH', body: JSON.stringify({ body, removePhoto, photoKey, gifUrl }) });
 }
 
 export function deleteTournamentPost(postId: string): Promise<{ ok: boolean }> {

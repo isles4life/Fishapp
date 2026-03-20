@@ -77,6 +77,16 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
   const [editPostBody, setEditPostBody] = useState('');
   const [editPostSaving, setEditPostSaving] = useState(false);
   const [editRemovePhoto, setEditRemovePhoto] = useState(false);
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
+  const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
+  const [editGifUrl, setEditGifUrl] = useState<string | null>(null);
+  const [editGifPreview, setEditGifPreview] = useState<string | null>(null);
+  const [showEditGifPicker, setShowEditGifPicker] = useState(false);
+  const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(false);
+  const [editGifQuery, setEditGifQuery] = useState('');
+  const [editGifResults, setEditGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
+  const [editGifSearching, setEditGifSearching] = useState(false);
+  const editPhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsLoggedIn(checkLogin());
@@ -204,15 +214,57 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
 
   async function handleEditPost(postId: string) {
     const trimmed = editPostBody.trim();
-    if ((!trimmed && !editRemovePhoto) || editPostSaving) return;
+    if ((!trimmed && !editRemovePhoto && !editPhotoFile && !editGifUrl) || editPostSaving) return;
     setEditPostSaving(true);
     try {
-      const updated = await api.editTournamentPost(postId, trimmed, editRemovePhoto || undefined);
-      setFeed(prev => prev.map(p => p.id === postId ? { ...p, body: updated.body, photoUrl: editRemovePhoto ? null : p.photoUrl } : p));
+      let photoKey: string | undefined;
+      let gifUrl: string | undefined;
+      if (editPhotoFile) {
+        const r = await api.uploadPostMedia(params.id, editPhotoFile);
+        photoKey = r.photoKey;
+      } else if (editGifUrl) {
+        gifUrl = editGifUrl;
+      }
+      const updated = await api.editTournamentPost(postId, trimmed, editRemovePhoto || undefined, photoKey, gifUrl);
+      setFeed(prev => prev.map(p => p.id === postId ? { ...p, body: updated.body, photoUrl: editRemovePhoto ? null : (updated.photoUrl ?? (editGifUrl || editPhotoFile ? updated.photoUrl : p.photoUrl)) } : p));
       setEditingPostId(null);
       setEditRemovePhoto(false);
+      setEditPhotoFile(null); setEditPhotoPreview(null); setEditGifUrl(null); setEditGifPreview(null);
     } catch { /* silently fail */ }
     finally { setEditPostSaving(false); }
+  }
+
+  function handleEditPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEditPhotoFile(file);
+    setEditGifUrl(null); setEditGifPreview(null);
+    const reader = new FileReader();
+    reader.onload = ev => setEditPhotoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function searchEditGifs(q: string) {
+    if (!q.trim()) return;
+    setEditGifSearching(true);
+    try {
+      const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app';
+      const res = await fetch(`${BASE}/gifs/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setEditGifResults(data.data ?? []);
+    } catch { setEditGifResults([]); }
+    finally { setEditGifSearching(false); }
+  }
+
+  function selectEditGif(gif: { id: string; preview: string; full: string }) {
+    setEditGifUrl(gif.full); setEditGifPreview(gif.preview);
+    setEditPhotoFile(null); setEditPhotoPreview(null);
+    setShowEditGifPicker(false); setEditGifResults([]); setEditGifQuery('');
+  }
+
+  function insertEditEmoji(emoji: string) {
+    setEditPostBody(b => b + emoji);
+    setShowEditEmojiPicker(false);
   }
 
   async function handleDeletePost(postId: string) {
@@ -594,7 +646,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                           {(canEdit || canDelete) && !isEditing && (
                             <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
                               {canEdit && (
-                                <button onClick={() => { setEditingPostId(post.id); setEditPostBody(post.body ?? ''); setEditRemovePhoto(false); }}
+                                <button onClick={() => { setEditingPostId(post.id); setEditPostBody(post.body ?? ''); setEditRemovePhoto(false); setEditPhotoFile(null); setEditPhotoPreview(null); setEditGifUrl(null); setEditGifPreview(null); setShowEditGifPicker(false); setShowEditEmojiPicker(false); }}
                                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 14, padding: '2px 6px', borderRadius: 4 }}
                                   title="Edit post">✏️</button>
                               )}
@@ -640,7 +692,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                               style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
                               autoFocus
                             />
-                            {post.photoUrl && !editRemovePhoto && (
+                            {post.photoUrl && !editRemovePhoto && !editPhotoPreview && !editGifPreview && (
                               <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={post.photoUrl} alt="" style={{ maxHeight: 120, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block', opacity: 0.8 }} />
@@ -655,15 +707,95 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                                 <button type="button" onClick={() => setEditRemovePhoto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.accent, fontSize: 12, padding: 0 }}>Undo</button>
                               </div>
                             )}
-                            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                              <button onClick={() => handleEditPost(post.id)} disabled={editPostSaving || (!editPostBody.trim() && !editRemovePhoto)}
-                                style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: editPostSaving ? 0.6 : 1 }}>
-                                {editPostSaving ? 'Saving…' : 'Save'}
-                              </button>
-                              <button onClick={() => { setEditingPostId(null); setEditRemovePhoto(false); }}
-                                style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', color: C.textSub, fontSize: 13 }}>
-                                Cancel
-                              </button>
+                            {(editPhotoPreview || editGifPreview) && (
+                              <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={editPhotoPreview ?? editGifPreview ?? ''} alt="" style={{ maxHeight: 120, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block' }} />
+                                <button type="button" onClick={() => { setEditPhotoFile(null); setEditPhotoPreview(null); setEditGifUrl(null); setEditGifPreview(null); if (editPhotoInputRef.current) editPhotoInputRef.current.value = ''; }}
+                                  style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.75)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                              </div>
+                            )}
+                            {showEditGifPicker && (
+                              <div style={{ marginTop: 10, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Search GIFs</span>
+                                  <button type="button" onClick={() => setShowEditGifPicker(false)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 18, lineHeight: 1, padding: '2px 4px', borderRadius: 4 }}>×</button>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                                  <input value={editGifQuery} onChange={e => setEditGifQuery(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchEditGifs(editGifQuery))}
+                                    placeholder="Search GIFs..."
+                                    style={{ flex: 1, padding: '8px 12px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none' }} autoFocus />
+                                  <button type="button" onClick={() => searchEditGifs(editGifQuery)}
+                                    style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Search</button>
+                                </div>
+                                {editGifSearching && <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>Searching…</div>}
+                                {!editGifSearching && editGifResults.length > 0 && (
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+                                    {editGifResults.map(g => (
+                                      <button key={g.id} type="button" onClick={() => selectEditGif(g)}
+                                        style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', padding: 0, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={g.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                {!editGifSearching && editGifResults.length === 0 && (
+                                  <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 16 }}>{editGifQuery ? 'No results.' : 'Search for a GIF above'}</div>
+                                )}
+                                <div style={{ marginTop: 8, textAlign: 'right' }}><span style={{ fontSize: 10, color: C.textMuted }}>Powered by GIPHY</span></div>
+                              </div>
+                            )}
+                            {showEditEmojiPicker && (
+                              <div style={{ marginTop: 10, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+                                {[
+                                  { label: '🎣 Fishing', emojis: ['🎣', '🐟', '🐠', '🐡', '🦈', '🦑', '🦐', '🦀', '🦞', '🐙', '🌊', '⚓', '🚤', '🛶', '🏖️', '🌅'] },
+                                  { label: '🏆 Sports', emojis: ['🏆', '🥇', '🥈', '🥉', '🎯', '💪', '🤙', '👊', '🙌', '👏', '🎉', '🎊', '🔥', '⚡', '💥', '🌟'] },
+                                  { label: '😀 Faces', emojis: ['😀', '😂', '🤣', '😍', '🥰', '😎', '🤩', '😏', '🙃', '😅', '😭', '😤', '🤯', '😱', '🥳', '😤'] },
+                                  { label: '🌿 Nature', emojis: ['🌊', '🌅', '🌄', '⛅', '🌤️', '☀️', '🌙', '⭐', '🌿', '🌱', '🍃', '🌲', '🏔️', '🗻', '⛰️', '🌾'] },
+                                ].map(cat => (
+                                  <div key={cat.label} style={{ marginBottom: 10 }}>
+                                    <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>{cat.label}</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                      {cat.emojis.map(em => (
+                                        <button key={em} type="button" onClick={() => insertEditEmoji(em)}
+                                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, padding: '3px 4px', borderRadius: 6, lineHeight: 1 }}
+                                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = C.bg)}
+                                          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                                          {em}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                              {(() => {
+                                const mediaBtnStyle: React.CSSProperties = { width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 7, cursor: 'pointer', border: `1px solid ${C.border}`, backgroundColor: C.surfaceHigh, flexShrink: 0 };
+                                return (
+                                  <>
+                                    <button type="button" onClick={() => editPhotoInputRef.current?.click()} title="Attach photo" style={{ ...mediaBtnStyle, fontSize: 15, color: C.textSub }}>📎</button>
+                                    <input ref={editPhotoInputRef} type="file" accept="image/*" onChange={handleEditPhotoSelect} style={{ display: 'none' }} />
+                                    <button type="button" onClick={() => { setShowEditGifPicker(v => !v); setShowEditEmojiPicker(false); }}
+                                      style={{ ...mediaBtnStyle, background: showEditGifPicker ? C.accent + '30' : C.surfaceHigh, border: `1px solid ${showEditGifPicker ? C.accent : C.border}`, color: showEditGifPicker ? C.accent : C.textSub, fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>GIF</button>
+                                    <button type="button" onClick={() => { setShowEditEmojiPicker(v => !v); setShowEditGifPicker(false); }}
+                                      style={{ ...mediaBtnStyle, background: showEditEmojiPicker ? C.accent + '30' : C.surfaceHigh, border: `1px solid ${showEditEmojiPicker ? C.accent : C.border}`, fontSize: 16, lineHeight: 1 }}>😊</button>
+                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                                      <button onClick={() => handleEditPost(post.id)} disabled={editPostSaving || (!editPostBody.trim() && !editRemovePhoto && !editPhotoFile && !editGifUrl)}
+                                        style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: editPostSaving ? 0.6 : 1 }}>
+                                        {editPostSaving ? 'Saving…' : 'Save'}
+                                      </button>
+                                      <button onClick={() => { setEditingPostId(null); setEditRemovePhoto(false); setEditPhotoFile(null); setEditPhotoPreview(null); setEditGifUrl(null); setEditGifPreview(null); setShowEditGifPicker(false); setShowEditEmojiPicker(false); }}
+                                        style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', color: C.textSub, fontSize: 13 }}>
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                         )}

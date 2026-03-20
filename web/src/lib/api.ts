@@ -297,8 +297,8 @@ export const api = {
     form.append('photo', file);
     return apiUpload<{ photoKey: string }>(`/tournaments/${tournamentId}/posts/media`, form);
   },
-  editTournamentPost: (postId: string, body: string, removePhoto?: boolean) =>
-    apiFetch<TournamentPost>(`/tournaments/posts/${postId}`, { method: 'PATCH', body: JSON.stringify({ body, removePhoto }) }, true),
+  editTournamentPost: (postId: string, body: string, removePhoto?: boolean, photoKey?: string, gifUrl?: string) =>
+    apiFetch<TournamentPost>(`/tournaments/posts/${postId}`, { method: 'PATCH', body: JSON.stringify({ body, removePhoto, photoKey, gifUrl }) }, true),
   deleteTournamentPost: (postId: string) =>
     apiFetch<{ ok: boolean }>(`/tournaments/posts/${postId}`, { method: 'DELETE' }, true),
 };

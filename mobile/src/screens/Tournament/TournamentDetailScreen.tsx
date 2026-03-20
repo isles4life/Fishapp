@@ -240,6 +240,14 @@ export default function TournamentDetailScreen() {
   const [editingPost, setEditingPost] = useState<TournamentPost | null>(null);
   const [editBody, setEditBody] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [editPhotoUri, setEditPhotoUri] = useState<string | null>(null);
+  const [editGifUrlForEdit, setEditGifUrlForEdit] = useState<string | null>(null);
+  const [editGifPreviewForEdit, setEditGifPreviewForEdit] = useState<string | null>(null);
+  const [showEditGifPicker, setShowEditGifPicker] = useState(false);
+  const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(false);
+  const [editGifQuery, setEditGifQuery] = useState('');
+  const [editGifResults, setEditGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
+  const [editGifSearching, setEditGifSearching] = useState(false);
 
   useEffect(() => {
     storage.getToken().then(async (token) => {
@@ -304,6 +312,13 @@ export default function TournamentDetailScreen() {
   const handleEditPress = useCallback((post: TournamentPost) => {
     setEditingPost(post);
     setEditBody(post.body ?? '');
+    setEditPhotoUri(null);
+    setEditGifUrlForEdit(null);
+    setEditGifPreviewForEdit(null);
+    setShowEditGifPicker(false);
+    setShowEditEmojiPicker(false);
+    setEditGifQuery('');
+    setEditGifResults([]);
   }, []);
 
   const handleDeletePress = useCallback((postId: string) => {
@@ -322,12 +337,61 @@ export default function TournamentDetailScreen() {
     if (!editingPost || editSaving) return;
     setEditSaving(true);
     try {
-      const updated = await api.editTournamentPost(editingPost.id, editBody.trim());
-      setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, body: updated.body } : p));
+      let photoKey: string | undefined;
+      let gifUrl: string | undefined;
+      if (editPhotoUri) {
+        const r = await api.uploadPostMedia(tournamentId, editPhotoUri);
+        photoKey = r.photoKey;
+      } else if (editGifUrlForEdit) {
+        gifUrl = editGifUrlForEdit;
+      }
+      const updated = await api.editTournamentPost(editingPost.id, editBody.trim(), undefined, photoKey, gifUrl);
+      setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, body: updated.body, photoUrl: updated.photoUrl ?? p.photoUrl } : p));
       setEditingPost(null);
+      setEditPhotoUri(null);
+      setEditGifUrlForEdit(null);
+      setEditGifPreviewForEdit(null);
     } catch { Alert.alert('Error', 'Could not save edit.'); }
     finally { setEditSaving(false); }
-  }, [editingPost, editBody, editSaving]);
+  }, [editingPost, editBody, editSaving, editPhotoUri, editGifUrlForEdit, tournamentId]);
+
+  const handleEditPickPhoto = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow photo library access to attach images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setEditPhotoUri(result.assets[0].uri);
+      setEditGifUrlForEdit(null);
+      setEditGifPreviewForEdit(null);
+    }
+  }, []);
+
+  const searchEditGifs = useCallback(async (q: string) => {
+    if (!q.trim()) return;
+    setEditGifSearching(true);
+    try {
+      const res = await fetch(`${api.BASE_URL}/gifs/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setEditGifResults(data.data ?? []);
+    } catch { setEditGifResults([]); }
+    finally { setEditGifSearching(false); }
+  }, []);
+
+  const selectEditGif = useCallback((gif: { id: string; preview: string; full: string }) => {
+    setEditGifUrlForEdit(gif.full);
+    setEditGifPreviewForEdit(gif.preview);
+    setEditPhotoUri(null);
+    setShowEditGifPicker(false);
+    setEditGifResults([]);
+    setEditGifQuery('');
+  }, []);
 
   const handlePickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -648,31 +712,113 @@ export default function TournamentDetailScreen() {
             </View>
 
             {/* Edit Post Modal */}
-            <Modal visible={!!editingPost} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEditingPost(null)}>
+            <Modal visible={!!editingPost} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { setEditingPost(null); setShowEditGifPicker(false); setShowEditEmojiPicker(false); }}>
               <SafeAreaView style={s.modalSafe}>
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>Edit Post</Text>
-                  <TouchableOpacity onPress={() => setEditingPost(null)} style={s.modalClose}>
+                  <TouchableOpacity onPress={() => { setEditingPost(null); setShowEditGifPicker(false); setShowEditEmojiPicker(false); }} style={s.modalClose}>
                     <Text style={s.modalCloseTxt}>✕</Text>
                   </TouchableOpacity>
                 </View>
-                <View style={{ padding: 16, flex: 1 }}>
+                <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
                   <TextInput
                     value={editBody}
                     onChangeText={setEditBody}
                     multiline
-                    style={[s.composeInput, { minHeight: 120, textAlignVertical: 'top' }]}
+                    style={[s.composeInput, { minHeight: 100, textAlignVertical: 'top' }]}
                     autoFocus
                   />
+                  {/* New media preview */}
+                  {(editPhotoUri || editGifPreviewForEdit) && (
+                    <View style={{ marginTop: 8, position: 'relative', alignSelf: 'flex-start' }}>
+                      <Image source={{ uri: editPhotoUri ?? editGifPreviewForEdit ?? '' }} style={{ width: 160, height: 120, borderRadius: 8 }} resizeMode="cover" />
+                      <TouchableOpacity onPress={() => { setEditPhotoUri(null); setEditGifUrlForEdit(null); setEditGifPreviewForEdit(null); }}
+                        style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ color: '#fff', fontSize: 13, lineHeight: 13 }}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {/* Action row */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                    <TouchableOpacity onPress={handleEditPickPhoto} style={s.composeActionBtn} activeOpacity={0.7}>
+                      <Text style={s.composeActionIcon}>📎</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => { setShowEditGifPicker(v => !v); setShowEditEmojiPicker(false); }}
+                      style={[s.composeActionBtn, showEditGifPicker && { borderColor: colors.accent, backgroundColor: colors.accent + '20' }]} activeOpacity={0.7}>
+                      <Text style={[s.composeActionIcon, { fontSize: 11, fontWeight: '800' as const }, showEditGifPicker && { color: colors.accent }]}>GIF</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => { setShowEditEmojiPicker(v => !v); setShowEditGifPicker(false); }}
+                      style={[s.composeActionBtn, showEditEmojiPicker && { borderColor: colors.accent, backgroundColor: colors.accent + '20' }]} activeOpacity={0.7}>
+                      <Text style={s.composeActionIcon}>😊</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {/* Inline GIF picker */}
+                  {showEditGifPicker && (
+                    <View style={{ marginTop: 10, backgroundColor: colors.surfaceHigh, borderRadius: 12, padding: 10 }}>
+                      <View style={s.gifSearchRow}>
+                        <TextInput
+                          style={s.gifSearchInput}
+                          value={editGifQuery}
+                          onChangeText={setEditGifQuery}
+                          placeholder="Search Giphy…"
+                          placeholderTextColor={colors.textMuted}
+                          returnKeyType="search"
+                          onSubmitEditing={() => searchEditGifs(editGifQuery)}
+                        />
+                        <TouchableOpacity onPress={() => searchEditGifs(editGifQuery)} style={s.gifSearchBtn}>
+                          <Text style={s.gifSearchBtnTxt}>Go</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {editGifSearching
+                        ? <ActivityIndicator color={colors.accent} style={{ marginTop: 20 }} />
+                        : <FlatList
+                            data={editGifResults}
+                            numColumns={3}
+                            keyExtractor={g => g.id}
+                            scrollEnabled={false}
+                            contentContainerStyle={{ paddingTop: 4 }}
+                            ListEmptyComponent={<Text style={s.gifEmpty}>{editGifQuery ? 'No results' : 'Search for a GIF above'}</Text>}
+                            renderItem={({ item }) => (
+                              <TouchableOpacity onPress={() => selectEditGif(item)} style={s.gifThumbWrap} activeOpacity={0.8}>
+                                <Image source={{ uri: item.preview }} style={s.gifThumb} resizeMode="cover" />
+                              </TouchableOpacity>
+                            )}
+                          />
+                      }
+                      <Text style={s.giphyAttr}>Powered by GIPHY</Text>
+                    </View>
+                  )}
+                  {/* Inline Emoji picker */}
+                  {showEditEmojiPicker && (
+                    <View style={{ marginTop: 10 }}>
+                      {[
+                        { label: '🎣 Fishing', emojis: ['🎣', '🐟', '🐠', '🐡', '🦈', '🦑', '🦐', '🦀', '🦞', '🐙', '🌊', '⚓', '🚤', '🛶', '🏖️', '🌅'] },
+                        { label: '🏆 Sports', emojis: ['🏆', '🥇', '🥈', '🥉', '🎯', '💪', '🤙', '👊', '🙌', '👏', '🎉', '🎊', '🔥', '⚡', '💥', '🌟'] },
+                        { label: '😀 Faces', emojis: ['😀', '😂', '🤣', '😍', '🥰', '😎', '🤩', '😏', '🙃', '😅', '😭', '😤', '🤯', '😱', '🥳', '🤦'] },
+                        { label: '🌿 Nature', emojis: ['🌊', '🌅', '🌄', '⛅', '🌤️', '☀️', '🌙', '⭐', '🌿', '🌱', '🍃', '🌲', '🏔️', '🗻', '⛰️', '🌾'] },
+                      ].map(cat => (
+                        <View key={cat.label} style={{ marginBottom: 12 }}>
+                          <Text style={s.emojiCatLabel}>{cat.label}</Text>
+                          <View style={s.emojiGrid}>
+                            {cat.emojis.map(em => (
+                              <TouchableOpacity key={em} onPress={() => { setEditBody(b => b + em); setShowEditEmojiPicker(false); }} style={s.emojiBtn} activeOpacity={0.7}>
+                                <Text style={s.emojiChar}>{em}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                   <TouchableOpacity
-                    style={[s.postBtn, (!editBody.trim() || editSaving) && s.postBtnDisabled, { marginTop: 12 }]}
+                    style={[s.postBtn, ((!editBody.trim() && !editPhotoUri && !editGifUrlForEdit) || editSaving) && s.postBtnDisabled, { marginTop: 16 }]}
                     onPress={handleSaveEdit}
-                    disabled={!editBody.trim() || editSaving}
+                    disabled={(!editBody.trim() && !editPhotoUri && !editGifUrlForEdit) || editSaving}
                     activeOpacity={0.85}
                   >
                     <Text style={s.postBtnText}>{editSaving ? 'Saving…' : 'Save'}</Text>
                   </TouchableOpacity>
-                </View>
+                </ScrollView>
               </SafeAreaView>
             </Modal>
 
