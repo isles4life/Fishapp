@@ -105,6 +105,13 @@ export default function UsersPage() {
   const [warnForms, setWarnForms] = useState<Record<string, WarningForm>>({});
   const [warnCounts, setWarnCounts] = useState<Record<string, number>>({});
   const [warnSuccess, setWarnSuccess] = useState<string | null>(null);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+
+  useEffect(() => {
+    const close = () => setOpenMenu(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
 
   async function load() {
     try {
@@ -341,39 +348,32 @@ export default function UsersPage() {
                 {/* Actions */}
                 <td style={{ padding: '14px 20px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
-                      {u.role === 'USER'
-                        ? <ActionBtn onClick={() => setRole(u, 'ADMIN')} disabled={!!loading} color={C.accent} bg={C.accent + '18'}>Make Admin</ActionBtn>
-                        : <ActionBtn onClick={() => setRole(u, 'USER')} disabled={!!loading} color={C.orange} bg={C.orangeBg}>Revoke Admin</ActionBtn>
-                      }
-                      <ActionBtn
-                        onClick={() => toggleSuspend(u)}
-                        disabled={!!loading}
-                        color={u.suspended ? C.green : C.red}
-                        bg={u.suspended ? C.greenBg : C.redBg}
-                      >
-                        {u.suspended ? 'Unsuspend' : 'Suspend'}
-                      </ActionBtn>
-                      {u.authProvider !== 'APPLE' && (
-                        <ActionBtn onClick={() => togglePwInput(u.id)} color={C.blue} bg={C.blueBg}>
-                          {pwVisible[u.id] ? 'Cancel' : 'Reset PW'}
-                        </ActionBtn>
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === u.id ? null : u.id); }}
+                        style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 6, cursor: 'pointer', fontSize: 18, color: C.textSub, lineHeight: 1 }}
+                        title="Actions"
+                      >⋮</button>
+                      {openMenu === u.id && (
+                        <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)', zIndex: 50, minWidth: 170, overflow: 'hidden' }}>
+                          {[
+                            u.role === 'USER'
+                              ? { label: '⭐ Make Admin', color: C.accent, action: () => { setRole(u, 'ADMIN'); setOpenMenu(null); } }
+                              : { label: '↩ Revoke Admin', color: C.orange, action: () => { setRole(u, 'USER'); setOpenMenu(null); } },
+                            u.suspended
+                              ? { label: '✓ Unsuspend', color: C.green, action: () => { toggleSuspend(u); setOpenMenu(null); } }
+                              : { label: '⊘ Suspend', color: C.red, action: () => { toggleSuspend(u); setOpenMenu(null); } },
+                            ...(u.authProvider !== 'APPLE' ? [{ label: '🔑 Reset Password', color: C.blue, action: () => { togglePwInput(u.id); setOpenMenu(null); } }] : []),
+                            { label: '👤 Impersonate', color: C.purple, action: () => { impersonate(u); setOpenMenu(null); } },
+                            { label: '⚠ Issue Warning', color: C.orange, action: () => { toggleWarnInput(u.id); setOpenMenu(null); } },
+                          ].map(item => (
+                            <button key={item.label} onClick={item.action} style={{ width: '100%', display: 'flex', alignItems: 'center', background: 'none', border: 'none', borderBottom: `1px solid ${C.border}20`, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', fontSize: 13, color: item.color, fontWeight: 500, gap: 8 }}
+                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = C.surfaceHigh)}
+                              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            >{item.label}</button>
+                          ))}
+                        </div>
                       )}
-                      <ActionBtn
-                        onClick={() => impersonate(u)}
-                        disabled={impersonating === u.id}
-                        color={C.purple}
-                        bg={C.purple + '20'}
-                      >
-                        {impersonating === u.id ? '…' : 'Impersonate'}
-                      </ActionBtn>
-                      <ActionBtn
-                        onClick={() => toggleWarnInput(u.id)}
-                        color={C.orange}
-                        bg={C.orangeBg}
-                      >
-                        {warnVisible[u.id] ? 'Cancel' : 'Warn'}
-                      </ActionBtn>
                     </div>
 
                     {warnVisible[u.id] && (

@@ -98,6 +98,13 @@ export default function TournamentsPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editBannerPreview, setEditBannerPreview] = useState<string | null>(null);
   const [editBannerUploading, setEditBannerUploading] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+
+  useEffect(() => {
+    const close = () => setOpenMenu(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -638,17 +645,33 @@ export default function TournamentsPage() {
                   </span>
                 </td>
                 <td style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     {t.isOpen
-                      ? <button onClick={() => api.closeTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.redBg, color: C.red, border: `1px solid ${C.red}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Close</button>
-                      : <button onClick={() => api.openTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.green}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Open</button>
+                      ? <button onClick={() => api.closeTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.redBg, color: C.red, border: `1px solid ${C.red}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>Close</button>
+                      : <button onClick={() => api.openTournament(t.id).then(load).catch(e => setError(e.message))} style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.green}50`, padding: '5px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>Open</button>
                     }
-                    <button onClick={() => openEditModal(t)} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>✏️</button>
-                    <button onClick={() => { setAnnounceTarget(t); setAnnounceResult(null); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>📢</button>
-                    <button onClick={() => { setDrawTarget(t); setDrawResult(null); setDrawWeighted(false); }} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>🎁</button>
-                    {t.isOpen && (
-                      <button onClick={() => openQrModal(t)} style={{ background: C.surfaceHigh, color: C.accent, border: `1px solid ${C.accent}40`, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>📱</button>
-                    )}
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === t.id ? null : t.id); }}
+                        style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 6, cursor: 'pointer', fontSize: 18, color: C.textSub, lineHeight: 1 }}
+                        title="More actions"
+                      >⋮</button>
+                      {openMenu === t.id && (
+                        <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)', zIndex: 50, minWidth: 170, overflow: 'hidden' }}>
+                          {[
+                            { label: '✏️ Edit', action: () => { openEditModal(t); setOpenMenu(null); } },
+                            { label: '📢 Announce', action: () => { setAnnounceTarget(t); setAnnounceResult(null); setOpenMenu(null); } },
+                            { label: '🎁 Prize Draw', action: () => { setDrawTarget(t); setDrawResult(null); setDrawWeighted(false); setOpenMenu(null); } },
+                            ...(t.isOpen ? [{ label: '📱 Check-in QR', action: () => { openQrModal(t); setOpenMenu(null); } }] : []),
+                          ].map(item => (
+                            <button key={item.label} onClick={item.action} style={{ width: '100%', display: 'flex', alignItems: 'center', background: 'none', border: 'none', borderBottom: `1px solid ${C.border}20`, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', fontSize: 13, color: C.text, fontWeight: 500, gap: 8 }}
+                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = C.surfaceHigh)}
+                              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            >{item.label}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </td>
               </tr>
