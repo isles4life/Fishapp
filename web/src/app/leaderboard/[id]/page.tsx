@@ -1,5 +1,4 @@
 'use client';
-// Tournament detail + social feed page
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import Nav from '../../../components/Nav';
