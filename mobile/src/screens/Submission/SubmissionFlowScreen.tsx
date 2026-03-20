@@ -203,16 +203,30 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   // ── Error ─────────────────────────────────────────────────────────────────
 
   if (step === 'error') {
+    const isEntryFeeError = errorMessage?.toLowerCase().includes('entry fee');
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.center}>
-          <Text style={styles.errorIcon}>✕</Text>
-          <Text style={styles.errorTitle}>SUBMISSION FAILED</Text>
-          <Text style={styles.errorSub}>{errorMessage}</Text>
-          <TouchableOpacity style={styles.goldBtn} onPress={() => setStep('details')}>
-            <Text style={styles.goldBtnText}>TRY AGAIN</Text>
-          </TouchableOpacity>
-          {failedFields && (
+          <Text style={styles.errorIcon}>{isEntryFeeError ? '💳' : '✕'}</Text>
+          <Text style={styles.errorTitle}>{isEntryFeeError ? 'ENTRY FEE REQUIRED' : 'SUBMISSION FAILED'}</Text>
+          <Text style={styles.errorSub}>
+            {isEntryFeeError
+              ? 'You need to pay the entry fee before submitting a catch. Go to Tournament Details to enter.'
+              : errorMessage}
+          </Text>
+          {isEntryFeeError ? (
+            <TouchableOpacity
+              style={styles.goldBtn}
+              onPress={() => navigation.navigate('TournamentDetail' as any, { tournamentId })}
+            >
+              <Text style={styles.goldBtnText}>GO TO TOURNAMENT DETAILS</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.goldBtn} onPress={() => setStep('details')}>
+              <Text style={styles.goldBtnText}>TRY AGAIN</Text>
+            </TouchableOpacity>
+          )}
+          {failedFields && !isEntryFeeError && (
             <TouchableOpacity
               style={[styles.outlineBtn, { marginTop: 10 }]}
               onPress={async () => {

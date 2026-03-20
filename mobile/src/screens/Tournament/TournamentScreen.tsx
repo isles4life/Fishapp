@@ -167,7 +167,12 @@ export default function TournamentScreen() {
   function handleSubmit(t: Tournament) {
     setTournamentId(t.id);
     setScoringMethod(t.scoringMethod ?? 'LENGTH');
-    navigation.navigate('Submission', { tournamentId: t.id, scoringMethod: t.scoringMethod ?? 'LENGTH' });
+    // Paid tournaments must go through TournamentDetail to handle payment
+    if (t.entryFeeCents > 0) {
+      navigation.navigate('TournamentDetail', { tournamentId: t.id });
+    } else {
+      navigation.navigate('Submission', { tournamentId: t.id, scoringMethod: t.scoringMethod ?? 'LENGTH' });
+    }
   }
 
   const initials = (name: string) =>
