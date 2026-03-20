@@ -253,6 +253,11 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Stripe keys (test): publishable in `mobile/App.tsx`, secret goes in GitHub Actions secret `STRIPE_SECRET_KEY`
 
 ### Recently Shipped
+- **Fishing Intelligence 502 fix** (deployed): added `AbortSignal.timeout(8000)` to Open-Meteo weather fetch in `fishing-intelligence.service.ts`. Previously had no timeout — if Open-Meteo was slow/down the entire `Promise.all` hung until ALB timed out with 502. Now consistent with other external calls (Overpass 6s, Nominatim 5s, NOAA 8s).
+- **Admin users page fixes**: `autoComplete="new-password"` on password reset input (suppresses browser autofill showing admin credentials); `PAGE_SIZE` 50→10 (so pagination is visible with small user base); `overflowY: 'visible'` on table wrapper (prevents implicit scroll container from `overflowX: 'auto'`)
+- **TournamentScreen payment routing**: paid tournaments now route through TournamentDetail instead of directly to SubmissionFlow
+- **SubmissionFlowScreen entry fee error**: 403 entry fee errors now show "ENTRY FEE REQUIRED" with "GO TO TOURNAMENT DETAILS" button instead of generic "SUBMISSION FAILED"
+- **Apple App Store review notes**: `docs/apple-review-notes.md` — submission fields, demo account, permission justifications, Stripe vs IAP rationale
 - **Stripe entry fee integration** (backend deployed on next push, mobile needs EAS build):
   - `TournamentEntry` model — tracks userId, tournamentId, stripePaymentIntentId, feeCents, platformFeeCents, status (PENDING|PAID|REFUNDED)
   - Migration: `20260325000000_tournament_entry_stripe`
