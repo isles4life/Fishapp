@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import Nav from '../../components/Nav';
-import { api, isLoggedIn, getMyUserId } from '../../lib/api';
+import { api, isLoggedIn, getMyUserId, getMyRole } from '../../lib/api';
 import type { Tournament, LeaderboardEntry, CatchComment, TournamentPost } from '../../lib/api';
 
 function timeAgo(dateStr: string): string {
@@ -265,7 +265,12 @@ export default function LeaderboardPage() {
   const [speciesFilter, setSpeciesFilter] = useState('All');
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [myUserId] = useState<string | null>(() => getMyUserId());
+  const [myRole] = useState<string | null>(() => getMyRole());
   const [loggedIn, setLoggedIn] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editPostBody, setEditPostBody] = useState('');
+  const [editPostSaving, setEditPostSaving] = useState(false);
+  const [editRemovePhoto, setEditRemovePhoto] = useState(false);
   // Feed + compose
   const [feed, setFeed] = useState<TournamentPost[]>([]);
   const [feedCursor, setFeedCursor] = useState<string | null>(null);
@@ -374,6 +379,27 @@ export default function LeaderboardPage() {
     setPostBody(b => b.slice(0, start) + emoji + b.slice(end));
     setShowEmojiPicker(false);
     setTimeout(() => { ta.focus(); ta.setSelectionRange(start + emoji.length, start + emoji.length); }, 0);
+  }
+
+  async function handleEditPost(postId: string) {
+    const trimmed = editPostBody.trim();
+    if ((!trimmed && !editRemovePhoto) || editPostSaving) return;
+    setEditPostSaving(true);
+    try {
+      const updated = await api.editTournamentPost(postId, trimmed, editRemovePhoto || undefined);
+      setFeed(prev => prev.map(p => p.id === postId ? { ...p, body: updated.body, photoUrl: editRemovePhoto ? null : p.photoUrl } : p));
+      setEditingPostId(null);
+      setEditRemovePhoto(false);
+    } catch { /* silently fail */ }
+    finally { setEditPostSaving(false); }
+  }
+
+  async function handleDeletePost(postId: string) {
+    if (!confirm('Delete this post?')) return;
+    try {
+      await api.deleteTournamentPost(postId);
+      setFeed(prev => prev.filter(p => p.id !== postId));
+    } catch { /* silently fail */ }
   }
 
   async function handlePost(e: React.FormEvent) {
@@ -652,6 +678,12 @@ export default function LeaderboardPage() {
               {feed.map(post => {
                 const badgeColor = post.type === 'ANNOUNCEMENT' ? '#D4820A' : post.type === 'CATCH' ? C.verified : post.type === 'CHECK_IN' ? C.textSub : C.accent;
                 const badgeLabel = post.type === 'ANNOUNCEMENT' ? '📢 Announcement' : post.type === 'CATCH' ? '🎣 Catch' : post.type === 'CHECK_IN' ? '✅ Check-In' : '💬 Post';
+                const isAuthor = myUserId && post.user.id === myUserId;
+                const isAdmin = myRole === 'ADMIN' || myRole === 'TOURNAMENT_ADMIN';
+                const isDirector = myUserId && tournament?.director?.id === myUserId;
+                const canEdit = post.type === 'ANGLER_POST' && isAuthor;
+                const canDelete = post.type === 'ANGLER_POST' && (isAuthor || isAdmin || isDirector);
+                const isEditing = editingPostId === post.id;
                 return (
                   <div key={post.id} style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -668,6 +700,18 @@ export default function LeaderboardPage() {
                         <div style={{ fontSize: 11, color: C.textMuted }}>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: badgeColor, backgroundColor: badgeColor + '20', border: `1px solid ${badgeColor}40`, borderRadius: 6, padding: '2px 8px' }}>{badgeLabel}</span>
+                      {(canEdit || canDelete) && !isEditing && (
+                        <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+                          {canEdit && (
+                            <button onClick={() => { setEditingPostId(post.id); setEditPostBody(post.body ?? ''); setEditRemovePhoto(false); }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 14, padding: '2px 6px', borderRadius: 4 }} title="Edit">✏️</button>
+                          )}
+                          {canDelete && (
+                            <button onClick={() => handleDeletePost(post.id)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 14, padding: '2px 6px', borderRadius: 4 }} title="Delete">🗑</button>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {post.type === 'CATCH' && post.submission && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -679,10 +723,40 @@ export default function LeaderboardPage() {
                       </div>
                     )}
                     {post.type === 'CHECK_IN' && <div style={{ fontSize: 13, color: C.textSub }}>{post.user.displayName} checked in to the tournament.</div>}
-                    {(post.type === 'ANNOUNCEMENT' || post.type === 'ANGLER_POST') && post.body && (
+                    {(post.type === 'ANNOUNCEMENT' || post.type === 'ANGLER_POST') && !isEditing && post.body && (
                       <div style={{ fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.body.replace(/\*\*(.*?)\*\*/g, '$1')}</div>
                     )}
-                    {post.type === 'ANGLER_POST' && post.photoUrl && (
+                    {isEditing && (
+                      <div style={{ marginTop: 4 }}>
+                        <textarea value={editPostBody} onChange={e => setEditPostBody(e.target.value)} rows={3} autoFocus
+                          style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
+                        {post.photoUrl && !editRemovePhoto && (
+                          <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={post.photoUrl} alt="" style={{ maxHeight: 120, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block', opacity: 0.8 }} />
+                            <button type="button" onClick={() => setEditRemovePhoto(true)}
+                              style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.75)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                          </div>
+                        )}
+                        {post.photoUrl && editRemovePhoto && (
+                          <div style={{ marginTop: 6, fontSize: 12, color: C.textMuted }}>
+                            Image will be removed on save.{' '}
+                            <button type="button" onClick={() => setEditRemovePhoto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.accent, fontSize: 12, padding: 0 }}>Undo</button>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                          <button onClick={() => handleEditPost(post.id)} disabled={editPostSaving || (!editPostBody.trim() && !editRemovePhoto)}
+                            style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '5px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: editPostSaving ? 0.6 : 1 }}>
+                            {editPostSaving ? 'Saving…' : 'Save'}
+                          </button>
+                          <button onClick={() => { setEditingPostId(null); setEditRemovePhoto(false); }}
+                            style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '5px 14px', cursor: 'pointer', color: C.textSub, fontSize: 13 }}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {post.type === 'ANGLER_POST' && post.photoUrl && !isEditing && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={post.photoUrl} alt="" style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}` }} />
                     )}
