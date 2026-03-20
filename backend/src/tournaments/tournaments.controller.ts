@@ -145,10 +145,28 @@ export class TournamentsController {
   @UseGuards(JwtAuthGuard)
   createPost(
     @Param('id') tournamentId: string,
-    @Body() body: { body: string },
+    @Body() body: { body?: string; photoKey?: string; gifUrl?: string },
     @Request() req: any,
   ) {
-    if (!body.body?.trim()) throw new BadRequestException('body is required');
-    return this.tournamentsService.createPost(tournamentId, req.user.id, body.body.trim());
+    if (!body.body?.trim() && !body.photoKey && !body.gifUrl) {
+      throw new BadRequestException('post must have text, image, or gif');
+    }
+    return this.tournamentsService.createPost(
+      tournamentId, req.user.id,
+      body.body?.trim() ?? '',
+      body.photoKey,
+      body.gifUrl,
+    );
+  }
+
+  @Post(':id/posts/media')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('photo'))
+  async uploadPostMedia(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('photo is required');
+    return this.tournamentsService.uploadPostMedia(id, file.buffer, file.mimetype);
   }
 }

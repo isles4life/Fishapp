@@ -244,13 +244,22 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-22)
+## Current Status (as of 2026-03-23)
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS TestFlight build #23 live — all mobile changes shipped
 - Web parity improvements deployed
 - **New EAS build required** for: tournament detail screen, social feed, scoring method UI, FishingIntelligenceScreen zip/location
 
 ### Recently Shipped
+- **Tournament feed compose bar** (backend + web deployed):
+  - Backend: `POST /tournaments/:id/posts` now accepts optional `photoKey` and `gifUrl` in addition to `body`; any one of the three is sufficient (no longer requires text)
+  - Backend: new `POST /tournaments/:id/posts/media` endpoint (multipart, field `photo`) — uploads image to S3 under `tournament-posts/<id>/<timestamp>.<ext>`, returns `{ photoKey }`
+  - Backend: `createPost` service method returns `photoUrl` (presigned S3 or direct Giphy HTTPS) immediately on creation so the new post appears in feed correctly
+  - Backend: `getFeed` detects GIF URLs (`https://` prefix in `photoKey`) and uses them directly instead of treating as S3 key
+  - `web/src/lib/api.ts`: added `createTournamentPost()` and `uploadPostMedia()` methods
+  - `web/src/app/leaderboard/[id]/page.tsx`: full compose bar for logged-in users between tournament details card and social feed — photo attach (file upload), Giphy GIF search picker, categorised emoji picker, text textarea, submit button; all state wired up
+
+### Previously Shipped
 - **Web feature parity** (deployed):
   - Home feed: Props + Comments now working (same PropButton/CommentsSection as leaderboard page)
   - `/leaderboard`: Your Rank banner for logged-in users; highlights their entry

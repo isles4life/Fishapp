@@ -266,4 +266,14 @@ export const api = {
     const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
     return apiFetch<{ posts: TournamentPost[]; nextCursor: string | null }>(`/tournaments/${id}/feed${qs}`, undefined, true);
   },
+  createTournamentPost: (id: string, body: string, photoKey?: string, gifUrl?: string) =>
+    apiFetch<TournamentPost>(`/tournaments/${id}/posts`, {
+      method: 'POST',
+      body: JSON.stringify({ body, photoKey, gifUrl }),
+    }, true),
+  uploadPostMedia: (tournamentId: string, file: File) => {
+    const form = new FormData();
+    form.append('photo', file);
+    return apiUpload<{ photoKey: string }>(`/tournaments/${tournamentId}/posts/media`, form);
+  },
 };

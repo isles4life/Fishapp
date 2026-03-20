@@ -275,10 +275,38 @@ export class TournamentsService {
     userId: string,
     body: string,
     photoKey?: string,
+    gifUrl?: string,
   ) {
-    return this.prisma.tournamentPost.create({
-      data: { tournamentId, userId, type: 'ANGLER_POST', body, photoKey },
+    // Store gifUrl directly in photoKey field — getFeed will detect https:// and use it as-is
+    const storedPhotoKey = gifUrl ?? photoKey ?? undefined;
+    const post = await this.prisma.tournamentPost.create({
+      data: { tournamentId, userId, type: 'ANGLER_POST', body: body || null, photoKey: storedPhotoKey },
+      include: {
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            profile: { select: { username: true, profilePhotoUrl: true } },
+          },
+        },
+      },
     });
+    let photoUrl: string | null = null;
+    if (storedPhotoKey) {
+      if (storedPhotoKey.startsWith('https://')) {
+        photoUrl = storedPhotoKey;
+      } else {
+        photoUrl = await this.s3.getPresignedUrl(storedPhotoKey).catch(() => null);
+      }
+    }
+    return { ...post, photoUrl };
+  }
+
+  async uploadPostMedia(tournamentId: string, buffer: Buffer, contentType: string): Promise<{ photoKey: string }> {
+    const ext = contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+    const key = `tournament-posts/${tournamentId}/${Date.now()}.${ext}`;
+    await this.s3.uploadBuffer(key, buffer, contentType);
+    return { photoKey: key };
   }
 
   async getFeed(tournamentId: string, cursor?: string) {
@@ -319,7 +347,11 @@ export class TournamentsService {
         if (post.type === 'CATCH' && post.submission?.photo2Key) {
           photoUrl = await this.s3.getPresignedUrl(post.submission.photo2Key).catch(() => null);
         } else if (post.type === 'ANGLER_POST' && post.photoKey) {
-          photoUrl = await this.s3.getPresignedUrl(post.photoKey).catch(() => null);
+          if (post.photoKey.startsWith('https://')) {
+            photoUrl = post.photoKey; // Direct GIF URL from Giphy
+          } else {
+            photoUrl = await this.s3.getPresignedUrl(post.photoKey).catch(() => null);
+          }
         }
         return { ...post, photoUrl };
       }),
