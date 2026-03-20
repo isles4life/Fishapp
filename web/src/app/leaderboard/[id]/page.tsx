@@ -423,6 +423,12 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                   {/* GIF picker panel — inline, expands in flow */}
                   {showGifPicker && (
                     <div style={{ marginTop: 10, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Search GIFs</span>
+                        <button type="button" onClick={() => setShowGifPicker(false)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 18, lineHeight: 1, padding: '2px 4px', borderRadius: 4 }}
+                          title="Close">×</button>
+                      </div>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                         <input
                           value={gifQuery}
