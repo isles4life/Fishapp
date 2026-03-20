@@ -2,7 +2,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import Nav from '../../components/Nav';
 import { api, isLoggedIn, getMyUserId } from '../../lib/api';
-import type { Tournament, LeaderboardEntry, CatchComment } from '../../lib/api';
+import type { Tournament, LeaderboardEntry, CatchComment, TournamentPost } from '../../lib/api';
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -265,6 +265,24 @@ export default function LeaderboardPage() {
   const [speciesFilter, setSpeciesFilter] = useState('All');
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [myUserId] = useState<string | null>(() => getMyUserId());
+  const [loggedIn, setLoggedIn] = useState(false);
+  // Feed + compose
+  const [feed, setFeed] = useState<TournamentPost[]>([]);
+  const [feedCursor, setFeedCursor] = useState<string | null>(null);
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [postBody, setPostBody] = useState('');
+  const [postPhoto, setPostPhoto] = useState<File | null>(null);
+  const [postPhotoPreview, setPostPhotoPreview] = useState<string | null>(null);
+  const [postGif, setPostGif] = useState<string | null>(null);
+  const [postGifPreview, setPostGifPreview] = useState<string | null>(null);
+  const [posting, setPosting] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
+  const [gifSearching, setGifSearching] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const tournament = tournaments.find(t => t.id === selectedId) ?? tournaments[0] ?? null;
 
@@ -288,6 +306,7 @@ export default function LeaderboardPage() {
       if (active) {
         setSelectedId(prev => prev && ts.find(t => t.id === prev) ? prev : active.id);
         await loadBoard(active.id, species);
+        loadFeed(active.id);
       } else {
         setLoading(false);
       }
@@ -295,17 +314,87 @@ export default function LeaderboardPage() {
       setError(e.message);
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadBoard]);
 
   async function selectTournament(id: string) {
     setSelectedId(id);
     setExpandedUserId(null);
     setSpeciesFilter('All');
+    setFeed([]);
+    setFeedCursor(null);
     setLoading(true);
     await loadBoard(id);
+    loadFeed(id);
+  }
+
+  async function loadFeed(id: string, cursor?: string) {
+    setFeedLoading(true);
+    try {
+      const res = await api.getTournamentFeed(id, cursor);
+      setFeed(prev => cursor ? [...prev, ...res.posts] : res.posts);
+      setFeedCursor(res.nextCursor);
+    } catch { /* non-critical */ }
+    finally { setFeedLoading(false); }
+  }
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPostPhoto(file);
+    setPostGif(null); setPostGifPreview(null);
+    const reader = new FileReader();
+    reader.onload = ev => setPostPhotoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function searchGifs(q: string) {
+    if (!q.trim()) return;
+    setGifSearching(true);
+    try {
+      const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app';
+      const res = await fetch(`${BASE}/gifs/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setGifResults(data.data ?? []);
+    } catch { setGifResults([]); }
+    finally { setGifSearching(false); }
+  }
+
+  function selectGif(gif: { id: string; preview: string; full: string }) {
+    setPostGif(gif.full); setPostGifPreview(gif.preview);
+    setPostPhoto(null); setPostPhotoPreview(null);
+    setShowGifPicker(false); setGifResults([]); setGifQuery('');
+  }
+
+  function insertEmoji(emoji: string) {
+    const ta = textAreaRef.current;
+    if (!ta) { setPostBody(b => b + emoji); return; }
+    const start = ta.selectionStart ?? postBody.length;
+    const end = ta.selectionEnd ?? postBody.length;
+    setPostBody(b => b.slice(0, start) + emoji + b.slice(end));
+    setShowEmojiPicker(false);
+    setTimeout(() => { ta.focus(); ta.setSelectionRange(start + emoji.length, start + emoji.length); }, 0);
+  }
+
+  async function handlePost(e: React.FormEvent) {
+    e.preventDefault();
+    if (!tournament || posting || (!postBody.trim() && !postPhoto && !postGif)) return;
+    setPosting(true);
+    try {
+      let photoKey: string | undefined;
+      if (postPhoto) {
+        const r = await api.uploadPostMedia(tournament.id, postPhoto);
+        photoKey = r.photoKey;
+      }
+      const newPost = await api.createTournamentPost(tournament.id, postBody.trim(), photoKey, postGif ?? undefined);
+      setFeed(prev => [newPost as any, ...prev]);
+      setPostBody(''); setPostPhoto(null); setPostPhotoPreview(null); setPostGif(null); setPostGifPreview(null);
+    } catch { /* silently fail */ }
+    finally { setPosting(false); }
   }
 
   useEffect(() => {
+    setLoggedIn(isLoggedIn());
     load(speciesFilter);
     const interval = setInterval(() => {
       if (tournament) loadBoard(tournament.id, speciesFilter);
@@ -461,6 +550,154 @@ export default function LeaderboardPage() {
             </div>
           );
         })()}
+
+        {/* Compose bar */}
+        {loggedIn && tournament && !loading && (
+          <div style={{ marginBottom: 32, backgroundColor: C.surface, borderRadius: 16, border: `1px solid ${C.border}`, padding: '16px 16px' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Post to Feed</div>
+            <form onSubmit={handlePost}>
+              <textarea ref={textAreaRef} value={postBody} onChange={e => setPostBody(e.target.value)}
+                placeholder="Share something with the tournament..." maxLength={1000} rows={3}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
+
+              {(postPhotoPreview || postGifPreview) && (
+                <div style={{ marginTop: 10, position: 'relative', display: 'inline-block' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={postPhotoPreview ?? postGifPreview ?? ''} alt="" style={{ maxHeight: 160, borderRadius: 10, border: `1px solid ${C.border}`, display: 'block' }} />
+                  <button type="button" onClick={() => { setPostPhoto(null); setPostPhotoPreview(null); setPostGif(null); setPostGifPreview(null); if (photoInputRef.current) photoInputRef.current.value = ''; }}
+                    style={{ position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                </div>
+              )}
+
+              {showGifPicker && (
+                <div style={{ marginTop: 10, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Search GIFs</span>
+                    <button type="button" onClick={() => setShowGifPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 18, lineHeight: 1, padding: '2px 4px' }}>×</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                    <input value={gifQuery} onChange={e => setGifQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchGifs(gifQuery))}
+                      placeholder="Search GIFs..." autoFocus
+                      style={{ flex: 1, padding: '8px 12px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none' }} />
+                    <button type="button" onClick={() => searchGifs(gifQuery)} style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Search</button>
+                  </div>
+                  {gifSearching && <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>Searching…</div>}
+                  {!gifSearching && gifResults.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
+                      {gifResults.map(g => (
+                        <button key={g.id} type="button" onClick={() => selectGif(g)}
+                          style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', padding: 0, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={g.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {!gifSearching && gifResults.length === 0 && (
+                    <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>{gifQuery ? 'No results.' : 'Search for a GIF above'}</div>
+                  )}
+                  <div style={{ marginTop: 8, textAlign: 'right' }}><span style={{ fontSize: 10, color: C.textMuted }}>Powered by GIPHY</span></div>
+                </div>
+              )}
+
+              {showEmojiPicker && (
+                <div style={{ marginTop: 10, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+                  {[
+                    { label: '🎣 Fishing', emojis: ['🎣','🐟','🐠','🐡','🦈','🦑','🦐','🦀','🦞','🐙','🌊','⚓','🚤','🛶','🏖️','🌅'] },
+                    { label: '🏆 Sports', emojis: ['🏆','🥇','🥈','🥉','🎯','💪','🤙','👊','🙌','👏','🎉','🎊','🔥','⚡','💥','🌟'] },
+                    { label: '😀 Faces', emojis: ['😀','😂','🤣','😍','🥰','😎','🤩','😏','🙃','😅','😭','😤','🤯','😱','🥳','😤'] },
+                    { label: '🌿 Nature', emojis: ['🌊','🌅','🌄','⛅','🌤️','☀️','🌙','⭐','🌿','🌱','🍃','🌲','🏔️','🗻','⛰️','🌾'] },
+                  ].map(cat => (
+                    <div key={cat.label} style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>{cat.label}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                        {cat.emojis.map(em => (
+                          <button key={em} type="button" onClick={() => insertEmoji(em)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, padding: '3px 4px', borderRadius: 6, lineHeight: 1 }}>
+                            {em}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                {(() => {
+                  const btnBase: React.CSSProperties = { width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, cursor: 'pointer', border: `1px solid ${C.border}`, flexShrink: 0 };
+                  return (<>
+                    <button type="button" onClick={() => photoInputRef.current?.click()} title="Attach photo" style={{ ...btnBase, background: C.surfaceHigh, fontSize: 16, color: C.textSub }}>📎</button>
+                    <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handlePhotoSelect} style={{ display: 'none' }} />
+                    <button type="button" onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); }}
+                      style={{ ...btnBase, background: showGifPicker ? C.accent + '30' : C.surfaceHigh, border: `1px solid ${showGifPicker ? C.accent : C.border}`, color: showGifPicker ? C.accent : C.textSub, fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>GIF</button>
+                    <button type="button" onClick={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
+                      style={{ ...btnBase, background: showEmojiPicker ? C.accent + '30' : C.surfaceHigh, border: `1px solid ${showEmojiPicker ? C.accent : C.border}`, fontSize: 18, lineHeight: 1 }}>😊</button>
+                  </>);
+                })()}
+                <button type="submit" disabled={posting || (!postBody.trim() && !postPhoto && !postGif)}
+                  style={{ marginLeft: 'auto', backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 20px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (posting || (!postBody.trim() && !postPhoto && !postGif)) ? 0.5 : 1 }}>
+                  {posting ? 'Posting…' : 'Post'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Tournament feed */}
+        {(feed.length > 0 || feedLoading) && !loading && (
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 }}>Tournament Feed</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {feed.map(post => {
+                const badgeColor = post.type === 'ANNOUNCEMENT' ? '#D4820A' : post.type === 'CATCH' ? C.verified : post.type === 'CHECK_IN' ? C.textSub : C.accent;
+                const badgeLabel = post.type === 'ANNOUNCEMENT' ? '📢 Announcement' : post.type === 'CATCH' ? '🎣 Catch' : post.type === 'CHECK_IN' ? '✅ Check-In' : '💬 Post';
+                return (
+                  <div key={post.id} style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      {post.user.profile?.profilePhotoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={post.user.profile.profilePhotoUrl} alt="" style={{ width: 32, height: 32, borderRadius: 16, objectFit: 'cover', border: `1px solid ${C.border}`, flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: C.textSub, flexShrink: 0 }}>
+                          {post.user.displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{post.user.displayName}</div>
+                        <div style={{ fontSize: 11, color: C.textMuted }}>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: badgeColor, backgroundColor: badgeColor + '20', border: `1px solid ${badgeColor}40`, borderRadius: 6, padding: '2px 8px' }}>{badgeLabel}</span>
+                    </div>
+                    {post.type === 'CATCH' && post.submission && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                        {post.photoUrl && <img src={post.photoUrl} alt="catch" style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.border}` }} />}
+                        <div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{(post.submission.fishLengthCm / 2.54).toFixed(1)}"</div>
+                          {post.submission.speciesName && <div style={{ fontSize: 12, color: C.textMuted }}>{post.submission.speciesName}</div>}
+                        </div>
+                      </div>
+                    )}
+                    {post.type === 'CHECK_IN' && <div style={{ fontSize: 13, color: C.textSub }}>{post.user.displayName} checked in to the tournament.</div>}
+                    {(post.type === 'ANNOUNCEMENT' || post.type === 'ANGLER_POST') && post.body && (
+                      <div style={{ fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.body.replace(/\*\*(.*?)\*\*/g, '$1')}</div>
+                    )}
+                    {post.type === 'ANGLER_POST' && post.photoUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={post.photoUrl} alt="" style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}` }} />
+                    )}
+                  </div>
+                );
+              })}
+              {feedCursor && tournament && (
+                <button onClick={() => loadFeed(tournament.id, feedCursor)} disabled={feedLoading}
+                  style={{ padding: '10px 0', backgroundColor: 'transparent', color: feedLoading ? C.textMuted : C.accent, border: `1px solid ${C.border}`, borderRadius: 8, cursor: feedLoading ? 'default' : 'pointer', fontSize: 13, fontWeight: 600 }}>
+                  {feedLoading ? 'Loading...' : 'Load more'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {!loading && entries.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
