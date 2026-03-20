@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, Switch, Alert, Image, Modal, FlatList, SafeAreaView,
@@ -748,6 +748,7 @@ function EditProfileForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   async function handleAvatarPress() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -787,11 +788,16 @@ function EditProfileForm({
       cleaned.favoriteTechniques = techniquesRaw.split(',').map(s => s.trim()).filter(Boolean);
       cleaned.favoriteBaits = baitsRaw.split(',').map(s => s.trim()).filter(Boolean);
       cleaned.sponsorTags = sponsorRaw.split(',').map(s => s.trim()).filter(Boolean);
-      if (!cleaned.profilePhotoUrl) cleaned.profilePhotoUrl = undefined;
+      // Strip empty username — backend auto-generates on first create; empty string fails @MinLength(3)
+      if (!cleaned.username?.trim()) cleaned.username = undefined;
+      // Never send profilePhotoUrl through updateProfile — avatar is managed by uploadAvatar endpoint
+      cleaned.profilePhotoUrl = undefined;
       const updated = await updateProfile(cleaned);
       onSaved(updated);
     } catch (e: any) {
       setError(e.message);
+      // Scroll to top so the error banner is visible
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     } finally {
       setSaving(false);
     }
@@ -799,7 +805,7 @@ function EditProfileForm({
 
   return (
     <SafeAreaView style={s.safeArea}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 60 }}>
         <View style={s.formHeader}>
           <Text style={s.formTitle}>{existing ? 'EDIT PROFILE' : 'CREATE PROFILE'}</Text>
           {onCancel && (
