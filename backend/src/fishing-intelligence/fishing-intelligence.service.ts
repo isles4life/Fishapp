@@ -826,7 +826,7 @@ export class FishingIntelligenceService {
       // Spots, label, and tides are served from per-source caches to avoid
       // the 3–20 s Overpass / Nominatim / NOAA latency on repeat requests.
       [raw, spots, locationLabel, tides] = await Promise.all([
-        fetch(weatherUrl).then(r => {
+        fetch(weatherUrl, { signal: AbortSignal.timeout(8000) }).then(r => {
           if (!r.ok) throw new Error(`Open-Meteo returned ${r.status}`);
           return r.json() as Promise<OpenMeteoResponse>;
         }),
