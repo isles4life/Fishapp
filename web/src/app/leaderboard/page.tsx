@@ -118,11 +118,14 @@ function PropButton({ submissionId }: { submissionId: string }) {
   );
 }
 
-function CommentsSection({ submissionId }: { submissionId: string }) {
+function CommentsSection({ submissionId, myUserId }: { submissionId: string; myUserId?: string | null }) {
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     api.getComments(submissionId)
@@ -140,11 +143,28 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
       const comment = await api.addComment(submissionId, trimmed);
       setComments(prev => [...prev, comment]);
       setBody('');
-    } catch {
-      // silently handle
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { /* silently handle */ }
+    finally { setSubmitting(false); }
+  }
+
+  async function handleEdit(commentId: string) {
+    const trimmed = editBody.trim();
+    if (!trimmed || editSaving) return;
+    setEditSaving(true);
+    try {
+      const updated = await api.editComment(commentId, trimmed);
+      setComments(prev => prev.map(c => c.id === commentId ? updated : c));
+      setEditingId(null);
+    } catch { /* silently handle */ }
+    finally { setEditSaving(false); }
+  }
+
+  async function handleDelete(commentId: string) {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      await api.deleteComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch { /* silently handle */ }
   }
 
   return (
@@ -162,12 +182,45 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
             <div style={{ color: C.textMuted, fontSize: 13, marginBottom: 10 }}>No comments yet.</div>
           )}
           {comments.map(c => (
-            <div key={c.id} style={{ marginBottom: 8 }}>
+            <div key={c.id} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{c.user.displayName}</span>
-                <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
+                  {myUserId && c.user.id === myUserId && editingId !== c.id && (
+                    <>
+                      <button onClick={() => { setEditingId(c.id); setEditBody(c.body); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 11, padding: '1px 4px' }}
+                        title="Edit">✏️</button>
+                      <button onClick={() => handleDelete(c.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 11, padding: '1px 4px' }}
+                        title="Delete">🗑</button>
+                    </>
+                  )}
+                </div>
               </div>
-              <span style={{ fontSize: 13, color: C.text }}>{c.body}</span>
+              {editingId === c.id ? (
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <input
+                    value={editBody}
+                    onChange={e => setEditBody(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleEdit(c.id)}
+                    maxLength={500}
+                    autoFocus
+                    style={{ flex: 1, padding: '5px 10px', fontSize: 13, backgroundColor: C.surface, border: `1px solid ${C.accent}`, borderRadius: 6, color: C.text, outline: 'none' }}
+                  />
+                  <button onClick={() => handleEdit(c.id)} disabled={editSaving}
+                    style={{ background: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12, opacity: editSaving ? 0.5 : 1 }}>
+                    {editSaving ? '…' : 'Save'}
+                  </button>
+                  <button onClick={() => setEditingId(null)}
+                    style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: C.textSub, fontSize: 12 }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <span style={{ fontSize: 13, color: C.text }}>{c.body}</span>
+              )}
             </div>
           ))}
         </>
@@ -423,7 +476,7 @@ export default function LeaderboardPage() {
 
                 {/* Comments section */}
                 {expandedUserId === entry.userId && entry.submissionId && (
-                  <CommentsSection submissionId={entry.submissionId} />
+                  <CommentsSection submissionId={entry.submissionId} myUserId={myUserId} />
                 )}
               </div>
             ))}

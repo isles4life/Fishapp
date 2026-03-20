@@ -220,6 +220,8 @@ export const api = {
     apiFetch<CatchComment[]>(`/submissions/${submissionId}/comments`, undefined, false),
   addComment: (submissionId: string, body: string) =>
     apiFetch<CatchComment>(`/submissions/${submissionId}/comments`, { method: 'POST', body: JSON.stringify({ body }) }, true),
+  editComment: (commentId: string, body: string) =>
+    apiFetch<CatchComment>(`/comments/${commentId}`, { method: 'PATCH', body: JSON.stringify({ body }) }, true),
   deleteComment: (commentId: string) =>
     apiFetch<{ ok: boolean }>(`/comments/${commentId}`, { method: 'DELETE' }, true),
   login: (email: string, password: string) =>

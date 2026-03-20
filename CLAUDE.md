@@ -244,21 +244,35 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-23)
+## Current Status (as of 2026-03-24)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #23 live — all mobile changes shipped
-- Web parity improvements deployed
-- **New EAS build required** for: tournament detail screen, social feed, scoring method UI, FishingIntelligenceScreen zip/location, feed compose photo/GIF/emoji
+- iOS TestFlight build #26 live — all mobile changes shipped
+- Web: GIF/emoji pickers fixed (inline rendering), close button on GIF panel
+- Admin: row action buttons replaced with ⋮ kebab dropdown menus (users + tournaments pages)
+- Web deploy pipeline fixed: Vercel now deploys correctly on push to master
 
 ### Recently Shipped
-- **Tournament feed compose bar with media** (backend + web deployed; mobile pending EAS build):
-  - Backend: `POST /tournaments/:id/posts` now accepts optional `photoKey` and `gifUrl` in addition to `body`; any one of the three is sufficient (no longer requires text)
-  - Backend: new `POST /tournaments/:id/posts/media` endpoint (multipart, field `photo`) — uploads image to S3 under `tournament-posts/<id>/<timestamp>.<ext>`, returns `{ photoKey }`
-  - Backend: `createPost` service method returns `photoUrl` (presigned S3 or direct Giphy HTTPS) immediately on creation so the new post appears in feed correctly
-  - Backend: `getFeed` detects GIF URLs (`https://` prefix in `photoKey`) and uses them directly instead of treating as S3 key
-  - `web/src/lib/api.ts`: added `createTournamentPost()` and `uploadPostMedia()` methods
-  - `web/src/app/leaderboard/[id]/page.tsx`: full compose bar for logged-in users — photo attach (file upload), Giphy GIF search picker, categorised emoji picker, textarea, submit
-  - Mobile `TournamentDetailScreen`: compose bar upgraded — 📷 photo picker (expo-image-picker → S3), GIF modal (Giphy search, 3-col grid, pageSheet), emoji modal (4 categories); `uploadPostMedia()` added to api.ts
+- **iOS TestFlight build #26** — ships all pending mobile changes since build #23:
+  - Tournament Detail Screen: hero banner, director card, check-in count, entry fee/dates, top 3 leaderboard
+  - Tournament social feed: paginated posts (CATCH/ANNOUNCEMENT/CHECK_IN/ANGLER_POST), compose bar
+  - Compose bar: photo attach (📎 expo-image-picker → S3), GIF picker (Giphy via backend proxy), emoji picker (4 categories)
+  - Uniform 38×38 compose buttons; paperclip icon replaces camera
+  - "Tournament Details →" link on TournamentScreen active card
+  - "View Tournament Details →" link in TournamentHistoryScreen expanded card
+  - Multiple scoring methods: weight input, count modes, score display across all screens
+  - Fishing Intelligence: idle state with zip/location choice, no auto-load on mount
+  - Warning acknowledgment modal on HomeScreen (pops on load, step-through with "I UNDERSTAND")
+  - Tournament Director request: full tournament list picker (not just active tournament)
+  - Announcement rendering: bold title + plain message body
+  - QR code display for admin/director; scan button for anglers (CheckInScreen)
+- **Web fixes**:
+  - GIF and emoji pickers now render inline (were position:absolute and hidden off-screen)
+  - GIF picker has × close button in header
+  - GIF search proxied through backend (`GET /gifs/search`) using server-side GIPHY_API_KEY
+- **Admin UX**:
+  - Users page: all 5 action buttons (role, suspend, reset PW, impersonate, warn) replaced with ⋮ dropdown
+  - Tournaments page: Edit/Announce/Prize Draw/Check-in QR moved into ⋮ dropdown; Open/Close stays visible
+  - Dropdown uses fixed overlay (z-40) for reliable outside-click dismissal
 
 ### Previously Shipped
 - **Web feature parity** (deployed):

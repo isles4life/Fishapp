@@ -112,11 +112,14 @@ function PropButton({ submissionId }: { submissionId: string }) {
   );
 }
 
-function CommentsSection({ submissionId }: { submissionId: string }) {
+function CommentsSection({ submissionId, myUserId }: { submissionId: string; myUserId?: string | null }) {
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     api.getComments(submissionId).then(setComments).catch(() => {}).finally(() => setLoading(false));
@@ -134,28 +137,72 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
     } catch { /* silently handle */ } finally { setSubmitting(false); }
   }
 
+  async function handleEdit(commentId: string) {
+    const trimmed = editBody.trim();
+    if (!trimmed || editSaving) return;
+    setEditSaving(true);
+    try {
+      const updated = await api.editComment(commentId, trimmed);
+      setComments(prev => prev.map(c => c.id === commentId ? updated : c));
+      setEditingId(null);
+    } catch { /* silently handle */ } finally { setEditSaving(false); }
+  }
+
+  async function handleDelete(commentId: string) {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      await api.deleteComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch { /* silently handle */ }
+  }
+
   return (
     <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4 }}>
       {loading ? <div style={{ color: C.textMuted, fontSize: 13 }}>Loading comments…</div> : (
         <>
           {comments.map(c => (
-            <div key={c.id} style={{ marginBottom: 8 }}>
+            <div key={c.id} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{c.user.displayName}</span>
-                <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
+                  {myUserId && c.user.id === myUserId && editingId !== c.id && (
+                    <>
+                      <button onClick={() => { setEditingId(c.id); setEditBody(c.body); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 11, padding: '1px 4px' }} title="Edit">✏️</button>
+                      <button onClick={() => handleDelete(c.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 11, padding: '1px 4px' }} title="Delete">🗑</button>
+                    </>
+                  )}
+                </div>
               </div>
-              <span style={{ fontSize: 13, color: C.text }}>{c.body}</span>
+              {editingId === c.id ? (
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  <input value={editBody} onChange={e => setEditBody(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleEdit(c.id)}
+                    maxLength={500} autoFocus
+                    style={{ flex: 1, padding: '5px 10px', fontSize: 13, backgroundColor: C.surfaceHigh, border: `1px solid ${C.accent}`, borderRadius: 6, color: C.text, outline: 'none' }} />
+                  <button onClick={() => handleEdit(c.id)} disabled={editSaving}
+                    style={{ background: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12, opacity: editSaving ? 0.5 : 1 }}>
+                    {editSaving ? '…' : 'Save'}
+                  </button>
+                  <button onClick={() => setEditingId(null)}
+                    style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: C.textSub, fontSize: 12 }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <span style={{ fontSize: 13, color: C.text }}>{c.body}</span>
+              )}
             </div>
           ))}
           {comments.length === 0 && <div style={{ color: C.textMuted, fontSize: 13, marginBottom: 8 }}>No comments yet.</div>}
         </>
       )}
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <input
-          value={body} onChange={e => setBody(e.target.value)}
+        <input value={body} onChange={e => setBody(e.target.value)}
           placeholder="Add a comment…" maxLength={500}
-          style={{ flex: 1, padding: '7px 12px', fontSize: 13, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, outline: 'none' }}
-        />
+          style={{ flex: 1, padding: '7px 12px', fontSize: 13, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, outline: 'none' }} />
         <button type="submit" disabled={!body.trim() || submitting}
           style={{ background: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (!body.trim() || submitting) ? 0.5 : 1 }}>
           {submitting ? '…' : 'Post'}
@@ -171,6 +218,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -188,7 +236,9 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    setLoggedIn(isLoggedIn());
+    const li = isLoggedIn();
+    setLoggedIn(li);
+    if (li) api.getMyProfile().then(p => { if (p) setMyUserId(p.userId); }).catch(() => {});
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
@@ -349,7 +399,7 @@ export default function HomePage() {
                   {/* Comments panel */}
                   {expandedUserId === entry.userId && entry.submissionId && (
                     <div style={{ backgroundColor: C.surfaceHigh, borderTop: `1px solid ${C.border}`, padding: '14px 12px' }}>
-                      <CommentsSection submissionId={entry.submissionId} />
+                      <CommentsSection submissionId={entry.submissionId} myUserId={myUserId} />
                     </div>
                   )}
                 </div>
