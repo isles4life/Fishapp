@@ -18,6 +18,7 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Take a photo of your catch and scan the mat QR code",
+        "NSPhotoLibraryUsageDescription": "Choose a photo of your catch to submit to the tournament",
         "NSLocationWhenInUseUsageDescription": "Verify you are fishing at an approved location",
         "ITSAppUsesNonExemptEncryption": false
       }

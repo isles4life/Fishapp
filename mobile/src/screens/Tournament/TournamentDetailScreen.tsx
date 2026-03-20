@@ -357,7 +357,7 @@ export default function TournamentDetailScreen() {
 
   const handleEditPickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
+    if (status !== 'granted' && status !== 'limited') {
       Alert.alert(
         'Photo Library Access Required',
         'Please allow photo library access in Settings to attach images.',
@@ -399,7 +399,7 @@ export default function TournamentDetailScreen() {
 
   const handlePickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
+    if (status !== 'granted' && status !== 'limited') {
       Alert.alert(
         'Photo Library Access Required',
         'Please allow photo library access in Settings to attach images.',

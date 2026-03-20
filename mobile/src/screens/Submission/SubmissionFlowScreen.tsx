@@ -82,7 +82,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 
   async function handlePickPhoto() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
+    if (status !== 'granted' && status !== 'limited') {
       Alert.alert(
         'Photo Library Access Required',
         'Please allow photo library access in Settings to upload a photo.',

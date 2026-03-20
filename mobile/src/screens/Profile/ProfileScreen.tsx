@@ -155,7 +155,7 @@ export function ProfileView({
   async function handleAvatarPress() {
     if (!isOwn) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
+    if (status !== 'granted' && status !== 'limited') {
       Alert.alert(
         'Photo Library Access Required',
         'Please allow photo library access in Settings to upload a profile picture.',
@@ -756,7 +756,7 @@ function EditProfileForm({
 
   async function handleAvatarPress() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
+    if (status !== 'granted' && status !== 'limited') {
       Alert.alert(
         'Photo Library Access Required',
         'Please allow photo library access in Settings to upload a profile picture.',
