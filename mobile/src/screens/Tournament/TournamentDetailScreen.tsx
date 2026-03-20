@@ -2,8 +2,9 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
   ActivityIndicator, Image, TextInput, KeyboardAvoidingView, Platform,
-  Alert, Share,
+  Alert, Share, Modal, FlatList,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import QRCode from 'react-native-qrcode-svg';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -194,6 +195,14 @@ export default function TournamentDetailScreen() {
   const [posting, setPosting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('USER');
+  const [postPhotoUri, setPostPhotoUri] = useState<string | null>(null);
+  const [postGifUrl, setPostGifUrl] = useState<string | null>(null);
+  const [postGifPreview, setPostGifPreview] = useState<string | null>(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
+  const [gifSearching, setGifSearching] = useState(false);
 
   useEffect(() => {
     storage.getToken().then(async (token) => {
@@ -235,17 +244,68 @@ export default function TournamentDetailScreen() {
 
   const handlePost = useCallback(async () => {
     const text = composeText.trim();
-    if (!text) return;
+    if (!text && !postPhotoUri && !postGifUrl) return;
     setPosting(true);
     try {
-      const post = await api.postToTournamentFeed(tournamentId, text);
+      let photoKey: string | undefined;
+      if (postPhotoUri) {
+        const r = await api.uploadPostMedia(tournamentId, postPhotoUri);
+        photoKey = r.photoKey;
+      }
+      const post = await api.postToTournamentFeed(tournamentId, text, photoKey, postGifUrl ?? undefined);
       setPosts(prev => [post, ...prev]);
       setComposeText('');
+      setPostPhotoUri(null);
+      setPostGifUrl(null);
+      setPostGifPreview(null);
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'Could not post.');
     }
     setPosting(false);
-  }, [composeText, tournamentId]);
+  }, [composeText, postPhotoUri, postGifUrl, tournamentId]);
+
+  const handlePickPhoto = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow photo library access to attach images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPostPhotoUri(result.assets[0].uri);
+      setPostGifUrl(null);
+      setPostGifPreview(null);
+    }
+  }, []);
+
+  const searchGifs = useCallback(async (q: string) => {
+    if (!q.trim()) return;
+    setGifSearching(true);
+    try {
+      const key = 'dc6zaTOxFJmzC'; // replace with GIPHY_API_KEY env var in production
+      const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${key}&q=${encodeURIComponent(q)}&limit=20&rating=g`);
+      const data = await res.json();
+      setGifResults((data.data ?? []).map((g: any) => ({
+        id: g.id,
+        preview: g.images?.fixed_height_small?.url ?? g.images?.preview_gif?.url ?? '',
+        full: g.images?.downsized?.url ?? g.images?.fixed_height?.url ?? '',
+      })));
+    } catch { setGifResults([]); }
+    finally { setGifSearching(false); }
+  }, []);
+
+  const selectGif = useCallback((gif: { id: string; preview: string; full: string }) => {
+    setPostGifUrl(gif.full);
+    setPostGifPreview(gif.preview);
+    setPostPhotoUri(null);
+    setShowGifPicker(false);
+    setGifResults([]);
+    setGifQuery('');
+  }, []);
 
   const isAdminOrDirector = userRole === 'ADMIN' || userRole === 'TOURNAMENT_ADMIN';
 
@@ -480,7 +540,7 @@ export default function TournamentDetailScreen() {
             <Text style={s.sectionTitle}>TOURNAMENT FEED</Text>
 
             {/* Compose */}
-            <View style={s.composeRow}>
+            <View style={s.composeWrap}>
               <TextInput
                 style={s.composeInput}
                 value={composeText}
@@ -491,18 +551,115 @@ export default function TournamentDetailScreen() {
                 maxLength={1000}
                 returnKeyType="default"
               />
-              <TouchableOpacity
-                style={[s.postBtn, (!composeText.trim() || posting) && s.postBtnDisabled]}
-                onPress={handlePost}
-                disabled={!composeText.trim() || posting}
-                activeOpacity={0.8}
-              >
-                {posting
-                  ? <ActivityIndicator size="small" color={colors.bg} />
-                  : <Text style={s.postBtnText}>POST</Text>
-                }
-              </TouchableOpacity>
+
+              {/* Media preview */}
+              {(postPhotoUri || postGifPreview) && (
+                <View style={s.mediaPreviewWrap}>
+                  <Image source={{ uri: postPhotoUri ?? postGifPreview ?? '' }} style={s.mediaPreview} resizeMode="cover" />
+                  <TouchableOpacity onPress={() => { setPostPhotoUri(null); setPostGifUrl(null); setPostGifPreview(null); }} style={s.mediaRemoveBtn}>
+                    <Text style={s.mediaRemoveTxt}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Action row */}
+              <View style={s.composeActions}>
+                <TouchableOpacity onPress={handlePickPhoto} style={s.composeActionBtn}>
+                  <Text style={s.composeActionIcon}>📷</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { setShowGifPicker(true); setShowEmojiPicker(false); }} style={s.composeActionBtn}>
+                  <Text style={[s.composeActionIcon, { fontSize: 12, fontWeight: '800', color: colors.textSub }]}>GIF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { setShowEmojiPicker(true); setShowGifPicker(false); }} style={s.composeActionBtn}>
+                  <Text style={s.composeActionIcon}>😊</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.postBtn, (!composeText.trim() && !postPhotoUri && !postGifUrl || posting) && s.postBtnDisabled]}
+                  onPress={handlePost}
+                  disabled={(!composeText.trim() && !postPhotoUri && !postGifUrl) || posting}
+                  activeOpacity={0.8}
+                >
+                  {posting
+                    ? <ActivityIndicator size="small" color={colors.bg} />
+                    : <Text style={s.postBtnText}>POST</Text>
+                  }
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {/* GIF Picker Modal */}
+            <Modal visible={showGifPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowGifPicker(false)}>
+              <SafeAreaView style={s.modalSafe}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>Search GIFs</Text>
+                  <TouchableOpacity onPress={() => setShowGifPicker(false)} style={s.modalClose}>
+                    <Text style={s.modalCloseTxt}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={s.gifSearchRow}>
+                  <TextInput
+                    style={s.gifSearchInput}
+                    value={gifQuery}
+                    onChangeText={setGifQuery}
+                    placeholder="Search Giphy…"
+                    placeholderTextColor={colors.textMuted}
+                    returnKeyType="search"
+                    onSubmitEditing={() => searchGifs(gifQuery)}
+                    autoFocus
+                  />
+                  <TouchableOpacity onPress={() => searchGifs(gifQuery)} style={s.gifSearchBtn}>
+                    <Text style={s.gifSearchBtnTxt}>Go</Text>
+                  </TouchableOpacity>
+                </View>
+                {gifSearching
+                  ? <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+                  : <FlatList
+                      data={gifResults}
+                      numColumns={3}
+                      keyExtractor={g => g.id}
+                      contentContainerStyle={{ padding: 4 }}
+                      ListEmptyComponent={<Text style={s.gifEmpty}>{gifQuery ? 'No results' : 'Search for a GIF above'}</Text>}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity onPress={() => selectGif(item)} style={s.gifThumbWrap} activeOpacity={0.8}>
+                          <Image source={{ uri: item.preview }} style={s.gifThumb} resizeMode="cover" />
+                        </TouchableOpacity>
+                      )}
+                    />
+                }
+                <Text style={s.giphyAttr}>Powered by GIPHY</Text>
+              </SafeAreaView>
+            </Modal>
+
+            {/* Emoji Picker Modal */}
+            <Modal visible={showEmojiPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowEmojiPicker(false)}>
+              <SafeAreaView style={s.modalSafe}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>Emoji</Text>
+                  <TouchableOpacity onPress={() => setShowEmojiPicker(false)} style={s.modalClose}>
+                    <Text style={s.modalCloseTxt}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView contentContainerStyle={{ padding: 16 }}>
+                  {[
+                    { label: '🎣 Fishing', emojis: ['🎣', '🐟', '🐠', '🐡', '🦈', '🦑', '🦐', '🦀', '🦞', '🐙', '🌊', '⚓', '🚤', '🛶', '🏖️', '🌅'] },
+                    { label: '🏆 Sports', emojis: ['🏆', '🥇', '🥈', '🥉', '🎯', '💪', '🤙', '👊', '🙌', '👏', '🎉', '🎊', '🔥', '⚡', '💥', '🌟'] },
+                    { label: '😀 Faces', emojis: ['😀', '😂', '🤣', '😍', '🥰', '😎', '🤩', '😏', '🙃', '😅', '😭', '😤', '🤯', '😱', '🥳', '🤦'] },
+                    { label: '🌿 Nature', emojis: ['🌊', '🌅', '🌄', '⛅', '🌤️', '☀️', '🌙', '⭐', '🌿', '🌱', '🍃', '🌲', '🏔️', '🗻', '⛰️', '🌾'] },
+                  ].map(cat => (
+                    <View key={cat.label} style={{ marginBottom: 16 }}>
+                      <Text style={s.emojiCatLabel}>{cat.label}</Text>
+                      <View style={s.emojiGrid}>
+                        {cat.emojis.map(em => (
+                          <TouchableOpacity key={em} onPress={() => { setComposeText(t => t + em); setShowEmojiPicker(false); }} style={s.emojiBtn} activeOpacity={0.7}>
+                            <Text style={s.emojiChar}>{em}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              </SafeAreaView>
+            </Modal>
 
             {/* Feed */}
             {feedLoading ? (
@@ -672,9 +829,8 @@ const s = StyleSheet.create({
   lbScore: { fontSize: 16, fontWeight: '800', color: colors.accent },
 
   // Feed / compose
-  composeRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', marginBottom: 16 },
+  composeWrap: { marginBottom: 16 },
   composeInput: {
-    flex: 1,
     backgroundColor: colors.bg,
     borderRadius: 10,
     borderWidth: 1,
@@ -685,7 +841,33 @@ const s = StyleSheet.create({
     fontSize: 14,
     minHeight: 42,
     maxHeight: 100,
+    marginBottom: 8,
   },
+  mediaPreviewWrap: { marginBottom: 8, position: 'relative', alignSelf: 'flex-start' },
+  mediaPreview: { width: 120, height: 90, borderRadius: 8, borderWidth: 1, borderColor: colors.border },
+  mediaRemoveBtn: { position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.surfaceHigh, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  mediaRemoveTxt: { color: colors.text, fontSize: 14, lineHeight: 22 },
+  composeActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  composeActionBtn: { backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 8, alignItems: 'center', justifyContent: 'center', minWidth: 38 },
+  composeActionIcon: { fontSize: 18 },
+  // GIF / Emoji Modals
+  modalSafe: { flex: 1, backgroundColor: colors.surface },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  modalTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  modalClose: { padding: 4 },
+  modalCloseTxt: { color: colors.textMuted, fontSize: 20 },
+  gifSearchRow: { flexDirection: 'row', gap: 8, padding: 12 },
+  gifSearchInput: { flex: 1, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, fontSize: 14 },
+  gifSearchBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+  gifSearchBtnTxt: { color: colors.bg, fontWeight: '800', fontSize: 14 },
+  gifThumbWrap: { flex: 1, margin: 3, aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border },
+  gifThumb: { width: '100%', height: '100%' },
+  gifEmpty: { color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 14 },
+  giphyAttr: { color: colors.textMuted, fontSize: 10, textAlign: 'center', padding: 8 },
+  emojiCatLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 },
+  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  emojiBtn: { padding: 6, borderRadius: 8 },
+  emojiChar: { fontSize: 28 },
   postBtn: {
     backgroundColor: colors.accent,
     borderRadius: 10,

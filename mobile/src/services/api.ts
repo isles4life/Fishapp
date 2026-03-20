@@ -112,8 +112,24 @@ export function getTournamentFeed(id: string, cursor?: string): Promise<{ posts:
   return request(`/tournaments/${id}/feed${qs}`);
 }
 
-export function postToTournamentFeed(tournamentId: string, body: string): Promise<TournamentPost> {
-  return request(`/tournaments/${tournamentId}/posts`, { method: 'POST', body: JSON.stringify({ body }) });
+export function postToTournamentFeed(tournamentId: string, body: string, photoKey?: string, gifUrl?: string): Promise<TournamentPost> {
+  return request(`/tournaments/${tournamentId}/posts`, { method: 'POST', body: JSON.stringify({ body, photoKey, gifUrl }) });
+}
+
+export async function uploadPostMedia(tournamentId: string, photoUri: string): Promise<{ photoKey: string }> {
+  const token = await storage.getToken();
+  const form = new FormData();
+  form.append('photo', { uri: photoUri, name: 'post.jpg', type: 'image/jpeg' } as any);
+  const res = await fetch(`${BASE_URL}/tournaments/${tournamentId}/posts/media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
 }
 
 // ── Submissions ───────────────────────────────────────────────────────────────
