@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import Nav from '../../components/Nav';
-import { api, isLoggedIn } from '../../lib/api';
+import { api, isLoggedIn, getMyUserId } from '../../lib/api';
 import type { Tournament, LeaderboardEntry, CatchComment } from '../../lib/api';
 
 function timeAgo(dateStr: string): string {
@@ -263,7 +263,7 @@ export default function LeaderboardPage() {
   const [tab, setTab] = useState<Tab>('largest');
   const [speciesFilter, setSpeciesFilter] = useState('All');
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [myUserId] = useState<string | null>(() => getMyUserId());
 
   const load = useCallback(async (species?: string) => {
     try {
@@ -287,7 +287,6 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     if (isLoggedIn()) {
-      api.getMyProfile().then(p => { if (p) setMyUserId(p.userId); }).catch(() => {});
     }
   }, []);
 

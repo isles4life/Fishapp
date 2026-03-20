@@ -23,6 +23,15 @@ export function isLoggedIn(): boolean {
   return !!getToken();
 }
 
+export function getMyUserId(): string | null {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub ?? null;
+  } catch { return null; }
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit, auth = false): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (auth) {

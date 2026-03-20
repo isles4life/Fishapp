@@ -2,7 +2,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import Link from 'next/link';
 import Nav from '../components/Nav';
-import { api, isLoggedIn } from '../lib/api';
+import { api, isLoggedIn, getMyUserId } from '../lib/api';
 import type { Tournament, LeaderboardEntry, CatchComment } from '../lib/api';
 
 const C = {
@@ -218,7 +218,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
-  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [myUserId] = useState<string | null>(() => getMyUserId());
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -238,7 +238,6 @@ export default function HomePage() {
   useEffect(() => {
     const li = isLoggedIn();
     setLoggedIn(li);
-    if (li) api.getMyProfile().then(p => { if (p) setMyUserId(p.userId); }).catch(() => {});
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
