@@ -419,8 +419,75 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                     </div>
                   )}
 
+                  {/* GIF picker panel — inline, expands in flow */}
+                  {showGifPicker && (
+                    <div style={{ marginTop: 10, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                        <input
+                          value={gifQuery}
+                          onChange={e => setGifQuery(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchGifs(gifQuery))}
+                          placeholder="Search GIFs..."
+                          style={{ flex: 1, padding: '8px 12px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none' }}
+                          autoFocus
+                        />
+                        <button type="button" onClick={() => searchGifs(gifQuery)}
+                          style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                          Search
+                        </button>
+                      </div>
+                      {gifSearching && <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>Searching…</div>}
+                      {!gifSearching && gifResults.length > 0 && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
+                          {gifResults.map(g => (
+                            <button key={g.id} type="button" onClick={() => selectGif(g)}
+                              style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', padding: 0, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={g.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {!gifSearching && gifResults.length === 0 && gifQuery && (
+                        <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>No results. Try a different search.</div>
+                      )}
+                      {!gifSearching && gifResults.length === 0 && !gifQuery && (
+                        <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>Search for a GIF above</div>
+                      )}
+                      <div style={{ marginTop: 8, textAlign: 'right' }}>
+                        <span style={{ fontSize: 10, color: C.textMuted }}>Powered by GIPHY</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Emoji picker panel — inline, expands in flow */}
+                  {showEmojiPicker && (
+                    <div style={{ marginTop: 10, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+                      {[
+                        { label: '🎣 Fishing', emojis: ['🎣', '🐟', '🐠', '🐡', '🦈', '🦑', '🦐', '🦀', '🦞', '🐙', '🌊', '⚓', '🚤', '🛶', '🏖️', '🌅'] },
+                        { label: '🏆 Sports', emojis: ['🏆', '🥇', '🥈', '🥉', '🎯', '💪', '🤙', '👊', '🙌', '👏', '🎉', '🎊', '🔥', '⚡', '💥', '🌟'] },
+                        { label: '😀 Faces', emojis: ['😀', '😂', '🤣', '😍', '🥰', '😎', '🤩', '😏', '🙃', '😅', '😭', '😤', '🤯', '😱', '🥳', '😤'] },
+                        { label: '🌿 Nature', emojis: ['🌊', '🌅', '🌄', '⛅', '🌤️', '☀️', '🌙', '⭐', '🌿', '🌱', '🍃', '🌲', '🏔️', '🗻', '⛰️', '🌾'] },
+                      ].map(cat => (
+                        <div key={cat.label} style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>{cat.label}</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                            {cat.emojis.map(em => (
+                              <button key={em} type="button" onClick={() => insertEmoji(em)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, padding: '3px 4px', borderRadius: 6, lineHeight: 1 }}
+                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = C.bg)}
+                                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                                {em}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Action row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, position: 'relative', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
                     {/* Shared style for the 3 media buttons */}
                     {(() => {
                       const mediaBtnBase: React.CSSProperties = {
@@ -456,73 +523,6 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                       style={{ marginLeft: 'auto', backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 20px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (posting || (!postBody.trim() && !postPhoto && !postGif)) ? 0.5 : 1 }}>
                       {posting ? 'Posting…' : 'Post'}
                     </button>
-
-                    {/* GIF picker panel */}
-                    {showGifPicker && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, marginTop: 8, padding: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                          <input
-                            value={gifQuery}
-                            onChange={e => setGifQuery(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchGifs(gifQuery))}
-                            placeholder="Search GIFs..."
-                            style={{ flex: 1, padding: '8px 12px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none' }}
-                            autoFocus
-                          />
-                          <button type="button" onClick={() => searchGifs(gifQuery)}
-                            style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
-                            Search
-                          </button>
-                        </div>
-                        {gifSearching && <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>Searching…</div>}
-                        {!gifSearching && gifResults.length > 0 && (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
-                            {gifResults.map(g => (
-                              <button key={g.id} type="button" onClick={() => selectGif(g)}
-                                style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', padding: 0, aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={g.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {!gifSearching && gifResults.length === 0 && gifQuery && (
-                          <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>No results. Try a different search.</div>
-                        )}
-                        {!gifSearching && gifResults.length === 0 && !gifQuery && (
-                          <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: 20 }}>Search for a GIF above</div>
-                        )}
-                        <div style={{ marginTop: 8, textAlign: 'right' }}>
-                          <span style={{ fontSize: 10, color: C.textMuted }}>Powered by GIPHY</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Emoji picker panel */}
-                    {showEmojiPicker && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, marginTop: 8, padding: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', width: 300 }}>
-                        {[
-                          { label: '🎣 Fishing', emojis: ['🎣', '🐟', '🐠', '🐡', '🦈', '🦑', '🦐', '🦀', '🦞', '🐙', '🌊', '⚓', '🚤', '🛶', '🏖️', '🌅'] },
-                          { label: '🏆 Sports', emojis: ['🏆', '🥇', '🥈', '🥉', '🎯', '💪', '🤙', '👊', '🙌', '👏', '🎉', '🎊', '🔥', '⚡', '💥', '🌟'] },
-                          { label: '😀 Faces', emojis: ['😀', '😂', '🤣', '😍', '🥰', '😎', '🤩', '😏', '🙃', '😅', '😭', '😤', '🤯', '😱', '🥳', '😤'] },
-                          { label: '🌿 Nature', emojis: ['🌊', '🌅', '🌄', '⛅', '🌤️', '☀️', '🌙', '⭐', '🌿', '🌱', '🍃', '🌲', '🏔️', '🗻', '⛰️', '🌾'] },
-                        ].map(cat => (
-                          <div key={cat.label} style={{ marginBottom: 10 }}>
-                            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>{cat.label}</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                              {cat.emojis.map(em => (
-                                <button key={em} type="button" onClick={() => insertEmoji(em)}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, padding: '3px 4px', borderRadius: 6, lineHeight: 1 }}
-                                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = C.surfaceHigh)}
-                                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
-                                  {em}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </form>
               </div>
