@@ -157,6 +157,8 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Backend/admin/web changes deploy automatically on push; mobile always needs a new EAS build
 
 ## Known Gotchas & Bugs Fixed
+- **S3 ACL disabled** — bucket has Object Ownership: Bucket owner enforced; never pass `ACL: 'public-read'` to `uploadBuffer` (causes `InvalidBucketAclWithObjectOwnership` 500). All files are private; use `getPresignedUrl()` to serve them. Use `resolveProfilePhotoUrl()` in S3Service for profile photo fields.
+- **profilePhotoUrl stores S3 key** — since avatar fix, `AnglerProfile.profilePhotoUrl` stores the S3 key (e.g. `avatars/userId.jpg`), not a public URL. Always call `s3.resolveProfilePhotoUrl()` before returning it in any API response.
 - **MSYS_NO_PATHCONV=1** — must prefix every AWS CLI command in Git Bash on Windows
 - **Prisma DateTime** — rejects date-only strings like `"2001-08-08"`; must use `new Date("2001-08-08T00:00:00.000Z")`
 - **Prisma generate** — run `npx prisma generate` before `npm run build` whenever schema changes
@@ -246,13 +248,18 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-25)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #26 live (pending new EAS build for edit-media-bar changes)
-- Edit post form now has full photo/GIF/emoji bar on web and mobile (matches compose bar)
-- Web: edit posts on both /leaderboard and /leaderboard/[id] pages have full media editing
-- Mobile: TournamentDetailScreen edit modal has inline media bar (📎/GIF/😊)
-- Backend: editPost accepts newPhotoKey (S3 key or GIF URL), returns presigned photoUrl
+- iOS TestFlight build #26 live (pending new EAS build for mobile changes)
+- Avatar upload 500 error fixed (deployed) — was ACL issue, now uses presigned URLs everywhere
+- Profile photos now visible in leaderboard, feed, tournament posts, director card, public profile
 
 ### Recently Shipped
+- **Avatar upload fix** (backend deployed, mobile needs EAS build for HEIC normalization):
+  - Root cause: `ACL: 'public-read'` on S3 bucket with Object Ownership enforced → `InvalidBucketAclWithObjectOwnership` 500 error
+  - `s3.service`: removed ACL from `uploadBuffer`; added `resolveProfilePhotoUrl()` — generates presigned URL from S3 key, passthrough for existing `https://` URLs (no network call, pure HMAC signing)
+  - `profile.service`: `uploadAvatar` now stores S3 key (not public URL); `getOwn`/`getByUsername`/`upsert` resolve `profilePhotoUrl` to presigned URL before returning
+  - `leaderboard.service`, `submissions.service`, `tournaments.service`: all resolve `profilePhotoUrl` in parallel for feed/leaderboard entries, director card, top-3, post authors
+  - `profile.controller`: FileTypeValidator now accepts `image/heic` and `image/heif`
+  - Mobile `ProfileScreen`: both avatar handlers normalize HEIC/HEIF mimeType → `image/jpeg` before upload
 - **Edit post media bar** (backend deployed, web deployed, mobile needs EAS build):
   - Backend `editPost` accepts `newPhotoKey` (S3 key or GIF URL `https://...`); returns presigned `photoUrl` for new photos
   - Web `/leaderboard` and `/leaderboard/[id]`: edit form shows existing photo with × remove, new media preview, inline GIF picker, inline emoji picker, 📎/GIF/😊 action row — identical to compose bar
