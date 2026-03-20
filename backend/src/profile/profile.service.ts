@@ -10,8 +10,6 @@ export class ProfileService {
     private readonly s3: S3Service,
   ) {}
 
-  // ── Compute stats from existing submission/leaderboard data ──────────────
-
   private async computeStats(userId: string) {
     const [approved, leaderboard] = await Promise.all([
       this.prisma.submission.findMany({
@@ -39,17 +37,10 @@ export class ProfileService {
     };
   }
 
-  // ── Profile upsert (own profile) ─────────────────────────────────────────
-
   async upsert(userId: string, dto: UpdateProfileDto) {
-    // Check username uniqueness if being set/changed
     if (dto.username) {
-      const existing = await this.prisma.anglerProfile.findUnique({
-        where: { username: dto.username },
-      });
-      if (existing && existing.userId !== userId) {
-        throw new ConflictException('Username already taken');
-      }
+      const existing = await this.prisma.anglerProfile.findUnique({ where: { username: dto.username } });
+      if (existing && existing.userId !== userId) throw new ConflictException('Username already taken');
     }
 
     const { birthday, ...rest } = dto;
@@ -65,10 +56,9 @@ export class ProfileService {
     });
 
     const stats = await this.computeStats(userId);
-    return { ...profile, stats };
+    const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(profile.profilePhotoUrl);
+    return { ...profile, stats, profilePhotoUrl };
   }
-
-  // ── Get own profile ───────────────────────────────────────────────────────
 
   async getOwn(userId: string) {
     const profile = await this.prisma.anglerProfile.findUnique({
@@ -79,10 +69,9 @@ export class ProfileService {
     if (!profile) throw new NotFoundException('no_profile');
 
     const stats = await this.computeStats(userId);
-    return { ...profile, stats };
+    const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(profile.profilePhotoUrl);
+    return { ...profile, stats, profilePhotoUrl };
   }
-
-  // ── Get public profile by username ────────────────────────────────────────
 
   async getByUsername(username: string, viewerUserId?: string) {
     const profile = await this.prisma.anglerProfile.findUnique({
@@ -95,7 +84,6 @@ export class ProfileService {
       throw new ForbiddenException('This profile is private');
     }
 
-    // Increment profile views (fire-and-forget, not own profile)
     if (profile.userId !== viewerUserId) {
       this.prisma.anglerProfile
         .update({ where: { username }, data: { profileViews: { increment: 1 } } })
@@ -104,7 +92,6 @@ export class ProfileService {
 
     const stats = await this.computeStats(profile.userId);
 
-    // Check if viewer follows this profile
     let isFollowing = false;
     if (viewerUserId) {
       const viewerProfile = await this.prisma.anglerProfile.findUnique({
@@ -119,10 +106,9 @@ export class ProfileService {
       }
     }
 
-    return { ...profile, stats, isFollowing };
+    const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(profile.profilePhotoUrl);
+    return { ...profile, stats, isFollowing, profilePhotoUrl };
   }
-
-  // ── Follow / Unfollow ─────────────────────────────────────────────────────
 
   async follow(actorUserId: string, targetUsername: string) {
     const [actor, target] = await Promise.all([
@@ -166,37 +152,31 @@ export class ProfileService {
     return { following: false };
   }
 
-  // ── Avatar upload ─────────────────────────────────────────────────────────
-
   async uploadAvatar(userId: string, file: Express.Multer.File) {
-    const ext = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
+    const ext = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg'; // heic/heif fall through to jpg
     const key = `avatars/${userId}.${ext}`;
-    await this.s3.uploadBuffer(key, file.buffer, file.mimetype, true);
-    const avatarUrl = this.s3.getPublicUrl(key);
+    // Upload without ACL — bucket has Object Ownership: Bucket owner enforced
+    await this.s3.uploadBuffer(key, file.buffer, file.mimetype);
 
+    // Store the S3 key (not a public URL) — presigned URLs are generated on fetch
     await this.prisma.anglerProfile.upsert({
       where: { userId },
-      create: { userId, username: `angler_${userId.slice(0, 8)}`, profilePhotoUrl: avatarUrl },
-      update: { profilePhotoUrl: avatarUrl },
+      create: { userId, username: `angler_${userId.slice(0, 8)}`, profilePhotoUrl: key },
+      update: { profilePhotoUrl: key },
     });
 
+    // Return a fresh presigned URL for immediate display by the client
+    const avatarUrl = await this.s3.getPresignedUrl(key, 3600);
     return { avatarUrl };
   }
-
-  // ── Grant badge (called by other services) ────────────────────────────────
 
   async grantBadge(userId: string, badge: string) {
     const profile = await this.prisma.anglerProfile.findUnique({ where: { userId }, select: { id: true, badges: true } });
     if (!profile || profile.badges.includes(badge)) return;
 
     await this.prisma.$transaction([
-      this.prisma.anglerProfile.update({
-        where: { userId },
-        data: { badges: { push: badge } },
-      }),
-      this.prisma.achievement.create({
-        data: { profileId: profile.id, badge },
-      }),
+      this.prisma.anglerProfile.update({ where: { userId }, data: { badges: { push: badge } } }),
+      this.prisma.achievement.create({ data: { profileId: profile.id, badge } }),
     ]);
   }
 }

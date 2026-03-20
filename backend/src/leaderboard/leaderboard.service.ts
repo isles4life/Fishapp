@@ -111,10 +111,10 @@ export class LeaderboardService {
     });
 
     const mapped = await Promise.all(entries.map(async (e, idx) => {
-      let photoUrl: string | null = null;
-      if (e.submission?.photo1Key) {
-        photoUrl = await this.s3.getPresignedUrl(e.submission.photo1Key, 3600);
-      }
+      const [photoUrl, profilePhotoUrl] = await Promise.all([
+        e.submission?.photo1Key ? this.s3.getPresignedUrl(e.submission.photo1Key, 3600) : Promise.resolve(null),
+        this.s3.resolveProfilePhotoUrl(e.user.profile?.profilePhotoUrl),
+      ]);
       return {
         rank: idx + 1,
         submissionId: e.submissionId,
@@ -124,7 +124,7 @@ export class LeaderboardService {
         score: e.score,
         scoringMethod,
         fishWeightOz: e.submission?.fishWeightOz ?? null,
-        profilePhotoUrl: e.user.profile?.profilePhotoUrl ?? null,
+        profilePhotoUrl,
         username: e.user.profile?.username ?? null,
         speciesName: e.submission?.speciesName ?? null,
         speciesCategory: e.submission?.speciesCategory ?? null,

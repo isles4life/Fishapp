@@ -13,17 +13,29 @@ export class S3Service {
   });
   private readonly bucket = process.env.S3_BUCKET ?? 'fishleague-submissions';
 
-  async uploadBuffer(key: string, buffer: Buffer, contentType: string, isPublic = false): Promise<string> {
+  async uploadBuffer(key: string, buffer: Buffer, contentType: string): Promise<string> {
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: buffer,
         ContentType: contentType,
-        ...(isPublic ? { ACL: 'public-read' } : {}),
+        // No ACL — bucket has Object Ownership: Bucket owner enforced (ACLs disabled)
       }),
     );
     return key;
+  }
+
+  /**
+   * Resolve a stored profilePhotoUrl to a usable URL.
+   * If it's already an https:// or http:// URL (legacy or external), return as-is.
+   * If it's an S3 key (e.g. "avatars/userId.jpg"), generate a presigned URL.
+   * Presigned URL generation is local HMAC signing — no network call.
+   */
+  async resolveProfilePhotoUrl(keyOrUrl: string | null | undefined): Promise<string | null> {
+    if (!keyOrUrl) return null;
+    if (keyOrUrl.startsWith('https://') || keyOrUrl.startsWith('http://')) return keyOrUrl;
+    return this.getPresignedUrl(keyOrUrl, 3600).catch(() => null);
   }
 
   md5Hash(buffer: Buffer): string {

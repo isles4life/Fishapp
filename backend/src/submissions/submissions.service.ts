@@ -297,19 +297,25 @@ export class SubmissionsService {
       },
     });
 
-    return Promise.all(submissions.map(async (s) => ({
-      submissionId: s.id,
-      userId: s.userId,
-      displayName: s.user.displayName,
-      username: s.user.profile?.username ?? null,
-      profilePhotoUrl: s.user.profile?.profilePhotoUrl ?? null,
-      fishLengthCm: s.fishLengthCm,
-      speciesName: s.speciesName ?? null,
-      released: s.released,
-      photoUrl: s.photo2Key ? await this.s3.getPresignedUrl(s.photo2Key, 3600) : null,
-      submittedAt: s.createdAt.toISOString(),
-      propsCount: s._count.props,
-    })));
+    return Promise.all(submissions.map(async (s) => {
+      const [photoUrl, profilePhotoUrl] = await Promise.all([
+        s.photo2Key ? this.s3.getPresignedUrl(s.photo2Key, 3600) : Promise.resolve(null),
+        this.s3.resolveProfilePhotoUrl(s.user.profile?.profilePhotoUrl),
+      ]);
+      return {
+        submissionId: s.id,
+        userId: s.userId,
+        displayName: s.user.displayName,
+        username: s.user.profile?.username ?? null,
+        profilePhotoUrl,
+        fishLengthCm: s.fishLengthCm,
+        speciesName: s.speciesName ?? null,
+        released: s.released,
+        photoUrl,
+        submittedAt: s.createdAt.toISOString(),
+        propsCount: s._count.props,
+      };
+    }));
   }
 
   async getHotSpots(tournamentId?: string) {

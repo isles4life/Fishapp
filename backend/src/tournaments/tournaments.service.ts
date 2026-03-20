@@ -59,7 +59,7 @@ export class TournamentsService {
       : null;
 
     // Top 3 leaderboard entries
-    const top3 = await this.prisma.leaderboardEntry.findMany({
+    const top3Raw = await this.prisma.leaderboardEntry.findMany({
       where: { tournamentId: id },
       orderBy: { score: 'desc' },
       take: 3,
@@ -68,7 +68,27 @@ export class TournamentsService {
       },
     });
 
-    return { ...tournament, top3, bannerUrl };
+    const top3 = await Promise.all(top3Raw.map(async (e) => ({
+      ...e,
+      user: {
+        ...e.user,
+        profile: e.user.profile ? {
+          ...e.user.profile,
+          profilePhotoUrl: await this.s3.resolveProfilePhotoUrl(e.user.profile.profilePhotoUrl),
+        } : null,
+      },
+    })));
+
+    // Resolve director profile photo
+    const director = tournament.director ? {
+      ...tournament.director,
+      profile: tournament.director.profile ? {
+        ...tournament.director.profile,
+        profilePhotoUrl: await this.s3.resolveProfilePhotoUrl(tournament.director.profile.profilePhotoUrl),
+      } : null,
+    } : null;
+
+    return { ...tournament, director, top3, bannerUrl };
   }
 
   // Admin only
@@ -310,7 +330,15 @@ export class TournamentsService {
         photoUrl = await this.s3.getPresignedUrl(storedPhotoKey).catch(() => null);
       }
     }
-    return { ...post, photoUrl };
+    const authorProfilePhotoUrl = await this.s3.resolveProfilePhotoUrl(post.user.profile?.profilePhotoUrl);
+    return {
+      ...post,
+      photoUrl,
+      user: {
+        ...post.user,
+        profile: post.user.profile ? { ...post.user.profile, profilePhotoUrl: authorProfilePhotoUrl } : null,
+      },
+    };
   }
 
   async editPost(postId: string, userId: string, body: string, removePhoto?: boolean, newPhotoKey?: string) {
@@ -331,7 +359,15 @@ export class TournamentsService {
         photoUrl = await this.s3.getPresignedUrl(newPhotoKey).catch(() => null);
       }
     }
-    return { ...updated, photoUrl };
+    const authorProfilePhotoUrl = await this.s3.resolveProfilePhotoUrl(updated.user.profile?.profilePhotoUrl);
+    return {
+      ...updated,
+      photoUrl,
+      user: {
+        ...updated.user,
+        profile: updated.user.profile ? { ...updated.user.profile, profilePhotoUrl: authorProfilePhotoUrl } : null,
+      },
+    };
   }
 
   async deletePost(postId: string, userId: string, userRole: string) {
@@ -386,7 +422,7 @@ export class TournamentsService {
     const hasMore = posts.length > take;
     const page = posts.slice(0, take);
 
-    // Add presigned URLs for catch photos and angler post photos
+    // Add presigned URLs for catch photos, angler post photos, and author profile photos
     const withUrls = await Promise.all(
       page.map(async (post) => {
         let photoUrl: string | null = null;
@@ -399,7 +435,15 @@ export class TournamentsService {
             photoUrl = await this.s3.getPresignedUrl(post.photoKey).catch(() => null);
           }
         }
-        return { ...post, photoUrl };
+        const authorProfilePhotoUrl = await this.s3.resolveProfilePhotoUrl(post.user.profile?.profilePhotoUrl);
+        return {
+          ...post,
+          photoUrl,
+          user: {
+            ...post.user,
+            profile: post.user.profile ? { ...post.user.profile, profilePhotoUrl: authorProfilePhotoUrl } : null,
+          },
+        };
       }),
     );
 

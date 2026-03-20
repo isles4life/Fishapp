@@ -167,7 +167,9 @@ export function ProfileView({
     });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    const mimeType = asset.mimeType ?? 'image/jpeg';
+    // Normalize HEIC/HEIF to jpeg — backend only accepts jpeg, png, webp
+    const rawMime = asset.mimeType ?? 'image/jpeg';
+    const mimeType = (rawMime === 'image/heic' || rawMime === 'image/heif') ? 'image/jpeg' : rawMime;
     setAvatarLoading(true);
     try {
       const { avatarUrl: url } = await uploadAvatar(asset.uri, mimeType);
@@ -761,7 +763,9 @@ function EditProfileForm({
     });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    const mimeType = asset.mimeType ?? 'image/jpeg';
+    // Normalize HEIC/HEIF to jpeg — backend only accepts jpeg, png, webp
+    const rawMime = asset.mimeType ?? 'image/jpeg';
+    const mimeType = (rawMime === 'image/heic' || rawMime === 'image/heif') ? 'image/jpeg' : rawMime;
     setAvatarLoading(true);
     try {
       const { avatarUrl: url } = await uploadAvatar(asset.uri, mimeType);
