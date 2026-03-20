@@ -38,7 +38,6 @@ export class TournamentsController {
   }
 
   @Get('open-all')
-  @UseGuards(JwtAuthGuard)
   listAllOpen() {
     return this.tournamentsService.listAllOpen();
   }

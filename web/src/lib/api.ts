@@ -226,6 +226,7 @@ export interface FishingIntelResponse {
 export const api = {
   getRegions: () => apiFetch<Region[]>('/users/regions'),
   getActiveTournament: () => apiFetch<Tournament>('/tournaments/open'),
+  getActiveTournaments: () => apiFetch<Tournament[]>('/tournaments/open-all'),
   getLeaderboard: (id: string, species?: string) => {
     const qs = species ? `?species=${encodeURIComponent(species)}` : '';
     return apiFetch<LeaderboardEntry[]>(`/leaderboard/${id}${qs}`);

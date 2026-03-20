@@ -213,7 +213,8 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
 }
 
 export default function HomePage() {
-  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -221,12 +222,18 @@ export default function HomePage() {
   const [myUserId] = useState<string | null>(() => getMyUserId());
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
+  const tournament = tournaments.find(t => t.id === selectedId) ?? tournaments[0] ?? null;
+
   const load = useCallback(async () => {
     try {
-      const t = await api.getActiveTournament();
-      setTournament(t);
-      const board = await api.getLeaderboard(t.id);
-      setEntries(board);
+      const ts = await api.getActiveTournaments();
+      setTournaments(ts);
+      const active = ts[0];
+      if (active) {
+        setSelectedId(prev => prev && ts.find(t => t.id === prev) ? prev : active.id);
+        const board = await api.getLeaderboard(active.id);
+        setEntries(board);
+      }
       setError('');
     } catch (e: any) {
       setError(e.message);
@@ -234,6 +241,15 @@ export default function HomePage() {
       setLoading(false);
     }
   }, []);
+
+  async function selectTournament(id: string) {
+    setSelectedId(id);
+    setExpandedUserId(null);
+    try {
+      const board = await api.getLeaderboard(id);
+      setEntries(board);
+    } catch { setEntries([]); }
+  }
 
   useEffect(() => {
     const li = isLoggedIn();
@@ -272,29 +288,49 @@ export default function HomePage() {
           </div>
         )}
 
-        {!loading && !error && tournament && (
-          <div style={{
-            backgroundColor: C.surface,
-            borderRadius: 16,
-            border: `1px solid ${C.border}`,
-            borderLeft: `4px solid ${C.accent}`,
-            padding: '20px 16px',
-            marginBottom: 24,
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: C.accent, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
-              Active Tournament
-            </div>
-            <h1 style={{ fontSize: 'clamp(20px, 5vw, 30px)', fontWeight: 900, color: C.text, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: -0.5 }}>
-              {tournament.name}
-            </h1>
-            <p style={{ color: C.textSub, fontSize: 15, margin: '0 0 24px' }}>
-              {tournament.region.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
-            </p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href={`/leaderboard/${tournament.id}`} style={accentBtn}>🏆 Tournament Details</Link>
-              <Link href="/leaderboard" style={ghostBtn}>📊 Leaderboard</Link>
-            </div>
+        {!loading && !error && tournaments.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            {/* Tournament tabs — shown when multiple are open */}
+            {tournaments.length > 1 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                {tournaments.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => selectTournament(t.id)}
+                    style={{
+                      padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', border: `1px solid ${t.id === selectedId ? C.accent : C.border}`,
+                      backgroundColor: t.id === selectedId ? C.accent + '20' : 'transparent',
+                      color: t.id === selectedId ? C.accent : C.textSub,
+                    }}
+                  >
+                    {t.name} <span style={{ fontSize: 11, opacity: 0.7 }}>· {t.region?.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {tournament && (
+              <div style={{
+                backgroundColor: C.surface, borderRadius: 16,
+                border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.accent}`,
+                padding: '20px 16px', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.accent, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
+                  Active Tournament
+                </div>
+                <h1 style={{ fontSize: 'clamp(20px, 5vw, 30px)', fontWeight: 900, color: C.text, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: -0.5 }}>
+                  {tournament.name}
+                </h1>
+                <p style={{ color: C.textSub, fontSize: 15, margin: '0 0 24px' }}>
+                  {tournament.region?.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
+                </p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Link href={`/leaderboard/${tournament.id}`} style={accentBtn}>🏆 Tournament Details</Link>
+                  <Link href="/leaderboard" style={ghostBtn}>📊 Leaderboard</Link>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

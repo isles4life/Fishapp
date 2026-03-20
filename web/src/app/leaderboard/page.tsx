@@ -256,7 +256,8 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
 type Tab = 'largest' | 'season';
 
 export default function LeaderboardPage() {
-  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -265,11 +266,11 @@ export default function LeaderboardPage() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [myUserId] = useState<string | null>(() => getMyUserId());
 
-  const load = useCallback(async (species?: string) => {
+  const tournament = tournaments.find(t => t.id === selectedId) ?? tournaments[0] ?? null;
+
+  const loadBoard = useCallback(async (id: string, species?: string) => {
     try {
-      const t = await api.getActiveTournament();
-      setTournament(t);
-      const board = await api.getLeaderboard(t.id, species === 'All' ? undefined : species);
+      const board = await api.getLeaderboard(id, species === 'All' ? undefined : species);
       setEntries(board);
       setError('');
     } catch (e: any) {
@@ -279,11 +280,38 @@ export default function LeaderboardPage() {
     }
   }, []);
 
+  const load = useCallback(async (species?: string) => {
+    try {
+      const ts = await api.getActiveTournaments();
+      setTournaments(ts);
+      const active = ts[0];
+      if (active) {
+        setSelectedId(prev => prev && ts.find(t => t.id === prev) ? prev : active.id);
+        await loadBoard(active.id, species);
+      } else {
+        setLoading(false);
+      }
+    } catch (e: any) {
+      setError(e.message);
+      setLoading(false);
+    }
+  }, [loadBoard]);
+
+  async function selectTournament(id: string) {
+    setSelectedId(id);
+    setExpandedUserId(null);
+    setSpeciesFilter('All');
+    setLoading(true);
+    await loadBoard(id);
+  }
+
   useEffect(() => {
     load(speciesFilter);
-    const interval = setInterval(() => load(speciesFilter), 30000);
+    const interval = setInterval(() => {
+      if (tournament) loadBoard(tournament.id, speciesFilter);
+    }, 30000);
     return () => clearInterval(interval);
-  }, [load, speciesFilter]);
+  }, [load, speciesFilter, loadBoard]);
 
   useEffect(() => {
     if (isLoggedIn()) {
@@ -320,12 +348,31 @@ export default function LeaderboardPage() {
           <h1 className="display" style={{ fontSize: 'clamp(22px, 5vw, 36px)', fontWeight: 900, color: C.text, margin: '0 0 6px', letterSpacing: -1, textTransform: 'uppercase' }}>
             Leaderboard
           </h1>
+          {/* Tournament selector tabs */}
+          {tournaments.length > 1 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+              {tournaments.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => selectTournament(t.id)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', border: `1px solid ${t.id === selectedId ? C.accent : C.border}`,
+                    backgroundColor: t.id === selectedId ? C.accent + '20' : 'transparent',
+                    color: t.id === selectedId ? C.accent : C.textSub,
+                  }}
+                >
+                  {t.name} <span style={{ fontSize: 11, opacity: 0.7 }}>· {t.region?.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {tournament && (
             <p style={{ color: C.textSub, fontSize: 15, margin: '0 0 4px' }}>
               <a href={`/leaderboard/${tournament.id}`} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>
                 {tournament.name}
               </a>
-              {' · '}{tournament.region.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
+              {' · '}{tournament.region?.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
             </p>
           )}
           {tournament && (tournament.entryFeeCents > 0 || tournament.prizePoolCents > 0) && (
