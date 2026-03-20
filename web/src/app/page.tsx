@@ -1,5 +1,4 @@
 'use client';
-// Home feed — props, comments (edit/delete own), tournament banner
 import { useEffect, useCallback, useState, useRef } from 'react';
 import Link from 'next/link';
 import Nav from '../components/Nav';
