@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Image, View } from 'react-native';
 import { useFonts } from 'expo-font';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import {
   Oswald_600SemiBold,
   Oswald_700Bold,
@@ -44,9 +45,9 @@ export default function App() {
   }
 
   return (
-    <>
+    <StripeProvider publishableKey="pk_test_519z6DcLTGJy3qhJ5lnE3mgKKDRi0ddiykhVA5krbMntqqbElVDYobAgb6atzsYHnJwBs5WVhBbUR9CLIfhkpMdH500BUjEm5DC">
       <StatusBar style="light" />
       <Navigation isAuthenticated={isAuthenticated} />
-    </>
+    </StripeProvider>
   );
 }

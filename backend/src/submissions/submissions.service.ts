@@ -44,7 +44,17 @@ export class SubmissionsService {
       throw new BadRequestException('Submission outside tournament window');
     }
 
-    // 2. Validate GPS inside tournament's region bounding box
+    // 2. Validate entry fee paid (skip for free tournaments)
+    if (tournament.entryFeeCents > 0) {
+      const entry = await this.prisma.tournamentEntry.findUnique({
+        where: { userId_tournamentId: { userId, tournamentId: dto.tournamentId } },
+      });
+      if (!entry || entry.status !== 'PAID') {
+        throw new ForbiddenException('Entry fee required to submit');
+      }
+    }
+
+    // 3. Validate GPS inside tournament's region bounding box
     const region = tournament.region;
     const { gpsLat, gpsLng } = dto;
     if (

@@ -34,6 +34,8 @@ interface Submission {
   speciesName: string | null;
   matSerial: { serialCode: string } | null;
   status: string;
+  entryFeePaid: boolean | null;
+  entryFeeCents: number | null;
 }
 
 interface ConfirmState {
@@ -238,6 +240,8 @@ export default function ModerationPage() {
                     {s.flagSuspectPhoto && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>🤖 No Fish Detected</span>}
                     {s.flagSuspectLength && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>🤖 Length Mismatch</span>}
                     {s.flagSuspectSpecies && <span style={{ fontSize: 10, color: C.orange, background: C.orangeBg, padding: '1px 6px', borderRadius: 4 }}>🤖 Species Mismatch</span>}
+                    {s.entryFeePaid === false && <span style={{ fontSize: 10, color: C.red, background: C.redBg, padding: '1px 6px', borderRadius: 4 }}>💳 Fee Unpaid</span>}
+                    {s.entryFeePaid === true && s.entryFeeCents && s.entryFeeCents > 0 && <span style={{ fontSize: 10, color: C.green, background: C.greenBg, padding: '1px 6px', borderRadius: 4 }}>💳 Fee Paid</span>}
                   </div>
                 </div>
               </div>
@@ -258,6 +262,7 @@ export default function ModerationPage() {
                 ['Captured', new Date(selected.capturedAt).toLocaleString()],
                 ['GPS', `${selected.gpsLat.toFixed(5)}, ${selected.gpsLng.toFixed(5)}`],
                 ['Status', selected.status],
+                ...(selected.entryFeeCents && selected.entryFeeCents > 0 ? [['Entry Fee', selected.entryFeePaid ? `✅ Paid ($${(selected.entryFeeCents / 100).toFixed(2)})` : `❌ Unpaid ($${(selected.entryFeeCents / 100).toFixed(2)})`]] : []),
               ] as [string, string][]).map(([k, v]) => (
                 <div key={k}>
                   <span style={{ color: C.textMuted }}>{k}: </span>

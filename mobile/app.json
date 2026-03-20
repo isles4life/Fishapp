@@ -65,7 +65,8 @@
         {
           "locationWhenInUsePermission": "Verify you are fishing at an approved location"
         }
-      ]
+      ],
+      "@stripe/stripe-react-native"
     ]
   }
 }

@@ -330,3 +330,19 @@ export async function uploadAvatar(uri: string, mimeType: string): Promise<{ ava
   }
   return res.json();
 }
+
+// ── Tournament Entry (Stripe) ─────────────────────────────────────────────────
+
+export function createEntryPaymentIntent(tournamentId: string): Promise<{
+  clientSecret: string;
+  entryFeeCents: number;
+  platformFeeCents: number;
+}> {
+  return request(`/tournaments/${tournamentId}/entry/intent`, { method: 'POST' });
+}
+
+export function getMyEntry(tournamentId: string): Promise<{
+  status: string;
+} | null> {
+  return request(`/tournaments/${tournamentId}/entry/me`);
+}

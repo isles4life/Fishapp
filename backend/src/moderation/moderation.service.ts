@@ -33,11 +33,23 @@ export class ModerationService {
       },
     });
 
-    return Promise.all(submissions.map(async (s) => ({
-      ...s,
-      photo1Url: s.photo1Key ? await this.s3.getPresignedUrl(s.photo1Key) : null,
-      photo2Url: s.photo2Key ? await this.s3.getPresignedUrl(s.photo2Key) : null,
-    })));
+    return Promise.all(submissions.map(async (s) => {
+      const [photo1Url, photo2Url, entry] = await Promise.all([
+        s.photo1Key ? this.s3.getPresignedUrl(s.photo1Key) : Promise.resolve(null),
+        this.s3.getPresignedUrl(s.photo2Key),
+        this.prisma.tournamentEntry.findUnique({
+          where: { userId_tournamentId: { userId: s.userId, tournamentId: s.tournamentId } },
+          select: { status: true, feeCents: true },
+        }),
+      ]);
+      return {
+        ...s,
+        photo1Url,
+        photo2Url,
+        entryFeePaid: entry ? entry.status === 'PAID' : null,
+        entryFeeCents: entry?.feeCents ?? null,
+      };
+    }));
   }
 
   async getSubmissionDetail(id: string) {

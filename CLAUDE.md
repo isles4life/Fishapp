@@ -248,11 +248,25 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-25)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #26 live (pending new EAS build for mobile changes)
-- Avatar upload 500 error fixed (deployed) — was ACL issue, now uses presigned URLs everywhere
-- Profile photos now visible in leaderboard, feed, tournament posts, director card, public profile
+- iOS TestFlight build #31 is latest (missing `d70f9e8` — NSPhotoLibraryUsageDescription fix — needs one more EAS build)
+- **Stripe entry fees built** (backend + mobile) — needs GitHub secrets + webhook + EAS build before live
+- Stripe keys (test): publishable in `mobile/App.tsx`, secret goes in GitHub Actions secret `STRIPE_SECRET_KEY`
 
 ### Recently Shipped
+- **Stripe entry fee integration** (backend deployed on next push, mobile needs EAS build):
+  - `TournamentEntry` model — tracks userId, tournamentId, stripePaymentIntentId, feeCents, platformFeeCents, status (PENDING|PAID|REFUNDED)
+  - Migration: `20260325000000_tournament_entry_stripe`
+  - `POST /tournaments/:id/entry/intent` — creates Stripe PaymentIntent, returns clientSecret (15% platform fee)
+  - `POST /webhooks/stripe` — handles `payment_intent.succeeded` → marks entry PAID (raw body enabled in main.ts)
+  - `GET /tournaments/:id/entry/me` — angler checks own entry status
+  - `GET /admin/tournaments/:id/entries` — admin lists all entries for a tournament
+  - Submission validation: blocks submission if `entryFeeCents > 0` and no PAID entry exists
+  - Mobile: `@stripe/stripe-react-native` installed; `StripeProvider` wraps app in `App.tsx`; plugin in `app.json`
+  - Mobile `TournamentDetailScreen`: "Enter Tournament · $X.XX" button → Stripe payment sheet → on success navigates to SubmissionFlow; free tournaments skip payment
+  - Admin moderation queue: shows 💳 Fee Paid / 💳 Fee Unpaid badge on submissions; Entry Fee row in detail panel
+  - Platform fee: 15% (configurable via `STRIPE_PLATFORM_FEE_PERCENT` env var)
+- **Pending GitHub secrets to add**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- **Pending webhook setup**: create endpoint in Stripe dashboard pointing to `https://api.fishleague.app/webhooks/stripe`
 - **Avatar upload fix** (backend deployed, mobile needs EAS build for HEIC normalization):
   - Root cause: `ACL: 'public-read'` on S3 bucket with Object Ownership enforced → `InvalidBucketAclWithObjectOwnership` 500 error
   - `s3.service`: removed ACL from `uploadBuffer`; added `resolveProfilePhotoUrl()` — generates presigned URL from S3 key, passthrough for existing `https://` URLs (no network call, pure HMAC signing)

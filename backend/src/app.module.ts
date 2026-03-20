@@ -18,6 +18,7 @@ import { WarningsModule } from './warnings/warnings.module';
 import { FishingIntelligenceModule } from './fishing-intelligence/fishing-intelligence.module';
 import { TournamentAdminModule } from './tournament-admin/tournament-admin.module';
 import { GifModule } from './gif/gif.module';
+import { TournamentEntryModule } from './tournament-entry/tournament-entry.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { GifModule } from './gif/gif.module';
     FishingIntelligenceModule,
     TournamentAdminModule,
     GifModule,
+    TournamentEntryModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

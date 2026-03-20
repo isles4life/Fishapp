@@ -88,6 +88,7 @@ model User {
   reviewedRequests TournamentAdminRequest[] @relation("ReviewedRequests")
   directedTournaments Tournament[] @relation("TournamentDirector")
   tournamentPosts  TournamentPost[]
+  tournamentEntries TournamentEntry[]
 
   @@index([regionId])
 }
@@ -135,6 +136,7 @@ model Tournament {
   checkIns    TournamentCheckIn[]
   tournamentAdminRequests TournamentAdminRequest[]
   posts       TournamentPost[]
+  entries     TournamentEntry[]
 
   @@unique([regionId, weekNumber, year])
   @@index([regionId, isOpen])
@@ -389,6 +391,25 @@ model Follower {
 
   @@unique([actorId, targetId])
   @@index([targetId])
+}
+
+model TournamentEntry {
+  id                    String   @id @default(uuid())
+  userId                String
+  tournamentId          String
+  stripePaymentIntentId String?
+  feeCents              Int
+  platformFeeCents      Int
+  status                String   @default("PENDING") // PENDING | PAID | REFUNDED
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tournamentId])
+  @@index([tournamentId])
+  @@index([stripePaymentIntentId])
 }
 
 model TournamentPost {

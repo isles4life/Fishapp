@@ -93,6 +93,9 @@ jobs:
           image: ${{ steps.build.outputs.image }}
           environment-variables: |
             GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            STRIPE_PLATFORM_FEE_PERCENT=15
 
       - name: Deploy backend service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

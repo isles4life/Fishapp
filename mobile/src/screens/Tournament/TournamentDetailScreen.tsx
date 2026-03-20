@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Image, TextInput, KeyboardAvoidingView, Platform,
   Alert, Share, Modal, FlatList, Linking,
 } from 'react-native';
+import { useStripe } from '@stripe/stripe-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import QRCode from 'react-native-qrcode-svg';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -248,6 +249,10 @@ export default function TournamentDetailScreen() {
   const [editGifQuery, setEditGifQuery] = useState('');
   const [editGifResults, setEditGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
   const [editGifSearching, setEditGifSearching] = useState(false);
+  const [entryStatus, setEntryStatus] = useState<'PAID' | 'PENDING' | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   useEffect(() => {
     storage.getToken().then(async (token) => {
@@ -266,6 +271,10 @@ export default function TournamentDetailScreen() {
       .then(setTournament)
       .catch(() => Alert.alert('Error', 'Could not load tournament details.'))
       .finally(() => setLoading(false));
+
+    api.getMyEntry(tournamentId)
+      .then(entry => { if (entry) setEntryStatus(entry.status as 'PAID' | 'PENDING'); })
+      .catch(() => {});
 
     api.getTournamentFeed(tournamentId)
       .then(({ posts: p, nextCursor }) => {
@@ -439,6 +448,57 @@ export default function TournamentDetailScreen() {
     setGifQuery('');
   }, []);
 
+  const handleEnterTournament = useCallback(async () => {
+    if (!tournament) return;
+
+    // Free tournament — go straight to submission
+    if (tournament.entryFeeCents === 0) {
+      navigation.navigate('SubmissionFlow' as any, { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod });
+      return;
+    }
+
+    // Already paid — go straight to submission
+    if (entryStatus === 'PAID') {
+      navigation.navigate('SubmissionFlow' as any, { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod });
+      return;
+    }
+
+    setPaymentLoading(true);
+    try {
+      const { clientSecret, entryFeeCents } = await api.createEntryPaymentIntent(tournament.id);
+
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: 'FishLeague',
+        applePay: { merchantCountryCode: 'US' },
+      });
+      if (initError) {
+        Alert.alert('Payment Error', initError.message);
+        return;
+      }
+
+      const { error: presentError } = await presentPaymentSheet();
+      if (presentError) {
+        if (presentError.code !== 'Canceled') {
+          Alert.alert('Payment Error', presentError.message);
+        }
+        return;
+      }
+
+      // Payment succeeded — webhook will mark PAID on backend
+      setEntryStatus('PAID');
+      Alert.alert(
+        '🎣 You\'re In!',
+        `Entry fee of $${(entryFeeCents / 100).toFixed(2)} paid. Go catch a big one!`,
+        [{ text: 'Submit a Catch', onPress: () => navigation.navigate('SubmissionFlow' as any, { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod }) }, { text: 'OK' }],
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message ?? 'Could not process payment');
+    } finally {
+      setPaymentLoading(false);
+    }
+  }, [tournament, entryStatus, initPaymentSheet, presentPaymentSheet, navigation]);
+
   const isAdminOrDirector = userRole === 'ADMIN' || userRole === 'TOURNAMENT_ADMIN';
 
   if (loading) {
@@ -571,22 +631,40 @@ export default function TournamentDetailScreen() {
             {isOpen && (
               <View style={s.actionRow}>
                 <TouchableOpacity
-                  style={s.shareBtn}
+                  style={[s.enterBtn, paymentLoading && { opacity: 0.6 }]}
                   activeOpacity={0.75}
-                  onPress={() => Share.share({
-                    message: `Watch the live leaderboard for ${tournament.name} 🎣\nhttps://www.fishleague.app/leaderboard/${tournament.id}`,
-                    url: `https://www.fishleague.app/leaderboard/${tournament.id}`,
-                  })}
+                  disabled={paymentLoading}
+                  onPress={handleEnterTournament}
                 >
-                  <Text style={s.shareBtnText}>🔗 Share Leaderboard</Text>
+                  {paymentLoading ? (
+                    <ActivityIndicator size="small" color={colors.bg} />
+                  ) : (
+                    <Text style={s.enterBtnText}>
+                      {entryStatus === 'PAID' || tournament.entryFeeCents === 0
+                        ? '🎣 Submit a Catch'
+                        : `💳 Enter Tournament · ${formatCents(tournament.entryFeeCents)}`}
+                    </Text>
+                  )}
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={s.scanBtn}
-                  activeOpacity={0.75}
-                  onPress={() => navigation.navigate('CheckIn' as any)}
-                >
-                  <Text style={s.scanBtnText}>📱 Scan to Check In</Text>
-                </TouchableOpacity>
+                <View style={s.secondaryRow}>
+                  <TouchableOpacity
+                    style={s.shareBtn}
+                    activeOpacity={0.75}
+                    onPress={() => Share.share({
+                      message: `Watch the live leaderboard for ${tournament.name} 🎣\nhttps://www.fishleague.app/leaderboard/${tournament.id}`,
+                      url: `https://www.fishleague.app/leaderboard/${tournament.id}`,
+                    })}
+                  >
+                    <Text style={s.shareBtnText}>🔗 Share</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={s.scanBtn}
+                    activeOpacity={0.75}
+                    onPress={() => navigation.navigate('CheckIn' as any)}
+                  >
+                    <Text style={s.scanBtnText}>📱 Check In</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </View>
@@ -1020,13 +1098,19 @@ const s = StyleSheet.create({
   descText: { ...typography.bodyMd, color: colors.textSub, lineHeight: 22 },
 
   actionRow: { gap: 8, marginTop: 4 },
+  enterBtn: {
+    paddingVertical: 14, alignItems: 'center',
+    borderRadius: 10, backgroundColor: colors.accent,
+  },
+  enterBtnText: { ...typography.label, color: colors.bg, fontSize: 13 },
+  secondaryRow: { flexDirection: 'row', gap: 8 },
   shareBtn: {
-    paddingVertical: 11, alignItems: 'center',
+    flex: 1, paddingVertical: 11, alignItems: 'center',
     borderRadius: 10, borderWidth: 1, borderColor: colors.border,
   },
   shareBtnText: { ...typography.label, color: colors.textSub },
   scanBtn: {
-    paddingVertical: 11, alignItems: 'center',
+    flex: 1, paddingVertical: 11, alignItems: 'center',
     borderRadius: 10, borderWidth: 1,
     borderColor: colors.accent + '50',
     backgroundColor: colors.accent + '10',
