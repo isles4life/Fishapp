@@ -244,14 +244,19 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-24)
+## Current Status (as of 2026-03-25)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #26 live — all mobile changes shipped
-- Web: GIF/emoji pickers fixed (inline rendering), close button on GIF panel
-- Admin: row action buttons replaced with ⋮ kebab dropdown menus (users + tournaments pages)
-- Web deploy pipeline fixed: Vercel now deploys correctly on push to master
+- iOS TestFlight build #26 live (pending new EAS build for edit-media-bar changes)
+- Edit post form now has full photo/GIF/emoji bar on web and mobile (matches compose bar)
+- Web: edit posts on both /leaderboard and /leaderboard/[id] pages have full media editing
+- Mobile: TournamentDetailScreen edit modal has inline media bar (📎/GIF/😊)
+- Backend: editPost accepts newPhotoKey (S3 key or GIF URL), returns presigned photoUrl
 
 ### Recently Shipped
+- **Edit post media bar** (backend deployed, web deployed, mobile needs EAS build):
+  - Backend `editPost` accepts `newPhotoKey` (S3 key or GIF URL `https://...`); returns presigned `photoUrl` for new photos
+  - Web `/leaderboard` and `/leaderboard/[id]`: edit form shows existing photo with × remove, new media preview, inline GIF picker, inline emoji picker, 📎/GIF/😊 action row — identical to compose bar
+  - Mobile `TournamentDetailScreen`: edit modal (pageSheet) has inline 📎/GIF/😊 row, inline GIF search FlatList, inline emoji grid (4 categories); `handleSaveEdit` uploads photo/GIF before API call
 - **iOS TestFlight build #26** — ships all pending mobile changes since build #23:
   - Tournament Detail Screen: hero banner, director card, check-in count, entry fee/dates, top 3 leaderboard
   - Tournament social feed: paginated posts (CATCH/ANNOUNCEMENT/CHECK_IN/ANGLER_POST), compose bar
