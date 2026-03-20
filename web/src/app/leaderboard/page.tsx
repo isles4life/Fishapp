@@ -535,28 +535,51 @@ export default function LeaderboardPage() {
             </div>
           )}
           {tournament && (
-            <p style={{ color: C.textSub, fontSize: 15, margin: '0 0 4px' }}>
-              <a href={`/leaderboard/${tournament.id}`} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>
-                {tournament.name}
-              </a>
-              {' · '}{tournament.region?.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
-            </p>
+            <a
+              href={`/leaderboard/${tournament.id}`}
+              style={{ textDecoration: 'none', display: 'block', marginBottom: 4 }}
+            >
+              <div style={{
+                background: C.surface,
+                border: `1px solid ${C.accent}50`,
+                borderRadius: 10,
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = C.accent)}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = C.accent + '50')}
+              >
+                <div>
+                  <div style={{ color: C.accent, fontWeight: 700, fontSize: 15 }}>{tournament.name}</div>
+                  <div style={{ color: C.textSub, fontSize: 13, marginTop: 2 }}>
+                    {tournament.region?.name} · Ends {new Date(tournament.endsAt).toLocaleDateString()}
+                  </div>
+                  {(tournament.entryFeeCents > 0 || tournament.prizePoolCents > 0) && (
+                    <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                      {tournament.entryFeeCents > 0 && (
+                        <span style={{ fontSize: 12, color: C.textSub, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 5, padding: '2px 8px' }}>
+                          Entry: {formatCents(tournament.entryFeeCents)}
+                        </span>
+                      )}
+                      {tournament.prizePoolCents > 0 && (
+                        <span style={{ fontSize: 12, color: C.accent, background: C.accent + '18', border: `1px solid ${C.accent}50`, borderRadius: 5, padding: '2px 8px', fontWeight: 700 }}>
+                          🏆 {formatCents(tournament.prizePoolCents)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div style={{ color: C.accent, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', marginLeft: 12 }}>
+                  View Details →
+                </div>
+              </div>
+            </a>
           )}
-          {tournament && (tournament.entryFeeCents > 0 || tournament.prizePoolCents > 0) && (
-            <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-              {tournament.entryFeeCents > 0 && (
-                <span style={{ fontSize: 13, color: C.textSub, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 10px' }}>
-                  Entry: {formatCents(tournament.entryFeeCents)}
-                </span>
-              )}
-              {tournament.prizePoolCents > 0 && (
-                <span style={{ fontSize: 13, color: C.accent, background: C.accent + '18', border: `1px solid ${C.accent}50`, borderRadius: 6, padding: '3px 10px', fontWeight: 700 }}>
-                  🏆 Prize Pool: {formatCents(tournament.prizePoolCents)}
-                </span>
-              )}
-            </div>
-          )}
-          <p style={{ color: C.textMuted, fontSize: 11, margin: '8px 0 0', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+          <p style={{ color: C.textMuted, fontSize: 11, margin: '4px 0 0', letterSpacing: 1.5, textTransform: 'uppercase' }}>
             Auto-refreshes every 30s
           </p>
         </div>
