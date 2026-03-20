@@ -302,6 +302,32 @@ export class TournamentsService {
     return { ...post, photoUrl };
   }
 
+  async editPost(postId: string, userId: string, body: string) {
+    const post = await this.prisma.tournamentPost.findUnique({ where: { id: postId } });
+    if (!post) throw new Error('Post not found');
+    if (post.userId !== userId) throw new Error('Not authorized');
+    if (post.type !== 'ANGLER_POST') throw new Error('Only angler posts can be edited');
+    return this.prisma.tournamentPost.update({
+      where: { id: postId },
+      data: { body },
+      include: { user: { select: { id: true, displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } } },
+    });
+  }
+
+  async deletePost(postId: string, userId: string, userRole: string) {
+    const post = await this.prisma.tournamentPost.findUnique({
+      where: { id: postId },
+      include: { tournament: { select: { directorId: true } } },
+    });
+    if (!post) throw new Error('Post not found');
+    const isAuthor = post.userId === userId;
+    const isAdmin = userRole === 'ADMIN' || userRole === 'TOURNAMENT_ADMIN';
+    const isDirector = post.tournament?.directorId === userId;
+    if (!isAuthor && !isAdmin && !isDirector) throw new Error('Not authorized');
+    await this.prisma.tournamentPost.delete({ where: { id: postId } });
+    return { ok: true };
+  }
+
   async uploadPostMedia(tournamentId: string, buffer: Buffer, contentType: string): Promise<{ photoKey: string }> {
     const ext = contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
     const key = `tournament-posts/${tournamentId}/${Date.now()}.${ext}`;

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request, BadRequestException, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request, BadRequestException, ForbiddenException, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { AdminGuard } from '../common/admin.guard';
@@ -157,6 +157,21 @@ export class TournamentsController {
       body.photoKey,
       body.gifUrl,
     );
+  }
+
+  @Patch('posts/:postId')
+  @UseGuards(JwtAuthGuard)
+  async editPost(@Param('postId') postId: string, @Body() body: { body: string }, @Request() req: any) {
+    if (!body.body?.trim()) throw new BadRequestException('body is required');
+    try { return await this.tournamentsService.editPost(postId, req.user.id, body.body.trim()); }
+    catch (e: any) { if (e.message === 'Not authorized') throw new ForbiddenException(); throw e; }
+  }
+
+  @Delete('posts/:postId')
+  @UseGuards(JwtAuthGuard)
+  async deletePost(@Param('postId') postId: string, @Request() req: any) {
+    try { return await this.tournamentsService.deletePost(postId, req.user.id, req.user.role); }
+    catch (e: any) { if (e.message === 'Not authorized') throw new ForbiddenException(); throw e; }
   }
 
   @Post(':id/posts/media')
