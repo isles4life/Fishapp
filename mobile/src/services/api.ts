@@ -99,6 +99,10 @@ export function getTournaments(): Promise<Tournament[]> {
   return request('/tournaments');
 }
 
+export function getOpenTournaments(): Promise<Tournament[]> {
+  return request('/tournaments/open-all');
+}
+
 export function getClosedTournaments(): Promise<(Tournament & { _count: { submissions: number } })[]> {
   return request('/tournaments/history');
 }

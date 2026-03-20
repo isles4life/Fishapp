@@ -37,6 +37,12 @@ export class TournamentsController {
     return this.tournamentsService.getFirstOpenTournament();
   }
 
+  @Get('open-all')
+  @UseGuards(JwtAuthGuard)
+  listAllOpen() {
+    return this.tournamentsService.listAllOpen();
+  }
+
   @Get(':id')
   getById(@Param('id') id: string) {
     return this.tournamentsService.getById(id);

@@ -114,6 +114,17 @@ export class TournamentsService {
     });
   }
 
+  async listAllOpen() {
+    return this.prisma.tournament.findMany({
+      where: { isOpen: true },
+      orderBy: { startsAt: 'asc' },
+      include: {
+        region: { select: { name: true, minLat: true, maxLat: true, minLng: true, maxLng: true } },
+        _count: { select: { submissions: { where: { status: 'APPROVED' } }, checkIns: true } },
+      },
+    });
+  }
+
   async listAll() {
     return this.prisma.tournament.findMany({
       orderBy: [{ year: 'desc' }, { weekNumber: 'desc' }],
