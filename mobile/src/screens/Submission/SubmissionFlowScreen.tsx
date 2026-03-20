@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, Image, TextInput, SafeAreaView, ScrollView, FlatList,
+  ActivityIndicator, Alert, Image, TextInput, SafeAreaView, ScrollView, FlatList, Linking,
 } from 'react-native';
 
 const COMMON_SPECIES = [
@@ -83,7 +83,11 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
   async function handlePickPhoto() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to upload a photo.');
+      Alert.alert(
+        'Photo Library Access Required',
+        'Please allow photo library access in Settings to upload a photo.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({

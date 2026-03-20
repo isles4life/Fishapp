@@ -2,7 +2,7 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity,
   ActivityIndicator, Image, TextInput, KeyboardAvoidingView, Platform,
-  Alert, Share, Modal, FlatList,
+  Alert, Share, Modal, FlatList, Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import QRCode from 'react-native-qrcode-svg';
@@ -358,7 +358,11 @@ export default function TournamentDetailScreen() {
   const handleEditPickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to attach images.');
+      Alert.alert(
+        'Photo Library Access Required',
+        'Please allow photo library access in Settings to attach images.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -396,7 +400,11 @@ export default function TournamentDetailScreen() {
   const handlePickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to attach images.');
+      Alert.alert(
+        'Photo Library Access Required',
+        'Please allow photo library access in Settings to attach images.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({

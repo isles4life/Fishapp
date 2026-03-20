@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Switch, Alert, Image, Modal, FlatList, SafeAreaView,
+  StyleSheet, ActivityIndicator, Switch, Alert, Image, Modal, FlatList, SafeAreaView, Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -156,7 +156,11 @@ export function ProfileView({
     if (!isOwn) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'Allow photo library access to upload a profile picture.');
+      Alert.alert(
+        'Photo Library Access Required',
+        'Please allow photo library access in Settings to upload a profile picture.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -753,7 +757,11 @@ function EditProfileForm({
   async function handleAvatarPress() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'Allow photo library access to upload a profile picture.');
+      Alert.alert(
+        'Photo Library Access Required',
+        'Please allow photo library access in Settings to upload a profile picture.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
