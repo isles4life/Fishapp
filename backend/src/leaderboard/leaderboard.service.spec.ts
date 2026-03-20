@@ -16,7 +16,10 @@ const mockPrisma = {
 };
 
 const mockGateway = { broadcastLeaderboardUpdate: jest.fn() };
-const mockS3 = { getPresignedUrl: jest.fn().mockResolvedValue('https://s3.example.com/photo.jpg') };
+const mockS3 = {
+  getPresignedUrl: jest.fn().mockResolvedValue('https://s3.example.com/photo.jpg'),
+  resolveProfilePhotoUrl: jest.fn().mockResolvedValue(null),
+};
 
 describe('LeaderboardService', () => {
   let service: LeaderboardService;
