@@ -421,24 +421,35 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
 
                   {/* Action row */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, position: 'relative', flexWrap: 'wrap' }}>
-                    {/* Photo upload */}
-                    <button type="button" onClick={() => photoInputRef.current?.click()}
-                      style={{ background: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: C.textSub, fontSize: 13 }} title="Attach photo">
-                      📷
-                    </button>
-                    <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handlePhotoSelect} style={{ display: 'none' }} />
+                    {/* Shared style for the 3 media buttons */}
+                    {(() => {
+                      const mediaBtnBase: React.CSSProperties = {
+                        width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderRadius: 8, cursor: 'pointer', border: `1px solid ${C.border}`, flexShrink: 0,
+                      };
+                      return (
+                        <>
+                          {/* Attach */}
+                          <button type="button" onClick={() => photoInputRef.current?.click()} title="Attach photo"
+                            style={{ ...mediaBtnBase, background: C.surfaceHigh, fontSize: 16, color: C.textSub }}>
+                            📎
+                          </button>
+                          <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handlePhotoSelect} style={{ display: 'none' }} />
 
-                    {/* GIF picker */}
-                    <button type="button" onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); }}
-                      style={{ background: showGifPicker ? C.accent + '30' : C.surfaceHigh, border: `1px solid ${showGifPicker ? C.accent : C.border}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: showGifPicker ? C.accent : C.textSub, fontSize: 13, fontWeight: 700 }}>
-                      GIF
-                    </button>
+                          {/* GIF */}
+                          <button type="button" onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); }}
+                            style={{ ...mediaBtnBase, background: showGifPicker ? C.accent + '30' : C.surfaceHigh, border: `1px solid ${showGifPicker ? C.accent : C.border}`, color: showGifPicker ? C.accent : C.textSub, fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>
+                            GIF
+                          </button>
 
-                    {/* Emoji picker */}
-                    <button type="button" onClick={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
-                      style={{ background: showEmojiPicker ? C.accent + '30' : C.surfaceHigh, border: `1px solid ${showEmojiPicker ? C.accent : C.border}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: C.textSub, fontSize: 16 }}>
-                      😊
-                    </button>
+                          {/* Emoji */}
+                          <button type="button" onClick={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
+                            style={{ ...mediaBtnBase, background: showEmojiPicker ? C.accent + '30' : C.surfaceHigh, border: `1px solid ${showEmojiPicker ? C.accent : C.border}`, fontSize: 18, lineHeight: 1 }}>
+                            😊
+                          </button>
+                        </>
+                      );
+                    })()}
 
                     {/* Submit */}
                     <button type="submit" disabled={posting || (!postBody.trim() && !postPhoto && !postGif)}
