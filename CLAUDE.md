@@ -213,6 +213,11 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 2. **Stripe entry fees**: Stripe account, payment sheet in mobile, webhook handling, payout logic. First beta tournament free (`entryFeeCents: 0`).
 3. **Facebook Sign-In** (mobile + web only, skip admin): add `facebookId` to User + `FACEBOOK` to AuthProvider enum, `POST /auth/facebook` via Graph API token verification, `expo-auth-session` on mobile, OAuth redirect on web. Requires Facebook App Review (~1 day code, 1–5 days review).
 4. **ARKit LiDAR fish measurement**: Replace credit card measure with tap-to-measure AR on LiDAR iPhones (12 Pro+). Use ViroReact (Expo-compatible, maintained by ReactVision). User taps head + tail of fish; ARKit raycasts to 3D world positions; Euclidean distance = length. Falls back to manual inch entry on non-LiDAR devices (~75% of iPhones). New file: `mobile/src/screens/Submission/ARMeasureScreen.tsx`. Requires physical iPhone Pro for testing (ARKit does not run in simulator). ~4 days effort.
+5. **Android support** (~25–35 hrs total including QA). App is ~75% Android-ready already. Three blocking gaps:
+   - **Google Sign-In**: `expo-apple-authentication` is iOS-only; Android users need an alternative. Add `@react-native-google-signin/google-signin` + `POST /auth/google` backend endpoint + conditional auth button on LoginScreen. (~4–6 hrs)
+   - **Google Pay**: Stripe payment sheet passes `applePay` config only. Enable `googlePay` in `app.json` (`enableGooglePay: true`) + branch on `Platform.OS` in `TournamentDetailScreen` to pass `googlePay: { merchantCountryCode: 'US', currencyCode: 'USD' }` on Android. (~2–3 hrs)
+   - **Firebase Cloud Messaging (FCM)**: Push notifications use APNs on iOS. Android requires Firebase credentials added to EAS build secrets + `google-services.json` in project. (~2–3 hrs)
+   - Minor cleanup: remove unused `RECORD_AUDIO` Android permission; add `minSdkVersion: 24` to app.json android section; add android profile to `mobile/eas.json`.
 
 ## Legal Pages
 - Web: `/legal` — full ToS + Privacy Policy with anchor links (`#terms`, `#privacy`, `#arbitration`)
