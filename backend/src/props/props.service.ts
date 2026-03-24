@@ -44,15 +44,15 @@ export class PropsService {
         user: {
           select: {
             id: true,
-            anglerProfile: { select: { username: true, profilePhotoUrl: true } },
+            profile: { select: { username: true, profilePhotoUrl: true } },
           },
         },
       },
     });
     return props.map(p => ({
       id: p.user.id,
-      displayName: p.user.anglerProfile?.username ?? 'Angler',
-      profilePhotoUrl: p.user.anglerProfile?.profilePhotoUrl ?? null,
+      displayName: p.user.profile?.username ?? 'Angler',
+      profilePhotoUrl: p.user.profile?.profilePhotoUrl ?? null,
     }));
   }
 }
