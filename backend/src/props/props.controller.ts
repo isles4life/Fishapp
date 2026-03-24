@@ -17,4 +17,9 @@ export class PropsController {
     const userId = req.user?.id;
     return this.propsService.getState(id, userId);
   }
+
+  @Get(':id/props/who')
+  getWho(@Param('id') id: string) {
+    return this.propsService.getWho(id);
+  }
 }

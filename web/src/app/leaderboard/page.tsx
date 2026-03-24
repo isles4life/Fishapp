@@ -72,10 +72,51 @@ function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function PropsWhoModal({ submissionId, onClose }: { submissionId: string; onClose: () => void }) {
+  const [proppers, setProppers] = useState<{ id: string; displayName: string; profilePhotoUrl: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getPropsWho(submissionId).then(setProppers).catch(() => {}).finally(() => setLoading(false));
+  }, [submissionId]);
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: C.surface, borderRadius: 16, padding: '20px 24px',
+        minWidth: 280, maxWidth: 360, maxHeight: 400, overflowY: 'auto',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>Props</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: 20 }}>×</button>
+        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '16px 0', color: C.textMuted }}>Loading…</div>
+        ) : proppers.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '16px 0', color: C.textMuted }}>No props yet — be the first!</div>
+        ) : proppers.map(p => (
+          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
+            {p.profilePhotoUrl
+              ? <img src={p.profilePhotoUrl} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} alt="" />
+              : <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: C.accent, fontSize: 13 }}>{p.displayName[0]?.toUpperCase()}</div>
+            }
+            <span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>{p.displayName}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PropButton({ submissionId }: { submissionId: string }) {
   const [propped, setPropped] = useState(false);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showWho, setShowWho] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -101,20 +142,31 @@ function PropButton({ submissionId }: { submissionId: string }) {
   }
 
   return (
-    <button
-      onClick={handleToggle}
-      disabled={loading}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 4,
-        background: propped ? C.accent + '20' : C.surfaceHigh,
-        border: `1px solid ${propped ? C.accent + '70' : C.border}`,
-        borderRadius: 8, padding: '4px 10px', cursor: loading ? 'wait' : 'pointer',
-        fontSize: 12, fontWeight: 700,
-        color: propped ? C.accent : C.textMuted,
-      }}
-    >
-      👍 {count}
-    </button>
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button
+          onClick={handleToggle}
+          disabled={loading}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: propped ? C.accent + '20' : C.surfaceHigh,
+            border: `1px solid ${propped ? C.accent + '70' : C.border}`,
+            borderRadius: 8, padding: '4px 10px', cursor: loading ? 'wait' : 'pointer',
+            fontSize: 12, fontWeight: 700,
+            color: propped ? C.accent : C.textMuted,
+          }}
+        >
+          👍 {count}
+        </button>
+        {count > 0 && (
+          <button onClick={() => setShowWho(true)} style={{
+            background: 'none', border: 'none', color: C.accent, cursor: 'pointer',
+            fontSize: 12, fontWeight: 600, padding: '4px 2px',
+          }}>who?</button>
+        )}
+      </div>
+      {showWho && <PropsWhoModal submissionId={submissionId} onClose={() => setShowWho(false)} />}
+    </>
   );
 }
 

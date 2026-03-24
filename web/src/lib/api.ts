@@ -235,6 +235,8 @@ export const api = {
     apiFetch<{ propped: boolean; count: number }>(`/submissions/${submissionId}/prop`, { method: 'POST' }, true),
   getProps: (submissionId: string) =>
     apiFetch<{ count: number; userHasPropped: boolean }>(`/submissions/${submissionId}/props`, undefined, false),
+  getPropsWho: (submissionId: string) =>
+    apiFetch<{ id: string; displayName: string; profilePhotoUrl: string | null }[]>(`/submissions/${submissionId}/props/who`, undefined, false),
   getComments: (submissionId: string) =>
     apiFetch<CatchComment[]>(`/submissions/${submissionId}/comments`, undefined, false),
   addComment: (submissionId: string, body: string) =>

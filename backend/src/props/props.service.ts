@@ -35,4 +35,24 @@ export class PropsService {
     }
     return { count, userHasPropped };
   }
+
+  async getWho(submissionId: string): Promise<{ id: string; displayName: string; profilePhotoUrl: string | null }[]> {
+    const props = await this.prisma.catchProp.findMany({
+      where: { submissionId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            anglerProfile: { select: { username: true, profilePhotoUrl: true } },
+          },
+        },
+      },
+    });
+    return props.map(p => ({
+      id: p.user.id,
+      displayName: p.user.anglerProfile?.username ?? 'Angler',
+      profilePhotoUrl: p.user.anglerProfile?.profilePhotoUrl ?? null,
+    }));
+  }
 }

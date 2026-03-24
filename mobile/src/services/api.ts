@@ -215,6 +215,10 @@ export function getProps(submissionId: string): Promise<{ count: number; userHas
   return request(`/submissions/${submissionId}/props`, {}, false);
 }
 
+export function getPropsWho(submissionId: string): Promise<{ id: string; displayName: string; profilePhotoUrl: string | null }[]> {
+  return request(`/submissions/${submissionId}/props/who`, {}, false);
+}
+
 // ── Comments ──────────────────────────────────────────────────────────────────
 
 export function getComments(submissionId: string): Promise<CatchComment[]> {

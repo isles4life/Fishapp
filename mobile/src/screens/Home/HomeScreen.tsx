@@ -71,10 +71,57 @@ function TournamentBanner({ tournament }: { tournament: Tournament }) {
   );
 }
 
+type Propper = { id: string; displayName: string; profilePhotoUrl: string | null };
+
+function PropsWhoModal({ submissionId, onClose }: { submissionId: string; onClose: () => void }) {
+  const [proppers, setProppers] = useState<Propper[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getPropsWho(submissionId)
+      .then(setProppers)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [submissionId]);
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
+      <View style={styles.propsSheet}>
+        <View style={styles.propsSheetHandle} />
+        <Text style={styles.propsSheetTitle}>Props</Text>
+        {loading ? (
+          <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
+        ) : proppers.length === 0 ? (
+          <Text style={styles.propsEmpty}>No props yet — be the first!</Text>
+        ) : (
+          <FlatList
+            data={proppers}
+            keyExtractor={p => p.id}
+            renderItem={({ item }) => (
+              <View style={styles.propperRow}>
+                {item.profilePhotoUrl ? (
+                  <Image source={{ uri: item.profilePhotoUrl }} style={styles.propperAvatar} />
+                ) : (
+                  <View style={[styles.propperAvatar, styles.propperAvatarFallback]}>
+                    <Text style={styles.propperInitial}>{item.displayName[0]?.toUpperCase()}</Text>
+                  </View>
+                )}
+                <Text style={styles.propperName}>{item.displayName}</Text>
+              </View>
+            )}
+          />
+        )}
+      </View>
+    </Modal>
+  );
+}
+
 function PropButton({ submissionId, initialCount }: { submissionId: string; initialCount: number }) {
   const [propped, setPropped] = useState(false);
   const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
+  const [showWho, setShowWho] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -97,17 +144,26 @@ function PropButton({ submissionId, initialCount }: { submissionId: string; init
   }
 
   return (
-    <TouchableOpacity
-      style={[styles.feedActionBtn, propped && styles.feedActionBtnActive]}
-      onPress={handleToggle}
-      disabled={loading}
-      activeOpacity={0.7}
-    >
-      <Text style={styles.feedActionIcon}>👍</Text>
-      <Text style={[styles.feedActionText, propped && { color: colors.accent }]}>
-        PROPS{count > 0 ? ` ${count}` : ''}
-      </Text>
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={[styles.feedActionBtn, propped && styles.feedActionBtnActive]}
+        onPress={handleToggle}
+        onLongPress={() => count > 0 && setShowWho(true)}
+        disabled={loading}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.feedActionIcon}>👍</Text>
+        <Text style={[styles.feedActionText, propped && { color: colors.accent }]}>
+          PROPS{count > 0 ? ` ${count}` : ''}
+        </Text>
+      </TouchableOpacity>
+      {count > 0 && (
+        <TouchableOpacity onPress={() => setShowWho(true)}>
+          <Text style={styles.propsWhoLink}>who?</Text>
+        </TouchableOpacity>
+      )}
+      {showWho && <PropsWhoModal submissionId={submissionId} onClose={() => setShowWho(false)} />}
+    </>
   );
 }
 
@@ -911,6 +967,72 @@ const styles = StyleSheet.create({
     ...typography.bodyMd,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+  propsWhoLink: {
+    ...typography.labelSm,
+    color: colors.accent,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  propsSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    maxHeight: '60%',
+  },
+  propsSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.textMuted,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  propsSheetTitle: {
+    ...typography.headingMd,
+    color: colors.text,
+    marginBottom: 16,
+  },
+  propsEmpty: {
+    ...typography.bodyMd,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  propperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  propperAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 12,
+  },
+  propperAvatarFallback: {
+    backgroundColor: colors.surfaceHigh,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  propperInitial: {
+    ...typography.labelSm,
+    color: colors.accent,
+    fontWeight: '700',
+  },
+  propperName: {
+    ...typography.bodyMd,
+    color: colors.text,
   },
 });
 
