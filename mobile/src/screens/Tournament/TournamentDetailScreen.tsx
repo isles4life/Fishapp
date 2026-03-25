@@ -198,6 +198,12 @@ function CommentPropsWhoModal({ fetchWho, onClose }: { fetchWho: () => Promise<P
 
 // ── Post Comments ─────────────────────────────────────────────────────────────
 
+const COMMENT_EMOJI_CATS = [
+  { label: '🎣 Fishing', emojis: ['🎣','🐟','🐠','🐡','🦈','🌊','⚓','🚤','🛶','🏖️','🌅','🎯'] },
+  { label: '🏆 Sports', emojis: ['🏆','🥇','🥈','🥉','💪','🤙','👊','🙌','👏','🎉','🔥','⚡'] },
+  { label: '😀 Faces', emojis: ['😀','😂','🤣','😍','😎','🤩','😅','😭','🥳','😤','🤯','😱'] },
+];
+
 function PostComments({ postId, currentUserId }: { postId: string; currentUserId: string | null }) {
   const navigation = useNavigation<any>();
   const [comments, setComments] = useState<api.PostComment[]>([]);
@@ -205,19 +211,39 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
   const [sending, setSending] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [whoCommentId, setWhoCommentId] = useState<string | null>(null);
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
+  const [gifSearching, setGifSearching] = useState(false);
 
   useEffect(() => {
     api.getPostComments(postId).then(setComments).catch(() => {});
   }, [postId]);
 
+  async function searchCommentGifs(q: string) {
+    if (!q.trim()) return;
+    setGifSearching(true);
+    try {
+      const res = await fetch(`${api.BASE_URL}/gifs/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setGifResults(data.data ?? []);
+    } catch { setGifResults([]); }
+    finally { setGifSearching(false); }
+  }
+
   async function handleSend() {
     const trimmed = body.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed && !gifUrl || sending) return;
     setSending(true);
     try {
-      const c = await api.addPostComment(postId, trimmed);
+      const c = await api.addPostComment(postId, trimmed, gifUrl ?? undefined);
       setComments(prev => [c, ...prev]);
       setBody('');
+      setGifUrl(null);
+      setShowGifPicker(false);
+      setShowEmojiPicker(false);
       setExpanded(true);
     } catch { /* silent */ }
     finally { setSending(false); }
@@ -285,6 +311,7 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
                   )}
                 </View>
                 <Text style={ps.commentBody}>{renderWithMentions(c.body, (u) => navigation.navigate('PublicProfile', { username: u }))}</Text>
+                {c.gifUrl ? <Image source={{ uri: c.gifUrl }} style={{ width: '100%', height: 120, borderRadius: 8, marginTop: 4 }} resizeMode="cover" /> : null}
               </View>
             </View>
           );
@@ -292,21 +319,92 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
       )}
 
       {currentUserId && (
-        <View style={ps.commentInputRow}>
-          <MentionTextInput
-            style={ps.commentInput}
-            placeholder="Add a comment…"
-            value={body}
-            onChangeText={setBody}
-            onSend={handleSend}
-          />
-          <TouchableOpacity
-            style={[ps.commentSend, (!body.trim() || sending) && { opacity: 0.4 }]}
-            onPress={handleSend}
-            disabled={!body.trim() || sending}
-          >
-            <Text style={ps.commentSendText}>Post</Text>
-          </TouchableOpacity>
+        <View>
+          <View style={ps.commentInputRow}>
+            <MentionTextInput
+              style={ps.commentInput}
+              placeholder="Add a comment…"
+              value={body}
+              onChangeText={setBody}
+              onSend={handleSend}
+            />
+            <TouchableOpacity
+              style={[ps.commentSend, ((!body.trim() && !gifUrl) || sending) && { opacity: 0.4 }]}
+              onPress={handleSend}
+              disabled={(!body.trim() && !gifUrl) || sending}
+            >
+              <Text style={ps.commentSendText}>Post</Text>
+            </TouchableOpacity>
+          </View>
+          {gifUrl ? (
+            <View style={{ marginTop: 4, position: 'relative', alignSelf: 'flex-start' }}>
+              <Image source={{ uri: gifUrl }} style={{ height: 80, width: 120, borderRadius: 8 }} resizeMode="cover" />
+              <TouchableOpacity onPress={() => setGifUrl(null)} style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 11, lineHeight: 14 }}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+            <TouchableOpacity onPress={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setGifQuery(''); setGifResults([]); }}
+              style={{ borderWidth: 1, borderColor: showGifPicker ? colors.accent : colors.textMuted, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Text style={{ color: showGifPicker ? colors.accent : colors.textMuted, fontSize: 11, fontWeight: '700' }}>GIF</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
+              style={{ borderWidth: 1, borderColor: showEmojiPicker ? colors.accent : colors.textMuted, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Text style={{ fontSize: 15 }}>😊</Text>
+            </TouchableOpacity>
+          </View>
+          {showEmojiPicker && (
+            <View style={{ marginTop: 8, backgroundColor: colors.surfaceHigh, borderRadius: 10, padding: 10 }}>
+              {COMMENT_EMOJI_CATS.map(cat => (
+                <View key={cat.label} style={{ marginBottom: 8 }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1.2, marginBottom: 4 }}>{cat.label}</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 2 }}>
+                    {cat.emojis.map(em => (
+                      <TouchableOpacity key={em} onPress={() => setBody(b => b + em)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
+                        <Text style={{ fontSize: 20, padding: 3 }}>{em}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+          {showGifPicker && (
+            <View style={{ marginTop: 8, backgroundColor: colors.surfaceHigh, borderRadius: 10, padding: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                <TextInput
+                  value={gifQuery}
+                  onChangeText={setGifQuery}
+                  onSubmitEditing={() => searchCommentGifs(gifQuery)}
+                  placeholder="Search GIFs…"
+                  placeholderTextColor={colors.textMuted}
+                  style={{ flex: 1, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.textMuted, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, color: colors.text, fontSize: 12 }}
+                  autoFocus
+                />
+                <TouchableOpacity onPress={() => searchCommentGifs(gifQuery)} style={{ backgroundColor: colors.accent, borderRadius: 6, paddingHorizontal: 12, justifyContent: 'center' }}>
+                  <Text style={{ color: colors.bg, fontWeight: '700', fontSize: 12 }}>Search</Text>
+                </TouchableOpacity>
+              </View>
+              {gifSearching && <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', padding: 12 }}>Searching…</Text>}
+              {!gifSearching && gifResults.length > 0 && (
+                <FlatList
+                  data={gifResults}
+                  numColumns={3}
+                  keyExtractor={g => g.id}
+                  style={{ maxHeight: 180 }}
+                  renderItem={({ item: g }) => (
+                    <TouchableOpacity onPress={() => { setGifUrl(g.full); setShowGifPicker(false); }} style={{ flex: 1, aspectRatio: 1, margin: 2, borderRadius: 6, overflow: 'hidden', backgroundColor: colors.bg }}>
+                      <Image source={{ uri: g.preview }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+              {!gifSearching && gifResults.length === 0 && (
+                <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', padding: 10 }}>{gifQuery ? 'No results.' : 'Search for a GIF above'}</Text>
+              )}
+            </View>
+          )}
         </View>
       )}
       {whoCommentId && (
