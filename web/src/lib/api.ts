@@ -199,6 +199,7 @@ export interface HotSpot {
   lng: number;
   species: string;
   lengthCm: number;
+  photoUrl?: string | null;
 }
 
 // ── Fishing Intelligence ───────────────────────────────────────────────────
