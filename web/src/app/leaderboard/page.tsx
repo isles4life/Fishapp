@@ -323,6 +323,15 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
   const [editBody, setEditBody] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [whoCommentId, setWhoCommentId] = useState<string | null>(null);
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
+  const [gifSearching, setGifSearching] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.getComments(submissionId)
@@ -331,14 +340,44 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
       .finally(() => setLoading(false));
   }, [submissionId]);
 
+  async function searchGifsComment(q: string) {
+    if (!q.trim()) return;
+    setGifSearching(true);
+    try {
+      const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app';
+      const res = await fetch(`${BASE}/gifs/search?q=${encodeURIComponent(q)}`);
+      if (res.ok) { const data = await res.json(); setGifResults(data.data ?? []); }
+    } catch { /* silent */ } finally { setGifSearching(false); }
+  }
+
+  function handlePhotoSelectComment(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setGifUrl(null);
+    const reader = new FileReader();
+    reader.onload = ev => setPhotoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  }
+
   async function doSubmit() {
     const trimmed = body.trim();
-    if (!trimmed || submitting) return;
+    if (!trimmed && !gifUrl && !photoFile || submitting) return;
     setSubmitting(true);
     try {
-      const comment = await api.addComment(submissionId, trimmed);
+      let photoKey: string | undefined;
+      if (photoFile) {
+        const r = await api.uploadCommentMedia(submissionId, photoFile);
+        photoKey = r.photoKey;
+      }
+      const comment = await api.addComment(submissionId, trimmed, gifUrl ?? undefined, photoKey);
       setComments(prev => [comment, ...prev]);
       setBody('');
+      setGifUrl(null);
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setShowGifPicker(false);
     } catch { /* silently handle */ }
     finally { setSubmitting(false); }
   }
@@ -445,7 +484,13 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
                   </button>
                 </div>
               ) : (
-                <span style={{ fontSize: 13, color: C.text }}>{renderWithMentions(c.body, C.accent)}</span>
+                <>
+                  <span style={{ fontSize: 13, color: C.text }}>{renderWithMentions(c.body, C.accent)}</span>
+                  {(c.gifUrl || c.photoUrl) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.gifUrl ?? c.photoUrl ?? ''} alt="" style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, marginTop: 4, display: 'block' }} />
+                  )}
+                </>
               )}
               </div>
             </div>
@@ -466,16 +511,78 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
         />
         <button
           onClick={doSubmit}
-          disabled={!body.trim() || submitting}
+          disabled={(!body.trim() && !gifUrl && !photoFile) || submitting}
           style={{
             background: C.accent, color: C.bg, border: 'none',
             borderRadius: 8, padding: '7px 16px', cursor: 'pointer',
-            fontWeight: 700, fontSize: 13, opacity: (!body.trim() || submitting) ? 0.5 : 1, flexShrink: 0,
+            fontWeight: 700, fontSize: 13, opacity: ((!body.trim() && !gifUrl && !photoFile) || submitting) ? 0.5 : 1, flexShrink: 0,
           }}
         >
           {submitting ? '…' : 'Post'}
         </button>
       </div>
+      {(gifUrl || photoPreview) && (
+        <div style={{ position: 'relative', display: 'inline-block', marginTop: 6 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={gifUrl ?? photoPreview ?? ''} alt="" style={{ maxHeight: 100, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block' }} />
+          <button onClick={() => { setGifUrl(null); setPhotoFile(null); setPhotoPreview(null); }} style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+        <button onClick={() => photoInputRef.current?.click()} title="Attach photo"
+          style={{ background: 'none', border: `1px solid ${photoFile ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1, color: photoFile ? C.accent : C.textSub }}>📎</button>
+        <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoSelectComment} style={{ display: 'none' }} />
+        <button onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setGifQuery(''); setGifResults([]); }}
+          style={{ background: 'none', border: `1px solid ${showGifPicker ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: showGifPicker ? C.accent : C.textSub, fontSize: 11, fontWeight: 700 }}>GIF</button>
+        <button onClick={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
+          style={{ background: 'none', border: `1px solid ${showEmojiPicker ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>😊</button>
+      </div>
+      {showEmojiPicker && (
+        <div style={{ marginTop: 8, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
+          {[
+            { label: '🎣 Fishing', emojis: ['🎣','🐟','🐠','🐡','🦈','🌊','⚓','🚤','🛶','🏖️','🌅','🎯'] },
+            { label: '🏆 Sports', emojis: ['🏆','🥇','🥈','🥉','💪','🤙','👊','🙌','👏','🎉','🔥','⚡'] },
+            { label: '😀 Faces', emojis: ['😀','😂','🤣','😍','😎','🤩','😅','😭','🥳','😤','🤯','😱'] },
+          ].map(cat => (
+            <div key={cat.label} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>{cat.label}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                {cat.emojis.map(em => (
+                  <button key={em} onClick={() => setBody(b => b + em)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: '2px 3px', borderRadius: 4 }}>
+                    {em}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {showGifPicker && (
+        <div style={{ marginTop: 8, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <input value={gifQuery} onChange={e => setGifQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchGifsComment(gifQuery))}
+              placeholder="Search GIFs…" autoFocus
+              style={{ flex: 1, padding: '6px 10px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, outline: 'none' }} />
+            <button onClick={() => searchGifsComment(gifQuery)} style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>Search</button>
+          </div>
+          {gifSearching && <div style={{ color: C.textMuted, fontSize: 12, textAlign: 'center', padding: 12 }}>Searching…</div>}
+          {!gifSearching && gifResults.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
+              {gifResults.map(g => (
+                <button key={g.id} onClick={() => { setGifUrl(g.full); setPhotoFile(null); setPhotoPreview(null); setShowGifPicker(false); }}
+                  style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', padding: 0, aspectRatio: '1', backgroundColor: C.bg }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={g.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </button>
+              ))}
+            </div>
+          )}
+          {!gifSearching && gifResults.length === 0 && (
+            <div style={{ color: C.textMuted, fontSize: 12, textAlign: 'center', padding: 10 }}>{gifQuery ? 'No results.' : 'Search for a GIF above'}</div>
+          )}
+        </div>
+      )}
       {whoCommentId && (
         <CommentPropsWhoModal
           fetchWho={() => api.getCommentPropsWho(whoCommentId)}
@@ -486,7 +593,7 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
   );
 }
 
-function PostComments({ postId, myUserId }: { postId: string; myUserId: string | null }) {
+function PostComments({ postId, tournamentId, myUserId }: { postId: string; tournamentId: string; myUserId: string | null }) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -498,6 +605,9 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
   const [gifQuery, setGifQuery] = useState('');
   const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
   const [gifSearching, setGifSearching] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const loggedIn = isLoggedIn();
 
   useEffect(() => {
@@ -519,13 +629,31 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
     if (!trimmed && !gifUrl || sending) return;
     setSending(true);
     try {
-      const c = await api.addPostComment(postId, trimmed, gifUrl ?? undefined);
+      let photoKey: string | undefined;
+      if (photoFile) {
+        const r = await api.uploadPostMedia(tournamentId, photoFile);
+        photoKey = r.photoKey;
+      }
+      const c = await api.addPostComment(postId, trimmed, gifUrl ?? undefined, photoKey);
       setComments(prev => [c, ...prev]);
       setBody('');
       setGifUrl(null);
+      setPhotoFile(null);
+      setPhotoPreview(null);
       setShowGifPicker(false);
       setExpanded(true);
     } catch { /* silent */ } finally { setSending(false); }
+  }
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setGifUrl(null);
+    const reader = new FileReader();
+    reader.onload = ev => setPhotoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    if (photoInputRef.current) photoInputRef.current.value = '';
   }
 
   async function handleDelete(commentId: string) {
@@ -585,9 +713,9 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
                     )}
                   </div>
                   <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.5 }}>{renderWithMentions(c.body, C.accent)}</div>
-                  {c.gifUrl && (
+                  {(c.gifUrl || c.photoUrl) && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.gifUrl} alt="" style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, marginTop: 4, display: 'block' }} />
+                    <img src={c.gifUrl ?? c.photoUrl ?? ''} alt="" style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, marginTop: 4, display: 'block' }} />
                   )}
                 </div>
               </div>
@@ -600,19 +728,22 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
           <div style={{ display: 'flex', gap: 8 }}>
             <MentionInput value={body} onChange={setBody} onSubmit={handleSend} placeholder="Add a comment…"
               accentColor={C.accent} surfaceColor={C.surface} borderColor={C.border} textColor={C.text} />
-            <button onClick={handleSend} disabled={(!body.trim() && !gifUrl) || sending}
-              style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: ((!body.trim() && !gifUrl) || sending) ? 0.5 : 1, flexShrink: 0 }}>
+            <button onClick={handleSend} disabled={(!body.trim() && !gifUrl && !photoFile) || sending}
+              style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: ((!body.trim() && !gifUrl && !photoFile) || sending) ? 0.5 : 1, flexShrink: 0 }}>
               Post
             </button>
           </div>
-          {gifUrl && (
+          {(gifUrl || photoPreview) && (
             <div style={{ position: 'relative', display: 'inline-block', marginTop: 6 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={gifUrl} alt="" style={{ maxHeight: 100, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block' }} />
-              <button onClick={() => setGifUrl(null)} style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              <img src={gifUrl ?? photoPreview ?? ''} alt="" style={{ maxHeight: 100, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block' }} />
+              <button onClick={() => { setGifUrl(null); setPhotoFile(null); setPhotoPreview(null); }} style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
           )}
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <button onClick={() => photoInputRef.current?.click()} title="Attach photo"
+              style={{ background: 'none', border: `1px solid ${photoFile ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1, color: photoFile ? C.accent : C.textSub }}>📎</button>
+            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoSelect} style={{ display: 'none' }} />
             <button onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setGifQuery(''); setGifResults([]); }}
               style={{ background: 'none', border: `1px solid ${showGifPicker ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: showGifPicker ? C.accent : C.textSub, fontSize: 11, fontWeight: 700 }}>GIF</button>
             <button onClick={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
@@ -1413,7 +1544,7 @@ export default function LeaderboardPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={post.photoUrl} alt="" onClick={() => setLightboxUrl(post.photoUrl!)} style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}`, cursor: 'pointer' }} />
                     )}
-                    {!isEditing && <PostComments postId={post.id} myUserId={myUserId} />}
+                    {!isEditing && <PostComments postId={post.id} tournamentId={selectedId ?? ''} myUserId={myUserId} />}
                   </div>
                 );
               })}

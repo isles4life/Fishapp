@@ -481,6 +481,7 @@ export class TournamentsService {
     });
     const resolved = await Promise.all(comments.map(async c => ({
       ...c,
+      photoUrl: (c as any).photoKey ? await this.s3.getPresignedUrl((c as any).photoKey) : null,
       user: {
         ...c.user,
         profile: c.user.profile
@@ -545,11 +546,11 @@ export class TournamentsService {
     await Promise.all(pushes);
   }
 
-  async addPostComment(postId: string, userId: string, body: string, gifUrl?: string) {
+  async addPostComment(postId: string, userId: string, body: string, gifUrl?: string, photoKey?: string) {
     const post = await this.prisma.tournamentPost.findUnique({ where: { id: postId } });
     if (!post) throw new NotFoundException('Post not found');
     const comment = await this.prisma.tournamentPostComment.create({
-      data: { postId, userId, body, ...(gifUrl ? { gifUrl } : {}) },
+      data: { postId, userId, body, ...(gifUrl ? { gifUrl } : {}), ...(photoKey ? { photoKey } : {}) },
       include: {
         user: {
           select: {
@@ -563,8 +564,10 @@ export class TournamentsService {
     });
     this.notifyMentions(body, userId, comment.user.profile?.username ?? null).catch(() => {});
     const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(comment.user.profile?.profilePhotoUrl);
+    const photoUrl = (comment as any).photoKey ? await this.s3.getPresignedUrl((comment as any).photoKey) : null;
     return {
       ...comment,
+      photoUrl,
       propCount: 0,
       userHasPropped: false,
       user: { ...comment.user, profile: comment.user.profile ? { ...comment.user.profile, profilePhotoUrl } : null },

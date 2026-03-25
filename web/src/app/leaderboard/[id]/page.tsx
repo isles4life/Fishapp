@@ -185,7 +185,7 @@ function CommentPropsWhoModal({ fetchWho, onClose }: { fetchWho: () => Promise<{
   );
 }
 
-function PostComments({ postId, myUserId }: { postId: string; myUserId: string | null }) {
+function PostComments({ postId, tournamentId, myUserId }: { postId: string; tournamentId: string; myUserId: string | null }) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -197,6 +197,9 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
   const [gifQuery, setGifQuery] = useState('');
   const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
   const [gifSearching, setGifSearching] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const loggedIn = checkLogin();
 
   useEffect(() => {
@@ -215,16 +218,34 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
 
   async function handleSend() {
     const trimmed = body.trim();
-    if (!trimmed && !gifUrl || sending) return;
+    if (!trimmed && !gifUrl && !photoFile || sending) return;
     setSending(true);
     try {
-      const c = await api.addPostComment(postId, trimmed, gifUrl ?? undefined);
+      let photoKey: string | undefined;
+      if (photoFile) {
+        const r = await api.uploadPostMedia(tournamentId, photoFile);
+        photoKey = r.photoKey;
+      }
+      const c = await api.addPostComment(postId, trimmed, gifUrl ?? undefined, photoKey);
       setComments(prev => [c, ...prev]);
       setBody('');
       setGifUrl(null);
+      setPhotoFile(null);
+      setPhotoPreview(null);
       setShowGifPicker(false);
       setExpanded(true);
     } catch { /* silent */ } finally { setSending(false); }
+  }
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setGifUrl(null);
+    const reader = new FileReader();
+    reader.onload = ev => setPhotoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    if (photoInputRef.current) photoInputRef.current.value = '';
   }
 
   async function handleDelete(commentId: string) {
@@ -283,8 +304,8 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
                     )}
                   </div>
                   <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.5 }}>{renderWithMentions(c.body)}</div>
-                  {c.gifUrl && (
-                    <img src={c.gifUrl} alt="" style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, marginTop: 4, display: 'block' }} />
+                  {(c.gifUrl || c.photoUrl) && (
+                    <img src={c.gifUrl ?? c.photoUrl ?? ''} alt="" style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, marginTop: 4, display: 'block' }} />
                   )}
                 </div>
               </div>
@@ -296,18 +317,21 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
         <div>
           <div style={{ display: 'flex', gap: 8 }}>
             <MentionInput value={body} onChange={setBody} onSubmit={handleSend} placeholder="Add a comment…" />
-            <button onClick={handleSend} disabled={(!body.trim() && !gifUrl) || sending}
-              style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: ((!body.trim() && !gifUrl) || sending) ? 0.5 : 1, flexShrink: 0 }}>
+            <button onClick={handleSend} disabled={(!body.trim() && !gifUrl && !photoFile) || sending}
+              style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: ((!body.trim() && !gifUrl && !photoFile) || sending) ? 0.5 : 1, flexShrink: 0 }}>
               Post
             </button>
           </div>
-          {gifUrl && (
+          {(gifUrl || photoPreview) && (
             <div style={{ position: 'relative', display: 'inline-block', marginTop: 6 }}>
-              <img src={gifUrl} alt="" style={{ maxHeight: 100, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block' }} />
-              <button onClick={() => setGifUrl(null)} style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              <img src={gifUrl ?? photoPreview ?? ''} alt="" style={{ maxHeight: 100, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block' }} />
+              <button onClick={() => { setGifUrl(null); setPhotoFile(null); setPhotoPreview(null); }} style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
           )}
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <button onClick={() => photoInputRef.current?.click()} title="Attach photo"
+              style={{ background: 'none', border: `1px solid ${photoFile ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1, color: photoFile ? C.accent : C.textSub }}>📎</button>
+            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoSelect} style={{ display: 'none' }} />
             <button onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setGifQuery(''); setGifResults([]); }}
               style={{ background: 'none', border: `1px solid ${showGifPicker ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: showGifPicker ? C.accent : C.textSub, fontSize: 11, fontWeight: 700 }}>GIF</button>
             <button onClick={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
@@ -1129,7 +1153,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                           <img src={post.photoUrl} alt="" onClick={() => setLightboxUrl(post.photoUrl!)} style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}`, cursor: 'pointer' }} />
                         )}
 
-                        <PostComments postId={post.id} myUserId={myUserId} />
+                        <PostComments postId={post.id} tournamentId={params.id} myUserId={myUserId} />
                       </div>
                     );
                   })}

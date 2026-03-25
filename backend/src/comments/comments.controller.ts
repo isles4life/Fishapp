@@ -1,6 +1,8 @@
 import {
   Controller, Get, Post, Delete, Patch, Param, Body, Request, UseGuards,
+  BadRequestException, UploadedFile, UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { CommentsService } from './comments.service';
 
@@ -17,10 +19,21 @@ export class CommentsController {
   @UseGuards(JwtAuthGuard)
   addComment(
     @Param('id') id: string,
-    @Body('body') body: string,
+    @Body() body: { body?: string; gifUrl?: string; photoKey?: string },
     @Request() req: any,
   ) {
-    return this.commentsService.addComment(id, req.user.id, body);
+    return this.commentsService.addComment(id, req.user.id, body.body ?? '', body.gifUrl, body.photoKey);
+  }
+
+  @Post('submissions/:id/comments/media')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('photo'))
+  async uploadCommentMedia(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('photo is required');
+    return this.commentsService.uploadCommentMedia(id, file.buffer, file.mimetype);
   }
 
   @Patch('comments/:commentId')

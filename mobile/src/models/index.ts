@@ -106,6 +106,8 @@ export interface CatchComment {
   submissionId: string;
   userId: string;
   body: string;
+  gifUrl?: string | null;
+  photoUrl?: string | null;
   createdAt: string;
   propCount?: number;
   userHasPropped?: boolean;

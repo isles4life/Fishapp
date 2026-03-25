@@ -90,6 +90,7 @@ export interface PostComment {
   userId: string;
   body: string;
   gifUrl?: string | null;
+  photoUrl?: string | null;
   propCount?: number;
   userHasPropped?: boolean;
   createdAt: string;
@@ -106,6 +107,7 @@ export interface LeaderboardEntry {
 }
 export interface CatchComment {
   id: string; submissionId: string; userId: string; body: string; createdAt: string;
+  gifUrl?: string | null; photoUrl?: string | null;
   propCount?: number; userHasPropped?: boolean;
   user: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null };
 }
@@ -252,8 +254,13 @@ export const api = {
     apiFetch<{ id: string; displayName: string; profilePhotoUrl: string | null }[]>(`/submissions/${submissionId}/props/who`, undefined, false),
   getComments: (submissionId: string) =>
     apiFetch<CatchComment[]>(`/submissions/${submissionId}/comments`, undefined, false),
-  addComment: (submissionId: string, body: string) =>
-    apiFetch<CatchComment>(`/submissions/${submissionId}/comments`, { method: 'POST', body: JSON.stringify({ body }) }, true),
+  addComment: (submissionId: string, body: string, gifUrl?: string, photoKey?: string) =>
+    apiFetch<CatchComment>(`/submissions/${submissionId}/comments`, { method: 'POST', body: JSON.stringify({ body, gifUrl, photoKey }) }, true),
+  uploadCommentMedia: (submissionId: string, file: File) => {
+    const form = new FormData();
+    form.append('photo', file);
+    return apiUpload<{ photoKey: string }>(`/submissions/${submissionId}/comments/media`, form);
+  },
   editComment: (commentId: string, body: string) =>
     apiFetch<CatchComment>(`/comments/${commentId}`, { method: 'PATCH', body: JSON.stringify({ body }) }, true),
   deleteComment: (commentId: string) =>
@@ -326,8 +333,8 @@ export const api = {
     apiFetch<{ ok: boolean }>(`/tournaments/posts/${postId}`, { method: 'DELETE' }, true),
   getPostComments: (postId: string) =>
     apiFetch<PostComment[]>(`/tournaments/posts/${postId}/comments`, undefined, true),
-  addPostComment: (postId: string, body: string, gifUrl?: string) =>
-    apiFetch<PostComment>(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body, gifUrl }) }, true),
+  addPostComment: (postId: string, body: string, gifUrl?: string, photoKey?: string) =>
+    apiFetch<PostComment>(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body, gifUrl, photoKey }) }, true),
   deletePostComment: (commentId: string) =>
     apiFetch<{ deleted: boolean }>(`/tournaments/posts/comments/${commentId}`, { method: 'DELETE' }, true),
   searchUsers: (q: string) =>

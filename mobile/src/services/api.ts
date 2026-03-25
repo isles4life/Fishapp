@@ -249,8 +249,24 @@ export function getComments(submissionId: string): Promise<CatchComment[]> {
   return request(`/submissions/${submissionId}/comments`, {}, false);
 }
 
-export function addComment(submissionId: string, body: string): Promise<CatchComment> {
-  return request(`/submissions/${submissionId}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+export function addComment(submissionId: string, body: string, gifUrl?: string, photoKey?: string): Promise<CatchComment> {
+  return request(`/submissions/${submissionId}/comments`, { method: 'POST', body: JSON.stringify({ body, gifUrl, photoKey }) });
+}
+
+export async function uploadCommentMedia(submissionId: string, photoUri: string): Promise<{ photoKey: string }> {
+  const token = await storage.getToken();
+  const form = new FormData();
+  form.append('photo', { uri: photoUri, name: 'comment.jpg', type: 'image/jpeg' } as any);
+  const res = await fetch(`${BASE_URL}/submissions/${submissionId}/comments/media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message ?? `HTTP ${res.status}`);
+  }
+  return res.json();
 }
 
 export function editComment(commentId: string, body: string): Promise<CatchComment> {

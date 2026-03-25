@@ -34,9 +34,13 @@ export class CommentsService {
   }
 
   private async resolveComment(c: any) {
-    const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(c.user.profile?.profilePhotoUrl);
+    const [profilePhotoUrl, photoUrl] = await Promise.all([
+      this.s3.resolveProfilePhotoUrl(c.user.profile?.profilePhotoUrl),
+      c.photoKey ? this.s3.getPresignedUrl(c.photoKey) : Promise.resolve(null),
+    ]);
     return {
       ...c,
+      photoUrl,
       user: {
         ...c.user,
         profile: c.user.profile
@@ -65,9 +69,9 @@ export class CommentsService {
     return resolved.map(c => ({ ...c, propCount: (c as any)._count.props, userHasPropped: proppedSet.has(c.id) }));
   }
 
-  async addComment(submissionId: string, userId: string, body: string) {
+  async addComment(submissionId: string, userId: string, body: string, gifUrl?: string, photoKey?: string) {
     const comment = await this.prisma.catchComment.create({
-      data: { submissionId, userId, body },
+      data: { submissionId, userId, body, ...(gifUrl ? { gifUrl } : {}), ...(photoKey ? { photoKey } : {}) },
       include: {
         user: { select: { id: true, displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } },
         _count: { select: { props: true } },
@@ -76,6 +80,13 @@ export class CommentsService {
     this.notifyMentions(body, userId, comment.user.profile?.username ?? null).catch(() => {});
     const resolved = await this.resolveComment(comment);
     return { ...resolved, propCount: 0, userHasPropped: false };
+  }
+
+  async uploadCommentMedia(submissionId: string, buffer: Buffer, contentType: string): Promise<{ photoKey: string }> {
+    const ext = contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+    const key = `catch-comments/${submissionId}/${Date.now()}.${ext}`;
+    await this.s3.uploadBuffer(key, buffer, contentType);
+    return { photoKey: key };
   }
 
   async getCatchCommentProppers(commentId: string) {

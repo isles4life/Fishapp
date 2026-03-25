@@ -278,6 +278,8 @@ model CatchComment {
   submissionId String
   userId       String
   body         String     @db.VarChar(500)
+  gifUrl       String?
+  photoKey     String?    // S3 key for comment photo
   createdAt    DateTime   @default(now())
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -452,6 +454,7 @@ model TournamentPostComment {
   userId    String
   body      String          @db.VarChar(500)
   gifUrl    String?
+  photoKey  String?         // S3 key for comment photo
   createdAt DateTime        @default(now())
 
   post      TournamentPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
