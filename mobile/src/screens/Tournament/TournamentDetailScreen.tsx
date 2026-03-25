@@ -90,67 +90,63 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
 
   return (
     <View style={ps.commentsContainer}>
-      <TouchableOpacity onPress={() => setExpanded(e => !e)} style={ps.commentToggle}>
-        <Text style={ps.commentToggleText}>
-          {expanded
-            ? `▲ Hide comments (${comments.length})`
-            : `💬 ${comments.length} comment${comments.length !== 1 ? 's' : ''}`}
-        </Text>
-      </TouchableOpacity>
+      {comments.length > 0 && (
+        <TouchableOpacity onPress={() => setExpanded(e => !e)} style={ps.commentToggle}>
+          <Text style={ps.commentToggleText}>
+            {expanded
+              ? `▲ Hide comments (${comments.length})`
+              : `💬 ${comments.length} comment${comments.length !== 1 ? 's' : ''}`}
+          </Text>
+        </TouchableOpacity>
+      )}
 
-      {expanded && (
-        <>
-          {comments.length === 0 ? (
-            <Text style={ps.noComments}>No comments yet.</Text>
-          ) : (
-            comments.map(c => {
-              const name = c.user.profile?.username ?? c.user.displayName;
-              const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
-              const isOwn = currentUserId === c.userId;
-              return (
-                <View key={c.id} style={ps.commentRow}>
-                  {avatarUrl ? (
-                    <Image source={{ uri: avatarUrl }} style={ps.commentAvatar} />
-                  ) : (
-                    <View style={ps.commentAvatarFallback}>
-                      <Text style={ps.commentAvatarInitial}>{name.charAt(0).toUpperCase()}</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={ps.commentAuthor}>{name} <Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text></Text>
-                    <Text style={ps.commentBody}>{c.body}</Text>
-                  </View>
-                  {isOwn && (
-                    <TouchableOpacity onPress={() => handleDelete(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={ps.commentDelete}>✕</Text>
-                    </TouchableOpacity>
-                  )}
+      {expanded && comments.length > 0 && (
+        comments.map(c => {
+          const name = c.user.profile?.username ?? c.user.displayName;
+          const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
+          const isOwn = currentUserId === c.userId;
+          return (
+            <View key={c.id} style={ps.commentRow}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={ps.commentAvatar} />
+              ) : (
+                <View style={ps.commentAvatarFallback}>
+                  <Text style={ps.commentAvatarInitial}>{name.charAt(0).toUpperCase()}</Text>
                 </View>
-              );
-            })
-          )}
-
-          {currentUserId && (
-            <View style={ps.commentInputRow}>
-              <TextInput
-                style={ps.commentInput}
-                placeholder="Add a comment…"
-                placeholderTextColor={colors.textMuted}
-                value={body}
-                onChangeText={setBody}
-                multiline
-                maxLength={500}
-              />
-              <TouchableOpacity
-                style={[ps.commentSend, (!body.trim() || sending) && { opacity: 0.4 }]}
-                onPress={handleSend}
-                disabled={!body.trim() || sending}
-              >
-                <Text style={ps.commentSendText}>Post</Text>
-              </TouchableOpacity>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={ps.commentAuthor}>{name} <Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text></Text>
+                <Text style={ps.commentBody}>{c.body}</Text>
+              </View>
+              {isOwn && (
+                <TouchableOpacity onPress={() => handleDelete(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={ps.commentDelete}>✕</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          )}
-        </>
+          );
+        })
+      )}
+
+      {currentUserId && (
+        <View style={ps.commentInputRow}>
+          <TextInput
+            style={ps.commentInput}
+            placeholder="Add a comment…"
+            placeholderTextColor={colors.textMuted}
+            value={body}
+            onChangeText={setBody}
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity
+            style={[ps.commentSend, (!body.trim() || sending) && { opacity: 0.4 }]}
+            onPress={handleSend}
+            disabled={!body.trim() || sending}
+          >
+            <Text style={ps.commentSendText}>Post</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );

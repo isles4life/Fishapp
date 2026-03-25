@@ -105,12 +105,13 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
 
   return (
     <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
-      <button onClick={() => setExpanded(e => !e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSub, fontSize: 12, fontWeight: 600, padding: '2px 0' }}>
-        {expanded ? `▲ Hide comments (${comments.length})` : `💬 ${comments.length} comment${comments.length !== 1 ? 's' : ''}`}
-      </button>
-      {expanded && (
-        <div style={{ marginTop: 8 }}>
-          {comments.length === 0 && <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>No comments yet.</div>}
+      {comments.length > 0 && (
+        <button onClick={() => setExpanded(e => !e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSub, fontSize: 12, fontWeight: 600, padding: '2px 0', marginBottom: 8, display: 'block' }}>
+          {expanded ? `▲ Hide comments (${comments.length})` : `💬 ${comments.length} comment${comments.length !== 1 ? 's' : ''}`}
+        </button>
+      )}
+      {expanded && comments.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
           {comments.map(c => {
             const name = c.user.profile?.username ?? c.user.displayName;
             const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
@@ -135,22 +136,22 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
               </div>
             );
           })}
-          {loggedIn && (
-            <form onSubmit={handleSend} style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <input
-                value={body}
-                onChange={e => setBody(e.target.value)}
-                placeholder="Add a comment…"
-                maxLength={500}
-                style={{ flex: 1, padding: '7px 12px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none' }}
-              />
-              <button type="submit" disabled={!body.trim() || sending}
-                style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (!body.trim() || sending) ? 0.5 : 1 }}>
-                Post
-              </button>
-            </form>
-          )}
         </div>
+      )}
+      {loggedIn && (
+        <form onSubmit={handleSend} style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            placeholder="Add a comment…"
+            maxLength={500}
+            style={{ flex: 1, padding: '7px 12px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none' }}
+          />
+          <button type="submit" disabled={!body.trim() || sending}
+            style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (!body.trim() || sending) ? 0.5 : 1 }}>
+            Post
+          </button>
+        </form>
       )}
     </div>
   );
