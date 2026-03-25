@@ -262,7 +262,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-28)
+## Current Status (as of 2026-03-24)
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions, clickable usernames, comment props, who-gave-props on comments)
 - CI/CD optimized: Docker BuildKit GHA layer cache + `wait-for-service-stability: false` — backend deploys ~2–3 min instead of 5–10 min
