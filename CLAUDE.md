@@ -258,7 +258,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-24)
+## Current Status (as of 2026-03-25)
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes in this session
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
@@ -278,6 +278,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Mobile `TournamentDetailScreen`: collapsible comment section on each PostCard; tap to expand, post, delete own
 - **Docs updated**: `README.md` and `docs/architecture.md` fully reflect current stack, all API endpoints, all schema models, and design decisions
 - **Android gap analysis**: documented in post-beta backlog — ~75% Android-ready; 3 blocking gaps (Google Sign-In, Google Pay, FCM)
+- **Deploy workflow fix**: `.github/workflows/deploy.yml` `changes` job now checks previous run conclusion via GitHub API — if previous run was not `success` (cancelled/failed), forces all three services to deploy regardless of which files changed; prevents silent missed deploys when a cancelled run had undeployed changes
 - **Fishing Intelligence 502 fix** (deployed): added `AbortSignal.timeout(8000)` to Open-Meteo weather fetch
 - **Admin users page fixes**: `autoComplete="new-password"` on password reset; `PAGE_SIZE` 50→10; `overflowY: 'visible'`
 - **Stripe entry fee integration** (deployed):
