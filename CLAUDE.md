@@ -258,7 +258,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-25)
+## Current Status (as of 2026-03-26)
 - MVP fully deployed: backend + admin + web live on AWS
 - iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes in this session
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
@@ -278,6 +278,15 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Mobile `TournamentDetailScreen`: collapsible comment section on each PostCard; tap to expand, post, delete own
 - **Docs updated**: `README.md` and `docs/architecture.md` fully reflect current stack, all API endpoints, all schema models, and design decisions
 - **Android gap analysis**: documented in post-beta backlog — ~75% Android-ready; 3 blocking gaps (Google Sign-In, Google Pay, FCM)
+- **Photo lightbox** (web deployed; mobile needs EAS build):
+  - Web: `PhotoLightbox` component (dark overlay, ESC/click-outside closes, `92vw×90vh` contain) on `leaderboard/[id]` and `leaderboard` pages
+  - Mobile: full-screen `Modal` with `resizeMode="contain"` on `HomeScreen` FeedCard and `TournamentDetailScreen` PostCard
+  - Catches and angler post photos are tappable; edit-form previews and GIF picker excluded
+- **Comment improvements** (web deployed; mobile needs EAS build):
+  - Comments load on mount so count is always shown in toggle (`💬 3 comments`) before expanding
+  - Avatars (28px circle) shown left of each commenter's name; initial letter fallback
+  - Newest comments first; new comments prepended to top
+  - Catch comments backend now returns `profilePhotoUrl` (presigned URL)
 - **Deploy workflow fix**: `.github/workflows/deploy.yml` `changes` job now checks previous run conclusion via GitHub API — if previous run was not `success` (cancelled/failed), forces all three services to deploy regardless of which files changed; prevents silent missed deploys when a cancelled run had undeployed changes
 - **Fishing Intelligence 502 fix** (deployed): added `AbortSignal.timeout(8000)` to Open-Meteo weather fetch
 - **Admin users page fixes**: `autoComplete="new-password"` on password reset; `PAGE_SIZE` 50→10; `overflowY: 'visible'`
