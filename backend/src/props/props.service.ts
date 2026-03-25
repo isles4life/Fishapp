@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { S3Service } from '../submissions/s3.service';
 
 @Injectable()
 export class PropsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3: S3Service,
+  ) {}
 
   async toggle(submissionId: string, userId: string): Promise<{ propped: boolean; count: number }> {
     const existing = await this.prisma.catchProp.findUnique({
@@ -49,10 +53,10 @@ export class PropsService {
         },
       },
     });
-    return props.map(p => ({
+    return Promise.all(props.map(async p => ({
       id: p.user.id,
       displayName: p.user.profile?.username ?? 'Angler',
-      profilePhotoUrl: p.user.profile?.profilePhotoUrl ?? null,
-    }));
+      profilePhotoUrl: await this.s3.resolveProfilePhotoUrl(p.user.profile?.profilePhotoUrl),
+    })));
   }
 }
