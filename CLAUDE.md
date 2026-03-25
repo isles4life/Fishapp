@@ -220,7 +220,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 2. **Stripe entry fees**: Stripe account, payment sheet in mobile, webhook handling, payout logic. First beta tournament free (`entryFeeCents: 0`).
 3. **Facebook Sign-In** (mobile + web only, skip admin): add `facebookId` to User + `FACEBOOK` to AuthProvider enum, `POST /auth/facebook` via Graph API token verification, `expo-auth-session` on mobile, OAuth redirect on web. Requires Facebook App Review (~1 day code, 1–5 days review).
 4. **ARKit LiDAR fish measurement**: Replace credit card measure with tap-to-measure AR on LiDAR iPhones (12 Pro+). Use ViroReact (Expo-compatible, maintained by ReactVision). User taps head + tail of fish; ARKit raycasts to 3D world positions; Euclidean distance = length. Falls back to manual inch entry on non-LiDAR devices (~75% of iPhones). New file: `mobile/src/screens/Submission/ARMeasureScreen.tsx`. Requires physical iPhone Pro for testing (ARKit does not run in simulator). ~4 days effort.
-5. **@mention in comments** (~20–27 hrs). Parse `@username` on comment save → resolve to userId → push notification to mentioned user. Needs: `GET /users/search?q=` endpoint, `CommentMention` table (or on-the-fly parse), autocomplete dropdown in mobile (`react-native-controlled-mentions` recommended) and web, extra `PushService.send()` call per mention. Username uniqueness DB constraint required first. Push reaches iOS users automatically via existing APNs path; silently skips users without a stored `pushToken`.
+5. ~~**@mention in comments**~~ — **SHIPPED** (backend + web deployed; mobile needs EAS build). Custom `MentionTextInput`/`MentionInput` component; server-side mention parsing + Expo push notification; `GET /users/search?q=` endpoint; `renderWithMentions()` highlights in accent gold.
 6. **In-app notification center** (~15–20 hrs). Fallback for users who denied push permission or are web-only. New `Notification` model (`userId`, `type`, `body`, `read`, `createdAt`, `targetId`). Backend writes a record on every event that currently only fires a push (approval, rejection, mention, director approval, etc.). Mobile: bell icon in nav with unread badge, `NotificationsScreen` with `FlatList`. Web: dropdown bell in `Nav`. `GET /notifications/me` (paginated), `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`. Real-time unread count via existing Socket.IO connection. Pairs well with @mentions feature.
 7. **Android support** (~25–35 hrs total including QA). App is ~75% Android-ready already. Three blocking gaps:
    - **Google Sign-In**: `expo-apple-authentication` is iOS-only; Android users need an alternative. Add `@react-native-google-signin/google-signin` + `POST /auth/google` backend endpoint + conditional auth button on LoginScreen. (~4–6 hrs)
@@ -260,9 +260,9 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-26)
+## Current Status (as of 2026-03-27)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes in this session
+- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions)
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
@@ -290,6 +290,11 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Newest comments first; new comments prepended to top
   - Catch comments backend now returns `profilePhotoUrl` (presigned URL)
 - **Deploy workflow fix**: `.github/workflows/deploy.yml` `changes` job now checks previous run conclusion via GitHub API — if previous run was not `success` (cancelled/failed), forces all three services to deploy regardless of which files changed; prevents silent missed deploys when a cancelled run had undeployed changes
+- **@mention autocomplete in comments** (backend deployed; web deployed; mobile needs EAS build):
+  - `GET /users/search?q=` — prefix match on `AnglerProfile.username` (top 8, auth required)
+  - `notifyMentions()` in `CommentsService` + `TournamentsService` — parses `@usernames` from saved comment body, looks up push tokens, sends Expo push "You were mentioned 🎣" (fire-and-forget, skips self, deduplicates)
+  - Web: `MentionInput` component with trailing `@word` detection, 200ms debounce, floating dropdown above input, `renderWithMentions()` highlights mentions in gold — wired into `leaderboard/[id]`, `leaderboard`, and home page comment inputs
+  - Mobile: `MentionTextInput` + `renderWithMentions` — wired into `TournamentDetailScreen` PostComments, `LeaderboardScreen` CommentsSection, `HomeScreen` CommentsModal
 - **Fishing Intelligence 502 fix** (deployed): added `AbortSignal.timeout(8000)` to Open-Meteo weather fetch
 - **Admin users page fixes**: `autoComplete="new-password"` on password reset; `PAGE_SIZE` 50→10; `overflowY: 'visible'`
 - **Stripe entry fee integration** (deployed):
