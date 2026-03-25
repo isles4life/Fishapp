@@ -188,6 +188,14 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
     } catch { /* silent */ }
   }
 
+  async function handleToggleProp(commentId: string) {
+    if (!myUserId) return;
+    try {
+      const res = await api.togglePostCommentProp(commentId);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, propCount: res.propCount, userHasPropped: res.userHasPropped } : c));
+    } catch { /* silent */ }
+  }
+
   return (
     <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
       {comments.length > 0 && (
@@ -213,13 +221,19 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
                   )}
                 </a>
                 <div style={{ flex: 1 }}>
-                  <UserLink username={c.user.profile?.username} displayName={name} style={{ fontSize: 12, fontWeight: 700, color: C.text }} />
-                  <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 6 }}>{timeAgo(c.createdAt)}</span>
-                  <div style={{ fontSize: 13, color: C.textSub, marginTop: 2, lineHeight: 1.5 }}>{renderWithMentions(c.body)}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <UserLink username={c.user.profile?.username} displayName={name} style={{ fontSize: 12, fontWeight: 700, color: C.text }} />
+                    <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
+                    <button onClick={() => handleToggleProp(c.id)}
+                      style={{ background: 'none', border: 'none', cursor: myUserId ? 'pointer' : 'default', color: c.userHasPropped ? C.accent : C.textMuted, fontSize: 11, padding: '1px 4px', display: 'flex', alignItems: 'center', gap: 2, marginLeft: 'auto' }}>
+                      👍{c.propCount ? ` ${c.propCount}` : ''}
+                    </button>
+                    {isOwn && (
+                      <button onClick={() => handleDelete(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: '2px 4px', flexShrink: 0 }}>✕</button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.5 }}>{renderWithMentions(c.body)}</div>
                 </div>
-                {isOwn && (
-                  <button onClick={() => handleDelete(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: '2px 4px', flexShrink: 0 }}>✕</button>
-                )}
               </div>
             );
           })}

@@ -46,15 +46,23 @@ export class CommentsService {
     };
   }
 
-  async getComments(submissionId: string) {
+  async getComments(submissionId: string, requestingUserId?: string) {
     const comments = await this.prisma.catchComment.findMany({
       where: { submissionId },
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } },
+        _count: { select: { props: true } },
       },
     });
-    return Promise.all(comments.map(c => this.resolveComment(c)));
+    const resolved = await Promise.all(comments.map(c => this.resolveComment(c)));
+    if (!requestingUserId) return resolved.map(c => ({ ...c, propCount: (c as any)._count.props, userHasPropped: false }));
+    const myProps = await this.prisma.catchCommentProp.findMany({
+      where: { userId: requestingUserId, commentId: { in: comments.map(c => c.id) } },
+      select: { commentId: true },
+    });
+    const proppedSet = new Set(myProps.map(p => p.commentId));
+    return resolved.map(c => ({ ...c, propCount: (c as any)._count.props, userHasPropped: proppedSet.has(c.id) }));
   }
 
   async addComment(submissionId: string, userId: string, body: string) {
@@ -62,10 +70,25 @@ export class CommentsService {
       data: { submissionId, userId, body },
       include: {
         user: { select: { id: true, displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } },
+        _count: { select: { props: true } },
       },
     });
     this.notifyMentions(body, userId, comment.user.profile?.username ?? null).catch(() => {});
-    return this.resolveComment(comment);
+    const resolved = await this.resolveComment(comment);
+    return { ...resolved, propCount: 0, userHasPropped: false };
+  }
+
+  async toggleCatchCommentProp(commentId: string, userId: string) {
+    const existing = await this.prisma.catchCommentProp.findUnique({
+      where: { commentId_userId: { commentId, userId } },
+    });
+    if (existing) {
+      await this.prisma.catchCommentProp.delete({ where: { commentId_userId: { commentId, userId } } });
+    } else {
+      await this.prisma.catchCommentProp.create({ data: { commentId, userId } });
+    }
+    const propCount = await this.prisma.catchCommentProp.count({ where: { commentId } });
+    return { propCount, userHasPropped: !existing };
   }
 
   async editComment(commentId: string, requestingUserId: string, body: string) {
@@ -79,9 +102,13 @@ export class CommentsService {
     const updated = await this.prisma.catchComment.update({
       where: { id: commentId },
       data: { body },
-      include: { user: { select: { id: true, displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } } },
+      include: {
+        user: { select: { id: true, displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } },
+        _count: { select: { props: true } },
+      },
     });
-    return this.resolveComment(updated);
+    const resolved = await this.resolveComment(updated);
+    return { ...resolved, propCount: (updated as any)._count.props, userHasPropped: true };
   }
 
   async deleteComment(commentId: string, requestingUserId: string, isAdmin: boolean) {

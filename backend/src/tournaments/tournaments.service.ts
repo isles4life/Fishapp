@@ -464,7 +464,7 @@ export class TournamentsService {
 
   // ── Post Comments ──────────────────────────────────────────────────────────
 
-  async getPostComments(postId: string) {
+  async getPostComments(postId: string, requestingUserId?: string) {
     const comments = await this.prisma.tournamentPostComment.findMany({
       where: { postId },
       orderBy: { createdAt: 'desc' },
@@ -476,9 +476,10 @@ export class TournamentsService {
             profile: { select: { username: true, profilePhotoUrl: true } },
           },
         },
+        _count: { select: { props: true } },
       },
     });
-    return Promise.all(comments.map(async c => ({
+    const resolved = await Promise.all(comments.map(async c => ({
       ...c,
       user: {
         ...c.user,
@@ -487,6 +488,26 @@ export class TournamentsService {
           : null,
       },
     })));
+    if (!requestingUserId) return resolved.map(c => ({ ...c, propCount: (c as any)._count.props, userHasPropped: false }));
+    const myProps = await this.prisma.tournamentPostCommentProp.findMany({
+      where: { userId: requestingUserId, commentId: { in: comments.map(c => c.id) } },
+      select: { commentId: true },
+    });
+    const proppedSet = new Set(myProps.map(p => p.commentId));
+    return resolved.map(c => ({ ...c, propCount: (c as any)._count.props, userHasPropped: proppedSet.has(c.id) }));
+  }
+
+  async toggleTournamentPostCommentProp(commentId: string, userId: string) {
+    const existing = await this.prisma.tournamentPostCommentProp.findUnique({
+      where: { commentId_userId: { commentId, userId } },
+    });
+    if (existing) {
+      await this.prisma.tournamentPostCommentProp.delete({ where: { commentId_userId: { commentId, userId } } });
+    } else {
+      await this.prisma.tournamentPostCommentProp.create({ data: { commentId, userId } });
+    }
+    const propCount = await this.prisma.tournamentPostCommentProp.count({ where: { commentId } });
+    return { propCount, userHasPropped: !existing };
   }
 
   private async notifyMentions(body: string, authorId: string, authorUsername: string | null) {
@@ -524,12 +545,15 @@ export class TournamentsService {
             profile: { select: { username: true, profilePhotoUrl: true } },
           },
         },
+        _count: { select: { props: true } },
       },
     });
     this.notifyMentions(body, userId, comment.user.profile?.username ?? null).catch(() => {});
     const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(comment.user.profile?.profilePhotoUrl);
     return {
       ...comment,
+      propCount: 0,
+      userHasPropped: false,
       user: { ...comment.user, profile: comment.user.profile ? { ...comment.user.profile, profilePhotoUrl } : null },
     };
   }

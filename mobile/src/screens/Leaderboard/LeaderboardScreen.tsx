@@ -6,6 +6,7 @@ import {
   ScrollView, TextInput, Modal,
 } from 'react-native';
 import * as api from '../../services/api';
+import { storage } from '../../services/storage';
 import { wsService } from '../../services/websocket';
 import type { LeaderboardEntry, UserRank, CatchComment } from '../../models';
 import { colors } from '../../theme/colors';
@@ -216,6 +217,14 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    storage.getToken().then(token => {
+      if (!token) return;
+      try { const p = JSON.parse(atob(token.split('.')[1])); setCurrentUserId(p.sub ?? null); } catch {}
+    });
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -242,6 +251,14 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
     }
   }
 
+  async function handleToggleProp(commentId: string) {
+    if (!currentUserId) return;
+    try {
+      const res = await api.toggleCommentProp(commentId);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, propCount: res.propCount, userHasPropped: res.userHasPropped } : c));
+    } catch { /* silent */ }
+  }
+
   return (
     <View style={styles.commentsSection}>
       {loading ? (
@@ -258,6 +275,9 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
                   {c.user.profile?.username ? `@${c.user.profile.username}` : c.user.displayName}
                 </Text>
                 <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
+                <TouchableOpacity onPress={() => handleToggleProp(c.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                  <Text style={{ fontSize: 12, color: c.userHasPropped ? colors.accent : colors.textMuted }}>👍{c.propCount ? ` ${c.propCount}` : ''}</Text>
+                </TouchableOpacity>
               </View>
               <Text style={styles.commentBody}>{renderWithMentions(c.body, (u) => navigation.navigate('PublicProfile', { username: u }))}</Text>
             </View>

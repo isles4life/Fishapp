@@ -296,6 +296,14 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
     } catch { /* silently handle */ }
   }
 
+  async function handleToggleProp(commentId: string) {
+    if (!myUserId) return;
+    try {
+      const res = await api.toggleCommentProp(commentId);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, propCount: res.propCount, userHasPropped: res.userHasPropped } : c));
+    } catch { /* silently handle */ }
+  }
+
   return (
     <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4 }}>
       {loading ? <div style={{ color: C.textMuted, fontSize: 13 }}>Loading comments…</div> : (
@@ -319,6 +327,10 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
                 <UserLink username={c.user.profile?.username} displayName={name} style={{ fontSize: 12, fontWeight: 700, color: C.textSub }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
+                  <button onClick={() => handleToggleProp(c.id)}
+                    style={{ background: 'none', border: 'none', cursor: myUserId ? 'pointer' : 'default', color: c.userHasPropped ? C.accent : C.textMuted, fontSize: 11, padding: '1px 4px', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    👍 {c.propCount ? <span style={{ fontSize: 11 }}>{c.propCount}</span> : null}
+                  </button>
                   {myUserId && c.user.id === myUserId && editingId !== c.id && (
                     <>
                       <button onClick={() => { setEditingId(c.id); setEditBody(c.body); }}

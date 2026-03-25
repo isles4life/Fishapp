@@ -89,6 +89,8 @@ export interface PostComment {
   postId: string;
   userId: string;
   body: string;
+  propCount?: number;
+  userHasPropped?: boolean;
   createdAt: string;
   user: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null };
 }
@@ -103,6 +105,7 @@ export interface LeaderboardEntry {
 }
 export interface CatchComment {
   id: string; submissionId: string; userId: string; body: string; createdAt: string;
+  propCount?: number; userHasPropped?: boolean;
   user: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null };
 }
 export interface AuthResponse { token: string; userId: string; }
@@ -254,6 +257,10 @@ export const api = {
     apiFetch<CatchComment>(`/comments/${commentId}`, { method: 'PATCH', body: JSON.stringify({ body }) }, true),
   deleteComment: (commentId: string) =>
     apiFetch<{ ok: boolean }>(`/comments/${commentId}`, { method: 'DELETE' }, true),
+  toggleCommentProp: (commentId: string) =>
+    apiFetch<{ propCount: number; userHasPropped: boolean }>(`/comments/${commentId}/prop`, { method: 'POST' }, true),
+  togglePostCommentProp: (commentId: string) =>
+    apiFetch<{ propCount: number; userHasPropped: boolean }>(`/tournaments/posts/comments/${commentId}/prop`, { method: 'POST' }, true),
   login: (email: string, password: string) =>
     apiFetch<AuthResponse>('/auth/login', {
       method: 'POST',

@@ -195,8 +195,8 @@ export class TournamentsController {
 
   @Get('posts/:postId/comments')
   @UseGuards(JwtAuthGuard)
-  getPostComments(@Param('postId') postId: string) {
-    return this.tournamentsService.getPostComments(postId);
+  getPostComments(@Param('postId') postId: string, @Request() req: any) {
+    return this.tournamentsService.getPostComments(postId, req.user?.id);
   }
 
   @Post('posts/:postId/comments')
@@ -210,5 +210,11 @@ export class TournamentsController {
   @UseGuards(JwtAuthGuard)
   deletePostComment(@Param('commentId') commentId: string, @Request() req: any) {
     return this.tournamentsService.deletePostComment(commentId, req.user.id, req.user.role);
+  }
+
+  @Post('posts/comments/:commentId/prop')
+  @UseGuards(JwtAuthGuard)
+  togglePostCommentProp(@Param('commentId') commentId: string, @Request() req: any) {
+    return this.tournamentsService.toggleTournamentPostCommentProp(commentId, req.user.id);
   }
 }

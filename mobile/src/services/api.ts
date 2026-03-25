@@ -117,6 +117,8 @@ export type PostComment = {
   userId: string;
   body: string;
   createdAt: string;
+  propCount?: number;
+  userHasPropped?: boolean;
   user: { id: string; displayName: string; profile: { username: string; profilePhotoUrl: string | null } | null };
 };
 
@@ -260,6 +262,14 @@ export function deleteComment(commentId: string): Promise<{ ok: boolean }> {
 
 export function searchUsers(q: string): Promise<{ id: string; username: string; displayName: string }[]> {
   return request(`/users/search?q=${encodeURIComponent(q)}`);
+}
+
+export function toggleCommentProp(commentId: string): Promise<{ propCount: number; userHasPropped: boolean }> {
+  return request(`/comments/${commentId}/prop`, { method: 'POST' });
+}
+
+export function togglePostCommentProp(commentId: string): Promise<{ propCount: number; userHasPropped: boolean }> {
+  return request(`/tournaments/posts/comments/${commentId}/prop`, { method: 'POST' });
 }
 
 // ── Warnings ──────────────────────────────────────────────────────────────────

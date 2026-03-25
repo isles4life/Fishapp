@@ -9,8 +9,8 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Get('submissions/:id/comments')
-  getComments(@Param('id') id: string) {
-    return this.commentsService.getComments(id);
+  getComments(@Param('id') id: string, @Request() req: any) {
+    return this.commentsService.getComments(id, req.user?.id);
   }
 
   @Post('submissions/:id/comments')
@@ -38,5 +38,11 @@ export class CommentsController {
   deleteComment(@Param('commentId') commentId: string, @Request() req: any) {
     const isAdmin = req.user.role === 'ADMIN';
     return this.commentsService.deleteComment(commentId, req.user.id, isAdmin);
+  }
+
+  @Post('comments/:commentId/prop')
+  @UseGuards(JwtAuthGuard)
+  toggleProp(@Param('commentId') commentId: string, @Request() req: any) {
+    return this.commentsService.toggleCatchCommentProp(commentId, req.user.id);
   }
 }

@@ -287,6 +287,14 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
     } catch { /* silent */ }
   }
 
+  async function handleToggleProp(commentId: string) {
+    if (!myUserId) return;
+    try {
+      const res = await api.toggleCommentProp(commentId);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, propCount: res.propCount, userHasPropped: res.userHasPropped } : c));
+    } catch { /* silent */ }
+  }
+
   function handleLongPress(comment: CatchComment) {
     if (comment.user.id !== myUserId) return;
     Alert.alert('Your Comment', undefined, [
@@ -347,7 +355,12 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
                     ) : (
                       <Text style={cm.commentBody}>{renderWithMentions(item.body, (u) => { onClose(); navigation.navigate('PublicProfile', { username: u }); })}</Text>
                     )}
-                    <Text style={cm.commentTime}>{timeAgo(item.createdAt)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                      <Text style={cm.commentTime}>{timeAgo(item.createdAt)}</Text>
+                      <TouchableOpacity onPress={() => handleToggleProp(item.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                        <Text style={{ fontSize: 12, color: item.userHasPropped ? colors.accent : colors.textMuted }}>👍{item.propCount ? ` ${item.propCount}` : ''}</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   {item.user.id === myUserId && editingId !== item.id && (
                     <Text style={cm.editHint}>···</Text>

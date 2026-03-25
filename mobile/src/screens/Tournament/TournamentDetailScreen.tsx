@@ -195,6 +195,14 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
     } catch { /* silent */ }
   }
 
+  async function handleToggleProp(commentId: string) {
+    if (!currentUserId) return;
+    try {
+      const res = await api.togglePostCommentProp(commentId);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, propCount: res.propCount, userHasPropped: res.userHasPropped } : c));
+    } catch { /* silent */ }
+  }
+
   return (
     <View style={ps.commentsContainer}>
       {comments.length > 0 && (
@@ -222,17 +230,22 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={ps.commentAuthor}>
-                  <Text onPress={() => c.user.profile?.username && navigation.navigate('PublicProfile', { username: c.user.profile.username })} style={c.user.profile?.username ? { color: colors.accent } : undefined}>{name}</Text>
-                  {' '}<Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text>
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <Text style={ps.commentAuthor}>
+                    <Text onPress={() => c.user.profile?.username && navigation.navigate('PublicProfile', { username: c.user.profile.username })} style={c.user.profile?.username ? { color: colors.accent } : undefined}>{name}</Text>
+                    {' '}<Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text>
+                  </Text>
+                  <TouchableOpacity onPress={() => handleToggleProp(c.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                    <Text style={{ fontSize: 12, color: c.userHasPropped ? colors.accent : colors.textMuted }}>👍{c.propCount ? ` ${c.propCount}` : ''}</Text>
+                  </TouchableOpacity>
+                  {isOwn && (
+                    <TouchableOpacity onPress={() => handleDelete(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Text style={ps.commentDelete}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
                 <Text style={ps.commentBody}>{renderWithMentions(c.body, (u) => navigation.navigate('PublicProfile', { username: u }))}</Text>
               </View>
-              {isOwn && (
-                <TouchableOpacity onPress={() => handleDelete(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={ps.commentDelete}>✕</Text>
-                </TouchableOpacity>
-              )}
             </View>
           );
         })

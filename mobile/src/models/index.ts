@@ -107,7 +107,9 @@ export interface CatchComment {
   userId: string;
   body: string;
   createdAt: string;
-  user: { id: string; displayName: string };
+  propCount?: number;
+  userHasPropped?: boolean;
+  user: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null };
 }
 
 export interface UserWarning {

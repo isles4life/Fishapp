@@ -81,7 +81,9 @@ model User {
   profile          AnglerProfile?
   props            CatchProp[]
   comments         CatchComment[]
+  catchCommentProps CatchCommentProp[]
   postComments     TournamentPostComment[]
+  postCommentProps TournamentPostCommentProp[]
   warnings         UserWarning[]
   issuedWarnings   UserWarning[] @relation("IssuedWarnings")
   checkIns         TournamentCheckIn[]
@@ -279,7 +281,19 @@ model CatchComment {
   createdAt    DateTime   @default(now())
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  props        CatchCommentProp[]
   @@index([submissionId, createdAt])
+}
+
+model CatchCommentProp {
+  id        String       @id @default(uuid())
+  commentId String
+  userId    String
+  createdAt DateTime     @default(now())
+  comment   CatchComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([commentId, userId])
+  @@index([commentId])
 }
 
 model UserWarning {
@@ -441,6 +455,18 @@ model TournamentPostComment {
 
   post      TournamentPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  props     TournamentPostCommentProp[]
 
   @@index([postId, createdAt])
+}
+
+model TournamentPostCommentProp {
+  id        String                 @id @default(uuid())
+  commentId String
+  userId    String
+  createdAt DateTime               @default(now())
+  comment   TournamentPostComment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([commentId, userId])
+  @@index([commentId])
 }
