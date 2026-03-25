@@ -222,7 +222,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 2. **Stripe entry fees**: Stripe account, payment sheet in mobile, webhook handling, payout logic. First beta tournament free (`entryFeeCents: 0`).
 3. **Facebook Sign-In** (mobile + web only, skip admin): add `facebookId` to User + `FACEBOOK` to AuthProvider enum, `POST /auth/facebook` via Graph API token verification, `expo-auth-session` on mobile, OAuth redirect on web. Requires Facebook App Review (~1 day code, 1–5 days review).
 4. **ARKit LiDAR fish measurement**: Replace credit card measure with tap-to-measure AR on LiDAR iPhones (12 Pro+). Use ViroReact (Expo-compatible, maintained by ReactVision). User taps head + tail of fish; ARKit raycasts to 3D world positions; Euclidean distance = length. Falls back to manual inch entry on non-LiDAR devices (~75% of iPhones). New file: `mobile/src/screens/Submission/ARMeasureScreen.tsx`. Requires physical iPhone Pro for testing (ARKit does not run in simulator). ~4 days effort.
-5. ~~**@mention in comments**~~ — **SHIPPED** (backend + web deployed; mobile needs EAS build). Custom `MentionTextInput`/`MentionInput` component; server-side mention parsing + Expo push notification; `GET /users/search?q=` endpoint; `renderWithMentions()` highlights in accent gold.
+5. ~~**@mention in comments**~~ — **SHIPPED** (backend + web + mobile build #35). Custom `MentionTextInput`/`MentionInput` component; server-side mention parsing + Expo push notification; `GET /users/search?q=` endpoint; `renderWithMentions()` highlights in accent gold.
 6. **In-app notification center** (~15–20 hrs). Fallback for users who denied push permission or are web-only. New `Notification` model (`userId`, `type`, `body`, `read`, `createdAt`, `targetId`). Backend writes a record on every event that currently only fires a push (approval, rejection, mention, director approval, etc.). Mobile: bell icon in nav with unread badge, `NotificationsScreen` with `FlatList`. Web: dropdown bell in `Nav`. `GET /notifications/me` (paginated), `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`. Real-time unread count via existing Socket.IO connection. Pairs well with @mentions feature.
 7. **Android support** (~25–35 hrs total including QA). App is ~75% Android-ready already. Three blocking gaps:
    - **Google Sign-In**: `expo-apple-authentication` is iOS-only; Android users need an alternative. Add `@react-native-google-signin/google-signin` + `POST /auth/google` backend endpoint + conditional auth button on LoginScreen. (~4–6 hrs)
@@ -264,7 +264,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-25)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #32 submitted — ships full media bar (📎/GIF/😊) on all mobile comment areas + TypeScript fixes
+- iOS TestFlight build #35 is latest — all mobile changes are live (full media bar, photo/GIF/emoji in all comment areas, @mentions, clickable usernames, comment props, who-gave-props, GIF+emoji in post comments, photo lightbox, comment improvements)
 - CI/CD optimized: Docker BuildKit GHA layer cache + `wait-for-service-stability: false` — backend deploys ~2–3 min instead of 5–10 min
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
@@ -292,29 +292,29 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Leaderboard entries were rendering after the tournament feed (off-screen); moved to render before the compose bar
 - **PostComments on `/leaderboard` page** (web deployed):
   - Tournament feed posts on `/leaderboard` page now have the same collapsible comment section as `/leaderboard/[id]`
-- **Comment "who gave props"** (backend + web deployed; mobile needs EAS build):
+- **Comment "who gave props"** (backend + web deployed; mobile shipped in build #35):
   - `GET /comments/:id/props/who` + `GET /tournaments/posts/comments/:id/props/who` — returns proppers with displayName + presigned avatar
   - Web: clicking prop count on any comment opens a who-gave-props modal across all 3 pages
   - Mobile: same modal (bottom sheet) across TournamentDetailScreen, LeaderboardScreen, HomeScreen
   - Fix: thumbs-up active state now uses `opacity` (0.35 inactive / 1.0 active) instead of `color` — emoji ignores CSS color so it was always "active"-looking
   - Fix: home page comment input background changed to `C.surface` + gold border for visibility against dark card
-- **Comment props (likes)** (backend + web deployed; mobile needs EAS build):
+- **Comment props (likes)** (backend + web deployed; mobile shipped in build #35):
   - New `CatchCommentProp` + `TournamentPostCommentProp` models + migration `20260327000000_comment_props`
   - `POST /comments/:id/prop` — toggle prop on catch comments; `POST /tournaments/posts/comments/:id/prop` — toggle on post comments
   - Both comment GET endpoints now return `propCount` + `userHasPropped`
   - 👍 prop button on every comment row across web (leaderboard, leaderboard/[id], home page) + mobile (TournamentDetailScreen, LeaderboardScreen, HomeScreen)
   - Gold accent when propped, muted when not; optimistic update via toggle response
-- **@mention autocomplete + clickable usernames** (backend + web deployed; mobile needs EAS build):
+- **@mention autocomplete + clickable usernames** (backend + web deployed; mobile shipped in build #35):
   - `GET /users/search?q=` prefix-match endpoint; `MentionInput`/`MentionTextInput` with debounced dropdown
   - `renderWithMentions()` renders `@username` as links/tappable on all platforms
   - All post author names, comment authors, leaderboard entries, and @mentions link to user profiles
   - `notifyMentions()` sends Expo push to mentioned users (fire-and-forget, deduplicates, skips self)
-- **Props "who gave props"** (backend + web deployed; mobile needs EAS build):
+- **Props "who gave props"** (backend + web deployed; mobile shipped in build #35):
   - `GET /submissions/:id/props/who` — returns list of proppers with displayName + presigned avatar URL
   - Web: clicking the prop count opens a modal showing who gave props
   - Mobile: "who?" link next to prop count opens bottom sheet with avatar list
   - Fix: `props.service.ts` now calls `s3.resolveProfilePhotoUrl()` — previously returned raw S3 key causing broken avatars
-- **Tournament feed post comments** (backend + web deployed; mobile needs EAS build):
+- **Tournament feed post comments** (backend + web deployed; mobile shipped in build #35):
   - New `TournamentPostComment` model + migration `20260324000000_tournament_post_comments`
   - `GET/POST /tournaments/posts/:postId/comments` — get/add comments on feed posts
   - `DELETE /tournaments/posts/comments/:commentId` — delete own comment
@@ -322,22 +322,22 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - Mobile `TournamentDetailScreen`: collapsible comment section on each PostCard; tap to expand, post, delete own
 - **Docs updated**: `README.md` and `docs/architecture.md` fully reflect current stack, all API endpoints, all schema models, and design decisions
 - **Android gap analysis**: documented in post-beta backlog — ~75% Android-ready; 3 blocking gaps (Google Sign-In, Google Pay, FCM)
-- **Photo lightbox** (web deployed; mobile needs EAS build):
+- **Photo lightbox** (web deployed; mobile shipped in build #35):
   - Web: `PhotoLightbox` component (dark overlay, ESC/click-outside closes, `92vw×90vh` contain) on `leaderboard/[id]` and `leaderboard` pages
   - Mobile: full-screen `Modal` with `resizeMode="contain"` on `HomeScreen` FeedCard and `TournamentDetailScreen` PostCard
   - Catches and angler post photos are tappable; edit-form previews and GIF picker excluded
-- **Comment improvements** (web deployed; mobile needs EAS build):
+- **Comment improvements** (web deployed; mobile shipped in build #35):
   - Comments load on mount so count is always shown in toggle (`💬 3 comments`) before expanding
   - Avatars (28px circle) shown left of each commenter's name; initial letter fallback
   - Newest comments first; new comments prepended to top
   - Catch comments backend now returns `profilePhotoUrl` (presigned URL)
 - **Deploy workflow fix**: `.github/workflows/deploy.yml` `changes` job now checks previous run conclusion via GitHub API — if previous run was not `success` (cancelled/failed), forces all three services to deploy regardless of which files changed; prevents silent missed deploys when a cancelled run had undeployed changes
-- **@mention autocomplete in comments** (backend deployed; web deployed; mobile needs EAS build):
+- **@mention autocomplete in comments** (backend deployed; web deployed; mobile shipped in build #35):
   - `GET /users/search?q=` — prefix match on `AnglerProfile.username` (top 8, auth required)
   - `notifyMentions()` in `CommentsService` + `TournamentsService` — parses `@usernames` from saved comment body, looks up push tokens, sends Expo push "You were mentioned 🎣" (fire-and-forget, skips self, deduplicates)
   - Web: `MentionInput` component with trailing `@word` detection, 200ms debounce, floating dropdown above input, `renderWithMentions()` highlights mentions in gold — wired into `leaderboard/[id]`, `leaderboard`, and home page comment inputs
   - Mobile: `MentionTextInput` + `renderWithMentions` — wired into `TournamentDetailScreen` PostComments, `LeaderboardScreen` CommentsSection, `HomeScreen` CommentsModal
-- **Clickable usernames and @mentions** (web deployed; mobile needs EAS build):
+- **Clickable usernames and @mentions** (web deployed; mobile shipped in build #35):
   - Web: `renderWithMentions()` outputs `<a href="/profile/[username]">` links; `UserLink` helper makes all post author names, comment author names, and leaderboard entry names clickable
   - Web: avatar circles in comments clickable; director card name on leaderboard/[id] clickable
   - Web (leaderboard page): each feed post shows tournament name as a clickable link to tournament detail
@@ -350,14 +350,14 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - `POST /webhooks/stripe` → marks entry PAID on `payment_intent.succeeded`
   - Admin moderation: 💳 Fee Paid / 💳 Fee Unpaid badges
 - **Apple App Store review notes**: `docs/apple-review-notes.md`
-- **Avatar upload fix** (backend deployed, mobile needs EAS build for HEIC normalization):
+- **Avatar upload fix** (backend deployed, mobile shipped in build #35 for HEIC normalization):
   - Root cause: `ACL: 'public-read'` on S3 bucket with Object Ownership enforced → `InvalidBucketAclWithObjectOwnership` 500 error
   - `s3.service`: removed ACL from `uploadBuffer`; added `resolveProfilePhotoUrl()` — generates presigned URL from S3 key, passthrough for existing `https://` URLs (no network call, pure HMAC signing)
   - `profile.service`: `uploadAvatar` now stores S3 key (not public URL); `getOwn`/`getByUsername`/`upsert` resolve `profilePhotoUrl` to presigned URL before returning
   - `leaderboard.service`, `submissions.service`, `tournaments.service`: all resolve `profilePhotoUrl` in parallel for feed/leaderboard entries, director card, top-3, post authors
   - `profile.controller`: FileTypeValidator now accepts `image/heic` and `image/heif`
   - Mobile `ProfileScreen`: both avatar handlers normalize HEIC/HEIF mimeType → `image/jpeg` before upload
-- **Edit post media bar** (backend deployed, web deployed, mobile needs EAS build):
+- **Edit post media bar** (backend deployed, web deployed, mobile shipped in build #35):
   - Backend `editPost` accepts `newPhotoKey` (S3 key or GIF URL `https://...`); returns presigned `photoUrl` for new photos
   - Web `/leaderboard` and `/leaderboard/[id]`: edit form shows existing photo with × remove, new media preview, inline GIF picker, inline emoji picker, 📎/GIF/😊 action row — identical to compose bar
   - Mobile `TournamentDetailScreen`: edit modal (pageSheet) has inline 📎/GIF/😊 row, inline GIF search FlatList, inline emoji grid (4 categories); `handleSaveEdit` uploads photo/GIF before API call
