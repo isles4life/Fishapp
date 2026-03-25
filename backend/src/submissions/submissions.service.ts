@@ -339,13 +339,20 @@ export class SubmissionsService {
         gpsLng: true,
         speciesName: true,
         fishLengthCm: true,
+        photo2Key: true,
+        photo1Key: true,
       },
     });
-    return submissions.map(s => ({
-      lat: s.gpsLat,
-      lng: s.gpsLng,
-      species: s.speciesName ?? 'Unknown',
-      lengthCm: s.fishLengthCm,
+    return Promise.all(submissions.map(async s => {
+      const key = s.photo2Key || s.photo1Key;
+      const photoUrl = key ? await this.s3.getPresignedUrl(key) : null;
+      return {
+        lat: s.gpsLat,
+        lng: s.gpsLng,
+        species: s.speciesName ?? 'Unknown',
+        lengthCm: s.fishLengthCm,
+        photoUrl,
+      };
     }));
   }
 }

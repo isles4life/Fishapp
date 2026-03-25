@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView, Platform,
+  View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView, Platform, Image,
 } from 'react-native';
 import MapView, { Marker, Callout, Region as MapRegion } from 'react-native-maps';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -136,7 +136,11 @@ export default function HotSpotsScreen() {
             >
               <Callout tooltip={false}>
                 <View style={styles.callout}>
-                  <Text style={styles.calloutEmoji}>{speciesEmoji(spot.species)}</Text>
+                  {spot.photoUrl ? (
+                    <Image source={{ uri: spot.photoUrl }} style={styles.calloutPhoto} resizeMode="cover" />
+                  ) : (
+                    <Text style={styles.calloutEmoji}>{speciesEmoji(spot.species)}</Text>
+                  )}
                   <Text style={styles.calloutSpecies}>{spot.species}</Text>
                   <Text style={styles.calloutLength}>{cmToIn(spot.lengthCm)}"</Text>
                 </View>
@@ -150,7 +154,7 @@ export default function HotSpotsScreen() {
       {spots.length > 0 && (
         <View style={styles.legend}>
           <View style={styles.legendPin} />
-          <Text style={styles.legendText}>Tap a pin to see species &amp; length</Text>
+          <Text style={styles.legendText}>Tap a pin to see catch photo &amp; details</Text>
         </View>
       )}
     </SafeAreaView>
@@ -236,7 +240,13 @@ const styles = StyleSheet.create({
   callout: {
     alignItems: 'center',
     padding: 8,
-    minWidth: 90,
+    width: 120,
+  },
+  calloutPhoto: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginBottom: 6,
   },
   calloutEmoji: {
     fontSize: 20,
@@ -247,6 +257,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.charcoal,
     marginBottom: 2,
+    textAlign: 'center',
   },
   calloutLength: {
     fontSize: 13,
