@@ -264,20 +264,30 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-24)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #36 is latest — new EAS build needed for: keyboard fix, GPS map link on catch cards, clickable feed card angler names
+- iOS TestFlight build #37 is latest
 - CI/CD optimized: Docker BuildKit GHA layer cache + `wait-for-service-stability: false` — backend deploys ~2–3 min instead of 5–10 min
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
-### Recently Shipped
-- **Keyboard fix for comment inputs** (backend + web deployed; mobile needs EAS build):
+### Recently Shipped (build #37)
+- **Keyboard fix for comment inputs** (shipped in build #37):
   - `LeaderboardScreen`: wrapped in `KeyboardAvoidingView behavior="padding"` + `keyboardShouldPersistTaps="handled"` on FlatList — comment input stays visible above keyboard on iOS
   - HomeScreen `CommentsModal` already had `KeyboardAvoidingView`; no changes needed there
-- **GPS map link on catch cards** (backend + web deployed; mobile needs EAS build):
+- **GPS map link on catch cards** (backend + web deployed; shipped in build #37):
   - Backend `getFeed`: now includes `lat`/`lng` in response
   - Mobile `FeedItem` model: added `lat`/`lng` optional fields
   - Mobile `HomeScreen` FeedCard: `📍 {region}` is tappable when lat/lng available — opens Apple Maps at exact catch GPS coordinates (gold + underline style when tappable)
   - Web home page: `📍 {region}` links to `/map` page
+- **Clickable feed card angler names** (shipped in build #37):
+  - HomeScreen FeedCard: avatar and angler name/username wrapped in `TouchableOpacity` — tapping navigates to `PublicProfile`
+- **PublicProfile back button** (shipped in build #37):
+  - Gold `‹` back button inside ProfileView's headerBar when `!isOwn`; uses `navigation.goBack()` correctly within the stack
+- **Director card tappable + avatar fix** (shipped in build #37):
+  - `TournamentDetailScreen`: director card wrapped in `TouchableOpacity`, navigates to `PublicProfile` when username exists; `onError` fallback on avatar Image
+- **WHO? prop count tap fix** (shipped in build #37):
+  - Removed separate "who?" link between action buttons; prop count itself is now tappable (with `hitSlop`) to open the who-gave-props sheet
+- **TypeScript cleanup** (shipped in build #37):
+  - Fixed `PermissionStatus 'limited'` casts, `typography.*` key corrections, `TournamentHomeScreen` nav types, `expo-file-system/legacy` import
 
 ### Recently Shipped
 - **Full media bar (📎/GIF/😊) on all mobile comment areas** (EAS build #32 submitted):
