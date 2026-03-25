@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   errorText: {
-    ...typography.body,
+    ...typography.bodyMd,
     color: colors.error,
     textAlign: 'center',
   },

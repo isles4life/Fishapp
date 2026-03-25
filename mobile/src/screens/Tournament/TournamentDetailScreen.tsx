@@ -791,7 +791,7 @@ export default function TournamentDetailScreen() {
 
   const handleEditPickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted' && status !== 'limited') {
+    if (status !== 'granted' && (status as string) !== 'limited') {
       Alert.alert(
         'Photo Library Access Required',
         'Please allow photo library access in Settings to attach images.',
@@ -833,7 +833,7 @@ export default function TournamentDetailScreen() {
 
   const handlePickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted' && status !== 'limited') {
+    if (status !== 'granted' && (status as string) !== 'limited') {
       Alert.alert(
         'Photo Library Access Required',
         'Please allow photo library access in Settings to attach images.',
@@ -878,13 +878,13 @@ export default function TournamentDetailScreen() {
 
     // Free tournament — go straight to submission
     if (tournament.entryFeeCents === 0) {
-      navigation.navigate('SubmissionFlow' as any, { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod });
+      (navigation as any).navigate('SubmissionFlow', { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod });
       return;
     }
 
     // Already paid — go straight to submission
     if (entryStatus === 'PAID') {
-      navigation.navigate('SubmissionFlow' as any, { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod });
+      (navigation as any).navigate('SubmissionFlow', { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod });
       return;
     }
 
@@ -915,7 +915,7 @@ export default function TournamentDetailScreen() {
       Alert.alert(
         '🎣 You\'re In!',
         `Entry fee of $${(entryFeeCents / 100).toFixed(2)} paid. Go catch a big one!`,
-        [{ text: 'Submit a Catch', onPress: () => navigation.navigate('SubmissionFlow' as any, { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod }) }, { text: 'OK' }],
+        [{ text: 'Submit a Catch', onPress: () => (navigation as any).navigate('SubmissionFlow', { tournamentId: tournament.id, scoringMethod: tournament.scoringMethod }) }, { text: 'OK' }],
       );
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Could not process payment');
@@ -1085,7 +1085,7 @@ export default function TournamentDetailScreen() {
                   <TouchableOpacity
                     style={s.scanBtn}
                     activeOpacity={0.75}
-                    onPress={() => navigation.navigate('CheckIn' as any)}
+                    onPress={() => (navigation as any).navigate('CheckIn')}
                   >
                     <Text style={s.scanBtnText}>📱 Check In</Text>
                   </TouchableOpacity>
@@ -1142,7 +1142,7 @@ export default function TournamentDetailScreen() {
               <TouchableOpacity
                 style={s.scanBtn}
                 activeOpacity={0.75}
-                onPress={() => navigation.navigate('CheckIn' as any)}
+                onPress={() => (navigation as any).navigate('CheckIn')}
               >
                 <Text style={s.scanBtnText}>📱 Scan QR to Check In</Text>
               </TouchableOpacity>

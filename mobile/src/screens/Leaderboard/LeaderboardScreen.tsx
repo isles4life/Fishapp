@@ -1008,7 +1008,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   propsSheetTitle: {
-    ...typography.headingMd,
+    ...typography.displaySm,
     color: colors.text,
     marginBottom: 16,
   },

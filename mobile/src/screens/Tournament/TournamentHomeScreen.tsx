@@ -11,7 +11,9 @@ import { storage } from '../../services/storage';
 import type { Tournament, MySubmission, AnglerProfile } from '../../models';
 import { colors } from '../../theme/colors';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'TournamentHome'>;
+// TournamentHomeScreen is not wired to nav (TournamentScreen is used instead)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Props = { navigation: any };
 
 export default function TournamentHomeScreen({ navigation }: Props) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
