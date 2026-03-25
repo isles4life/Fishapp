@@ -202,6 +202,8 @@ export interface FeedItem {
   photoUrl: string | null;
   submittedAt: string;
   propsCount: number;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 // ── Hot Spots ──────────────────────────────────────────────────────────────

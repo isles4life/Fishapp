@@ -2,7 +2,7 @@ import React, { useCallback, useContext, useState, useEffect, useRef } from 'rea
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, SafeAreaView, Modal, Alert, Image,
-  TextInput, KeyboardAvoidingView, Platform, FlatList, RefreshControl,
+  TextInput, KeyboardAvoidingView, Platform, FlatList, RefreshControl, Linking,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -613,7 +613,17 @@ function FeedCard({ item, region, onComment }: { item: FeedItem; region: string;
           <Text> {speciesLabel}.</Text>
         </Text>
         <View style={styles.feedMeta}>
-          <Text style={styles.feedMetaText}>📍 {region}</Text>
+          <TouchableOpacity
+            activeOpacity={item.lat != null ? 0.7 : 1}
+            disabled={item.lat == null}
+            onPress={() => {
+              if (item.lat != null && item.lng != null) {
+                Linking.openURL(`maps:?q=${item.lat},${item.lng}&ll=${item.lat},${item.lng}`);
+              }
+            }}
+          >
+            <Text style={[styles.feedMetaText, item.lat != null && { color: colors.accent, textDecorationLine: 'underline' }]}>📍 {region}</Text>
+          </TouchableOpacity>
           <Text style={styles.feedMetaDot}>·</Text>
           <Text style={styles.feedMetaText}>🕐 {timeAgo(item.submittedAt)}</Text>
         </View>

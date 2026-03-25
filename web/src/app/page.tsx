@@ -610,7 +610,7 @@ export default function HomePage() {
                     {/* Meta row */}
                     <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
                       {tournament && (
-                        <span style={{ color: C.textSub, fontSize: 13 }}>📍 {tournament.region.name}</span>
+                        <Link href="/map" style={{ color: C.textSub, fontSize: 13, textDecoration: 'none' }}>📍 {tournament.region.name}</Link>
                       )}
                       {entry.speciesName && <span style={{ color: C.accent, fontSize: 13 }}>{entry.speciesName}</span>}
                       <span style={{ color: C.textSub, fontSize: 13 }}>🏅 Rank #{entry.rank}</span>

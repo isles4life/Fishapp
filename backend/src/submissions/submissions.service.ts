@@ -324,6 +324,8 @@ export class SubmissionsService {
         photoUrl,
         submittedAt: s.createdAt.toISOString(),
         propsCount: s._count.props,
+        lat: s.gpsLat,
+        lng: s.gpsLng,
       };
     }));
   }

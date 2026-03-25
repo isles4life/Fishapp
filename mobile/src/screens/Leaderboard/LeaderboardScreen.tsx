@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, FlatList,
   ActivityIndicator, TouchableOpacity, Image, SafeAreaView,
-  ScrollView, TextInput, Modal,
+  ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as api from '../../services/api';
@@ -567,6 +567,7 @@ export default function LeaderboardScreen() {
   }
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
@@ -654,6 +655,7 @@ export default function LeaderboardScreen() {
           )}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
       )}
 
@@ -676,6 +678,7 @@ export default function LeaderboardScreen() {
         </View>
       )}
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
