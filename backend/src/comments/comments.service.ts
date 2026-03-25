@@ -1,13 +1,37 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { S3Service } from '../submissions/s3.service';
+import { PushService } from '../push/push.service';
 
 @Injectable()
 export class CommentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly s3: S3Service,
+    private readonly push: PushService,
   ) {}
+
+  private async notifyMentions(body: string, authorId: string, authorUsername: string | null) {
+    const mentionedUsernames = [...new Set(
+      [...body.matchAll(/@(\w+)/g)].map(m => m[1].toLowerCase()),
+    )];
+    if (mentionedUsernames.length === 0) return;
+
+    const profiles = await this.prisma.anglerProfile.findMany({
+      where: { username: { in: mentionedUsernames, mode: 'insensitive' } },
+      select: { userId: true, user: { select: { pushToken: true } } },
+    });
+
+    const pushes = profiles
+      .filter(p => p.userId !== authorId && p.user.pushToken)
+      .map(p => this.push.sendToToken(
+        p.user.pushToken!,
+        'You were mentioned 🎣',
+        `@${authorUsername ?? 'Someone'} mentioned you in a comment`,
+      ).catch(() => {}));
+
+    await Promise.all(pushes);
+  }
 
   private async resolveComment(c: any) {
     const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(c.user.profile?.profilePhotoUrl);
@@ -40,6 +64,7 @@ export class CommentsService {
         user: { select: { id: true, displayName: true, profile: { select: { username: true, profilePhotoUrl: true } } } },
       },
     });
+    this.notifyMentions(body, userId, comment.user.profile?.username ?? null).catch(() => {});
     return this.resolveComment(comment);
   }
 

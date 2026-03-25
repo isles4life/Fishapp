@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState, useCallback } from 'react';
+import React, { useContext, useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   ActivityIndicator, TouchableOpacity, Image, SafeAreaView,
@@ -138,6 +138,77 @@ function PropButton({
   );
 }
 
+type MentionUser = { id: string; username: string; displayName: string };
+
+function renderWithMentions(text: string): React.ReactNode {
+  const parts = text.split(/(@\w+)/g);
+  return parts.map((part, i) =>
+    /^@\w+$/.test(part)
+      ? <Text key={i} style={{ color: colors.accent, fontWeight: '700' }}>{part}</Text>
+      : <Text key={i}>{part}</Text>
+  );
+}
+
+function MentionTextInput({
+  value, onChangeText, style, placeholder,
+}: {
+  value: string;
+  onChangeText: (v: string) => void;
+  style?: object;
+  placeholder?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<MentionUser[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleChange(v: string) {
+    onChangeText(v);
+    const match = v.match(/@(\w*)$/);
+    if (match) {
+      const q = match[1];
+      setMentionQuery(q);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        if (q.length === 0) { setSuggestions([]); return; }
+        try { setSuggestions(await api.searchUsers(q)); }
+        catch { setSuggestions([]); }
+      }, 250);
+    } else {
+      setMentionQuery(null);
+      setSuggestions([]);
+    }
+  }
+
+  function selectMention(user: MentionUser) {
+    onChangeText(value.replace(/@(\w*)$/, `@${user.username} `));
+    setSuggestions([]);
+    setMentionQuery(null);
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      {suggestions.length > 0 && mentionQuery !== null && (
+        <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accentDark, borderRadius: 8, marginBottom: 4, overflow: 'hidden' }}>
+          {suggestions.map(u => (
+            <TouchableOpacity key={u.id} onPress={() => selectMention(u)} style={{ paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row' }}>
+              <Text style={{ color: colors.accent, fontWeight: '700', fontSize: 13 }}>@{u.username}</Text>
+              {u.displayName !== u.username && <Text style={{ color: colors.textSub, fontSize: 13 }}> {u.displayName}</Text>}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      <TextInput
+        style={style}
+        value={value}
+        onChangeText={handleChange}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        maxLength={500}
+      />
+    </View>
+  );
+}
+
 function CommentsSection({ submissionId }: { submissionId: string }) {
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
@@ -184,19 +255,17 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
                 <Text style={styles.commentAuthor}>{c.user.displayName}</Text>
                 <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
               </View>
-              <Text style={styles.commentBody}>{c.body}</Text>
+              <Text style={styles.commentBody}>{renderWithMentions(c.body)}</Text>
             </View>
           ))}
         </>
       )}
       <View style={styles.commentInputRow}>
-        <TextInput
+        <MentionTextInput
           style={styles.commentInput}
           placeholder="Add a comment..."
-          placeholderTextColor={colors.textMuted}
           value={body}
           onChangeText={setBody}
-          maxLength={500}
         />
         <TouchableOpacity
           style={[styles.commentSubmitBtn, (!body.trim() || submitting) && { opacity: 0.5 }]}

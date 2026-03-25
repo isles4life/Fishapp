@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Request, UseGuards, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, Request, UseGuards, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from '../common/jwt.guard';
 import { AdminGuard } from '../common/admin.guard';
@@ -29,6 +29,18 @@ export class UsersController {
       data: { pushToken: body.token },
     });
     return { ok: true };
+  }
+
+  @Get('search')
+  @UseGuards(JwtAuthGuard)
+  async searchUsers(@Query('q') q: string) {
+    if (!q || q.length < 1) return [];
+    const profiles = await this.prisma.anglerProfile.findMany({
+      where: { username: { startsWith: q, mode: 'insensitive' } },
+      take: 8,
+      select: { userId: true, username: true, user: { select: { displayName: true } } },
+    });
+    return profiles.map(p => ({ id: p.userId, username: p.username, displayName: p.user.displayName }));
   }
 
   @Get('regions')

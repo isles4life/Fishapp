@@ -57,6 +57,111 @@ function scoringLabel(method?: string): string {
   return '📏 Length';
 }
 
+// ── Mention helpers ───────────────────────────────────────────────────────────
+
+type MentionUser = { id: string; username: string; displayName: string };
+
+function renderWithMentions(text: string): React.ReactNode {
+  const parts = text.split(/(@\w+)/g);
+  return parts.map((part, i) =>
+    /^@\w+$/.test(part)
+      ? <Text key={i} style={{ color: colors.accent, fontWeight: '700' }}>{part}</Text>
+      : <Text key={i}>{part}</Text>
+  );
+}
+
+function MentionTextInput({
+  value, onChangeText, onSend, style, placeholder,
+}: {
+  value: string;
+  onChangeText: (v: string) => void;
+  onSend: () => void;
+  style?: object;
+  placeholder?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<MentionUser[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleChange(v: string) {
+    onChangeText(v);
+    const match = v.match(/@(\w*)$/);
+    if (match) {
+      const q = match[1];
+      setMentionQuery(q);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        if (q.length === 0) { setSuggestions([]); return; }
+        try { setSuggestions(await api.searchUsers(q)); }
+        catch { setSuggestions([]); }
+      }, 250);
+    } else {
+      setMentionQuery(null);
+      setSuggestions([]);
+    }
+  }
+
+  function selectMention(user: MentionUser) {
+    const replaced = value.replace(/@(\w*)$/, `@${user.username} `);
+    onChangeText(replaced);
+    setSuggestions([]);
+    setMentionQuery(null);
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      {suggestions.length > 0 && mentionQuery !== null && (
+        <View style={mentionStyles.dropdown}>
+          {suggestions.map(u => (
+            <TouchableOpacity key={u.id} onPress={() => selectMention(u)} style={mentionStyles.suggestionRow}>
+              <Text style={mentionStyles.suggestionUsername}>@{u.username}</Text>
+              {u.displayName !== u.username && (
+                <Text style={mentionStyles.suggestionDisplay}> {u.displayName}</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      <TextInput
+        style={style}
+        value={value}
+        onChangeText={handleChange}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        multiline
+        maxLength={500}
+        blurOnSubmit={false}
+      />
+    </View>
+  );
+}
+
+const mentionStyles = StyleSheet.create({
+  dropdown: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accentDark,
+    borderRadius: 8,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  suggestionRow: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  suggestionUsername: {
+    color: colors.accent,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  suggestionDisplay: {
+    color: colors.textSub,
+    fontSize: 13,
+  },
+});
+
 // ── Post Comments ─────────────────────────────────────────────────────────────
 
 function PostComments({ postId, currentUserId }: { postId: string; currentUserId: string | null }) {
@@ -117,7 +222,7 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
               )}
               <View style={{ flex: 1 }}>
                 <Text style={ps.commentAuthor}>{name} <Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text></Text>
-                <Text style={ps.commentBody}>{c.body}</Text>
+                <Text style={ps.commentBody}>{renderWithMentions(c.body)}</Text>
               </View>
               {isOwn && (
                 <TouchableOpacity onPress={() => handleDelete(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -131,14 +236,12 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
 
       {currentUserId && (
         <View style={ps.commentInputRow}>
-          <TextInput
+          <MentionTextInput
             style={ps.commentInput}
             placeholder="Add a comment…"
-            placeholderTextColor={colors.textMuted}
             value={body}
             onChangeText={setBody}
-            multiline
-            maxLength={500}
+            onSend={handleSend}
           />
           <TouchableOpacity
             style={[ps.commentSend, (!body.trim() || sending) && { opacity: 0.4 }]}

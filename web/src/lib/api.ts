@@ -318,4 +318,6 @@ export const api = {
     apiFetch<PostComment>(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body }) }, true),
   deletePostComment: (commentId: string) =>
     apiFetch<{ deleted: boolean }>(`/tournaments/posts/comments/${commentId}`, { method: 'DELETE' }, true),
+  searchUsers: (q: string) =>
+    apiFetch<{ id: string; username: string; displayName: string }[]>(`/users/search?q=${encodeURIComponent(q)}`, undefined, true),
 };

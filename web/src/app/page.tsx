@@ -168,6 +168,84 @@ function PropButton({ submissionId }: { submissionId: string }) {
   );
 }
 
+type MentionUser = { id: string; username: string; displayName: string };
+
+function renderWithMentions(text: string): React.ReactNode {
+  const parts = text.split(/(@\w+)/g);
+  return parts.map((part, i) =>
+    /^@\w+$/.test(part)
+      ? <span key={i} style={{ color: C.accent, fontWeight: 600 }}>{part}</span>
+      : part
+  );
+}
+
+function MentionInput({
+  value, onChange, onSubmit, placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  placeholder: string;
+}) {
+  const [suggestions, setSuggestions] = useState<MentionUser[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleChange(v: string) {
+    onChange(v);
+    const match = v.match(/@(\w*)$/);
+    if (match) {
+      const q = match[1];
+      setMentionQuery(q);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        if (q.length === 0) { setSuggestions([]); return; }
+        try { setSuggestions(await api.searchUsers(q)); }
+        catch { setSuggestions([]); }
+      }, 200);
+    } else {
+      setMentionQuery(null);
+      setSuggestions([]);
+    }
+  }
+
+  function selectMention(user: MentionUser) {
+    onChange(value.replace(/@(\w*)$/, `@${user.username} `));
+    setSuggestions([]);
+    setMentionQuery(null);
+  }
+
+  return (
+    <div style={{ position: 'relative', flex: 1 }}>
+      {suggestions.length > 0 && mentionQuery !== null && (
+        <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, zIndex: 100, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+          {suggestions.map(u => (
+            <button key={u.id} onClick={() => selectMention(u)}
+              style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '8px 12px', cursor: 'pointer', color: C.text, fontSize: 13 }}
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <span style={{ fontWeight: 700, color: C.accent }}>@{u.username}</span>
+              {u.displayName !== u.username && <span style={{ color: C.text, opacity: 0.6, marginLeft: 6 }}>{u.displayName}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      <input
+        value={value}
+        onChange={e => handleChange(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey && suggestions.length === 0) { e.preventDefault(); onSubmit(); }
+          if (e.key === 'Escape') { setSuggestions([]); setMentionQuery(null); }
+        }}
+        placeholder={placeholder}
+        maxLength={500}
+        style={{ width: '100%', boxSizing: 'border-box', padding: '7px 12px', fontSize: 13, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, outline: 'none' }}
+      />
+    </div>
+  );
+}
+
 function CommentsSection({ submissionId, myUserId }: { submissionId: string; myUserId?: string | null }) {
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
@@ -181,8 +259,7 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
     api.getComments(submissionId).then(setComments).catch(() => {}).finally(() => setLoading(false));
   }, [submissionId]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function doSubmit() {
     const trimmed = body.trim();
     if (!trimmed || submitting) return;
     setSubmitting(true);
@@ -259,7 +336,7 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
                   </button>
                 </div>
               ) : (
-                <span style={{ fontSize: 13, color: C.text }}>{c.body}</span>
+                <span style={{ fontSize: 13, color: C.text }}>{renderWithMentions(c.body)}</span>
               )}
               </div>
             </div>
@@ -268,15 +345,13 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
           {comments.length === 0 && <div style={{ color: C.textMuted, fontSize: 13, marginBottom: 8 }}>No comments yet.</div>}
         </>
       )}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <input value={body} onChange={e => setBody(e.target.value)}
-          placeholder="Add a comment…" maxLength={500}
-          style={{ flex: 1, padding: '7px 12px', fontSize: 13, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, outline: 'none' }} />
-        <button type="submit" disabled={!body.trim() || submitting}
-          style={{ background: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (!body.trim() || submitting) ? 0.5 : 1 }}>
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <MentionInput value={body} onChange={setBody} onSubmit={doSubmit} placeholder="Add a comment…" />
+        <button onClick={doSubmit} disabled={!body.trim() || submitting}
+          style={{ background: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (!body.trim() || submitting) ? 0.5 : 1, flexShrink: 0 }}>
           {submitting ? '…' : 'Post'}
         </button>
-      </form>
+      </div>
     </div>
   );
 }

@@ -258,6 +258,10 @@ export function deleteComment(commentId: string): Promise<{ ok: boolean }> {
   return request(`/comments/${commentId}`, { method: 'DELETE' });
 }
 
+export function searchUsers(q: string): Promise<{ id: string; username: string; displayName: string }[]> {
+  return request(`/users/search?q=${encodeURIComponent(q)}`);
+}
+
 // ── Warnings ──────────────────────────────────────────────────────────────────
 
 export function getMyWarnings(): Promise<UserWarning[]> {

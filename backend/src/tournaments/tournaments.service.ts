@@ -489,6 +489,28 @@ export class TournamentsService {
     })));
   }
 
+  private async notifyMentions(body: string, authorId: string, authorUsername: string | null) {
+    const mentionedUsernames = [...new Set(
+      [...body.matchAll(/@(\w+)/g)].map(m => m[1].toLowerCase()),
+    )];
+    if (mentionedUsernames.length === 0) return;
+
+    const profiles = await this.prisma.anglerProfile.findMany({
+      where: { username: { in: mentionedUsernames, mode: 'insensitive' } },
+      select: { userId: true, user: { select: { pushToken: true } } },
+    });
+
+    const pushes = profiles
+      .filter(p => p.userId !== authorId && p.user.pushToken)
+      .map(p => this.push.sendToToken(
+        p.user.pushToken!,
+        'You were mentioned 🎣',
+        `@${authorUsername ?? 'Someone'} mentioned you in a comment`,
+      ).catch(() => {}));
+
+    await Promise.all(pushes);
+  }
+
   async addPostComment(postId: string, userId: string, body: string) {
     const post = await this.prisma.tournamentPost.findUnique({ where: { id: postId } });
     if (!post) throw new NotFoundException('Post not found');
@@ -504,6 +526,7 @@ export class TournamentsService {
         },
       },
     });
+    this.notifyMentions(body, userId, comment.user.profile?.username ?? null).catch(() => {});
     const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(comment.user.profile?.profilePhotoUrl);
     return {
       ...comment,
