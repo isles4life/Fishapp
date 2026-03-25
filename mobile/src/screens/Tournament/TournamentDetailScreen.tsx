@@ -443,11 +443,12 @@ interface PostCardProps {
   currentUserId: string | null;
   userRole: string;
   directorId?: string | null;
+  tournamentId: string;
   onEdit: (post: TournamentPost) => void;
   onDelete: (postId: string) => void;
 }
 
-function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete }: PostCardProps) {
+function PostCard({ post, currentUserId, userRole, directorId, tournamentId, onEdit, onDelete }: PostCardProps) {
   const navigation = useNavigation<any>();
   const profileUsername = post.user.profile?.username ?? null;
   const username = profileUsername ?? post.user.displayName;
@@ -1419,7 +1420,7 @@ export default function TournamentDetailScreen() {
               <>
                 {posts.map(p => (
                   <PostCard key={p.id} post={p} currentUserId={currentUserId} userRole={userRole}
-                    directorId={tournament?.directorId}
+                    directorId={tournament?.directorId} tournamentId={tournamentId}
                     onEdit={handleEditPress} onDelete={handleDeletePress} />
                 ))}
                 {feedCursor && (

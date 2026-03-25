@@ -117,6 +117,7 @@ export type PostComment = {
   userId: string;
   body: string;
   gifUrl?: string | null;
+  photoUrl?: string | null;
   createdAt: string;
   propCount?: number;
   userHasPropped?: boolean;
@@ -127,8 +128,8 @@ export function getPostComments(postId: string): Promise<PostComment[]> {
   return request(`/tournaments/posts/${postId}/comments`);
 }
 
-export function addPostComment(postId: string, body: string, gifUrl?: string): Promise<PostComment> {
-  return request(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body, gifUrl }) });
+export function addPostComment(postId: string, body: string, gifUrl?: string, photoKey?: string): Promise<PostComment> {
+  return request(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body, gifUrl, photoKey }) });
 }
 
 export function deletePostComment(commentId: string): Promise<{ deleted: boolean }> {

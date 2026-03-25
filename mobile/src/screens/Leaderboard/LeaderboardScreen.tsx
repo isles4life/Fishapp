@@ -212,8 +212,6 @@ function MentionTextInput({
   );
 }
 
-type Propper = { id: string; displayName: string; profilePhotoUrl: string | null };
-
 function CommentPropsWhoModal({ fetchWho, onClose }: { fetchWho: () => Promise<Propper[]>; onClose: () => void }) {
   const [proppers, setProppers] = useState<Propper[]>([]);
   const [loading, setLoading] = useState(true);
