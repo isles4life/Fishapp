@@ -125,17 +125,13 @@ function PropButton({
       <TouchableOpacity
         style={[styles.propBtn, propped && styles.propBtnActive]}
         onPress={handleProp}
-        onLongPress={() => count > 0 && setShowWho(true)}
         activeOpacity={0.7}
       >
         <Text style={styles.propIcon}>👍</Text>
-        <Text style={[styles.propCount, propped && { color: colors.accent }]}>{count}</Text>
-      </TouchableOpacity>
-      {count > 0 && (
-        <TouchableOpacity onPress={() => setShowWho(true)}>
-          <Text style={styles.propsWhoLink}>who?</Text>
+        <TouchableOpacity onPress={() => count > 0 && setShowWho(true)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }} disabled={count === 0}>
+          <Text style={[styles.propCount, propped && { color: colors.accent }]}>{count}</Text>
         </TouchableOpacity>
-      )}
+      </TouchableOpacity>
       {showWho && <PropsWhoModal submissionId={submissionId} onClose={() => setShowWho(false)} />}
     </>
   );

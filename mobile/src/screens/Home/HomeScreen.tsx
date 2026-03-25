@@ -155,14 +155,14 @@ function PropButton({ submissionId, initialCount }: { submissionId: string; init
       >
         <Text style={styles.feedActionIcon}>👍</Text>
         <Text style={[styles.feedActionText, propped && { color: colors.accent }]}>
-          PROPS{count > 0 ? ` ${count}` : ''}
+          PROPS
         </Text>
+        {count > 0 && (
+          <TouchableOpacity onPress={() => setShowWho(true)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}>
+            <Text style={[styles.feedActionText, { color: colors.accent, marginLeft: 4 }]}>{count}</Text>
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
-      {count > 0 && (
-        <TouchableOpacity onPress={() => setShowWho(true)}>
-          <Text style={styles.propsWhoLink}>who?</Text>
-        </TouchableOpacity>
-      )}
       {showWho && <PropsWhoModal submissionId={submissionId} onClose={() => setShowWho(false)} />}
     </>
   );
