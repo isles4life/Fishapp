@@ -204,7 +204,7 @@ const COMMENT_EMOJI_CATS = [
   { label: '😀 Faces', emojis: ['😀','😂','🤣','😍','😎','🤩','😅','😭','🥳','😤','🤯','😱'] },
 ];
 
-function PostComments({ postId, currentUserId }: { postId: string; currentUserId: string | null }) {
+function PostComments({ postId, tournamentId, currentUserId }: { postId: string; tournamentId: string; currentUserId: string | null }) {
   const navigation = useNavigation<any>();
   const [comments, setComments] = useState<api.PostComment[]>([]);
   const [body, setBody] = useState('');
@@ -217,6 +217,7 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
   const [gifQuery, setGifQuery] = useState('');
   const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
   const [gifSearching, setGifSearching] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   useEffect(() => {
     api.getPostComments(postId).then(setComments).catch(() => {});
@@ -233,15 +234,29 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
     finally { setGifSearching(false); }
   }
 
+  async function handlePickCommentPhoto() {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+      setGifUrl(null);
+    }
+  }
+
   async function handleSend() {
     const trimmed = body.trim();
-    if (!trimmed && !gifUrl || sending) return;
+    if (!trimmed && !gifUrl && !photoUri || sending) return;
     setSending(true);
     try {
-      const c = await api.addPostComment(postId, trimmed, gifUrl ?? undefined);
+      let photoKey: string | undefined;
+      if (photoUri) {
+        const r = await api.uploadPostMedia(tournamentId, photoUri);
+        photoKey = r.photoKey;
+      }
+      const c = await api.addPostComment(postId, trimmed, gifUrl ?? undefined, photoKey);
       setComments(prev => [c, ...prev]);
       setBody('');
       setGifUrl(null);
+      setPhotoUri(null);
       setShowGifPicker(false);
       setShowEmojiPicker(false);
       setExpanded(true);
@@ -311,7 +326,7 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
                   )}
                 </View>
                 <Text style={ps.commentBody}>{renderWithMentions(c.body, (u) => navigation.navigate('PublicProfile', { username: u }))}</Text>
-                {c.gifUrl ? <Image source={{ uri: c.gifUrl }} style={{ width: '100%', height: 120, borderRadius: 8, marginTop: 4 }} resizeMode="cover" /> : null}
+                {(c.gifUrl || c.photoUrl) ? <Image source={{ uri: c.gifUrl ?? c.photoUrl ?? '' }} style={{ width: '100%', height: 120, borderRadius: 8, marginTop: 4 }} resizeMode="cover" /> : null}
               </View>
             </View>
           );
@@ -329,28 +344,32 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
               onSend={handleSend}
             />
             <TouchableOpacity
-              style={[ps.commentSend, ((!body.trim() && !gifUrl) || sending) && { opacity: 0.4 }]}
+              style={[ps.commentSend, ((!body.trim() && !gifUrl && !photoUri) || sending) && { opacity: 0.4 }]}
               onPress={handleSend}
-              disabled={(!body.trim() && !gifUrl) || sending}
+              disabled={(!body.trim() && !gifUrl && !photoUri) || sending}
             >
               <Text style={ps.commentSendText}>Post</Text>
             </TouchableOpacity>
           </View>
-          {gifUrl ? (
+          {(gifUrl || photoUri) ? (
             <View style={{ marginTop: 4, position: 'relative', alignSelf: 'flex-start' }}>
-              <Image source={{ uri: gifUrl }} style={{ height: 80, width: 120, borderRadius: 8 }} resizeMode="cover" />
-              <TouchableOpacity onPress={() => setGifUrl(null)} style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
+              <Image source={{ uri: gifUrl ?? photoUri ?? '' }} style={{ height: 80, width: 120, borderRadius: 8 }} resizeMode="cover" />
+              <TouchableOpacity onPress={() => { setGifUrl(null); setPhotoUri(null); }} style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ color: '#fff', fontSize: 11, lineHeight: 14 }}>×</Text>
               </TouchableOpacity>
             </View>
           ) : null}
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+            <TouchableOpacity onPress={handlePickCommentPhoto}
+              style={{ borderWidth: 1, borderColor: photoUri ? colors.accent : 'rgba(255,255,255,0.35)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Text style={{ fontSize: 15, color: photoUri ? colors.accent : colors.textSub }}>📎</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setGifQuery(''); setGifResults([]); }}
-              style={{ borderWidth: 1, borderColor: showGifPicker ? colors.accent : colors.textMuted, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+              style={{ borderWidth: 1, borderColor: showGifPicker ? colors.accent : 'rgba(255,255,255,0.35)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
               <Text style={{ color: showGifPicker ? colors.accent : colors.textMuted, fontSize: 11, fontWeight: '700' }}>GIF</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
-              style={{ borderWidth: 1, borderColor: showEmojiPicker ? colors.accent : colors.textMuted, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+              style={{ borderWidth: 1, borderColor: showEmojiPicker ? colors.accent : 'rgba(255,255,255,0.35)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
               <Text style={{ fontSize: 15 }}>😊</Text>
             </TouchableOpacity>
           </View>
@@ -523,7 +542,7 @@ function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete 
         </TouchableOpacity>
       )}
 
-      <PostComments postId={post.id} currentUserId={currentUserId} />
+      <PostComments postId={post.id} tournamentId={tournamentId} currentUserId={currentUserId} />
 
       {/* Photo lightbox */}
       <Modal visible={!!lightboxUrl} transparent animationType="fade" onRequestClose={() => setLightboxUrl(null)}>
