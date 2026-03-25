@@ -269,6 +269,9 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
+### Recently Shipped (needs EAS build)
+- **@mention tap fix on iOS**: changed `onPress` → `onPressIn` on suggestion rows in all three `MentionTextInput` components (HomeScreen, LeaderboardScreen, TournamentDetailScreen) — iOS was dismissing the keyboard before `onPress` could fire, swallowing the tap
+
 ### Recently Shipped (build #37)
 - **Keyboard fix for comment inputs** (shipped in build #37):
   - `LeaderboardScreen`: wrapped in `KeyboardAvoidingView behavior="padding"` + `keyboardShouldPersistTaps="handled"` on FlatList — comment input stays visible above keyboard on iOS
