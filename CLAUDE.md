@@ -262,11 +262,22 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-27)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions, clickable usernames)
+- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions, clickable usernames, comment props)
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
 ### Recently Shipped
+- **Comment props (likes)** (backend + web deployed; mobile needs EAS build):
+  - New `CatchCommentProp` + `TournamentPostCommentProp` models + migration `20260327000000_comment_props`
+  - `POST /comments/:id/prop` — toggle prop on catch comments; `POST /tournaments/posts/comments/:id/prop` — toggle on post comments
+  - Both comment GET endpoints now return `propCount` + `userHasPropped`
+  - 👍 prop button on every comment row across web (leaderboard, leaderboard/[id], home page) + mobile (TournamentDetailScreen, LeaderboardScreen, HomeScreen)
+  - Gold accent when propped, muted when not; optimistic update via toggle response
+- **@mention autocomplete + clickable usernames** (backend + web deployed; mobile needs EAS build):
+  - `GET /users/search?q=` prefix-match endpoint; `MentionInput`/`MentionTextInput` with debounced dropdown
+  - `renderWithMentions()` renders `@username` as links/tappable on all platforms
+  - All post author names, comment authors, leaderboard entries, and @mentions link to user profiles
+  - `notifyMentions()` sends Expo push to mentioned users (fire-and-forget, deduplicates, skips self)
 - **Props "who gave props"** (backend + web deployed; mobile needs EAS build):
   - `GET /submissions/:id/props/who` — returns list of proppers with displayName + presigned avatar URL
   - Web: clicking the prop count opens a modal showing who gave props
