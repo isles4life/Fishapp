@@ -330,12 +330,12 @@ function PostComments({ postId, tournamentId, myUserId }: { postId: string; tour
           )}
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
             <button onClick={() => photoInputRef.current?.click()} title="Attach photo"
-              style={{ background: 'none', border: `1px solid ${photoFile ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1, color: photoFile ? C.accent : C.textSub }}>📎</button>
+              style={{ background: 'none', border: `1px solid ${photoFile ? C.accent : 'rgba(255,255,255,0.22)'}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1, color: photoFile ? C.accent : C.textSub }}>📎</button>
             <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoSelect} style={{ display: 'none' }} />
             <button onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setGifQuery(''); setGifResults([]); }}
-              style={{ background: 'none', border: `1px solid ${showGifPicker ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: showGifPicker ? C.accent : C.textSub, fontSize: 11, fontWeight: 700 }}>GIF</button>
+              style={{ background: 'none', border: `1px solid ${showGifPicker ? C.accent : 'rgba(255,255,255,0.22)'}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: showGifPicker ? C.accent : C.textSub, fontSize: 11, fontWeight: 700 }}>GIF</button>
             <button onClick={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
-              style={{ background: 'none', border: `1px solid ${showEmojiPicker ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>😊</button>
+              style={{ background: 'none', border: `1px solid ${showEmojiPicker ? C.accent : 'rgba(255,255,255,0.22)'}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>😊</button>
           </div>
           {showEmojiPicker && (
             <div style={{ marginTop: 8, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
