@@ -143,7 +143,7 @@ function PropButton({ submissionId }: { submissionId: string }) {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button
           onClick={handleToggle}
           disabled={loading}
@@ -151,19 +151,23 @@ function PropButton({ submissionId }: { submissionId: string }) {
             display: 'flex', alignItems: 'center', gap: 4,
             background: propped ? C.accent + '20' : C.surfaceHigh,
             border: `1px solid ${propped ? C.accent + '70' : C.border}`,
-            borderRadius: 8, padding: '4px 10px', cursor: loading ? 'wait' : 'pointer',
+            borderRadius: 8, padding: '4px 8px', cursor: loading ? 'wait' : 'pointer',
             fontSize: 12, fontWeight: 700,
             color: propped ? C.accent : C.textMuted,
           }}
         >
-          👍 {count}
+          👍
         </button>
-        {count > 0 && (
-          <button onClick={() => setShowWho(true)} style={{
-            background: 'none', border: 'none', color: C.accent, cursor: 'pointer',
-            fontSize: 12, fontWeight: 600, padding: '4px 2px',
-          }}>who?</button>
-        )}
+        <button
+          onClick={() => count > 0 ? setShowWho(true) : undefined}
+          style={{
+            background: 'none', border: 'none', padding: '4px 2px',
+            cursor: count > 0 ? 'pointer' : 'default',
+            fontSize: 12, fontWeight: 700,
+            color: count > 0 ? C.accent : C.textMuted,
+            textDecoration: count > 0 ? 'underline' : 'none',
+          }}
+        >{count}</button>
       </div>
       {showWho && <PropsWhoModal submissionId={submissionId} onClose={() => setShowWho(false)} />}
     </>
