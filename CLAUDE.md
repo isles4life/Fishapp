@@ -262,7 +262,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-27)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions)
+- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions, clickable usernames)
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
@@ -295,6 +295,11 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
   - `notifyMentions()` in `CommentsService` + `TournamentsService` — parses `@usernames` from saved comment body, looks up push tokens, sends Expo push "You were mentioned 🎣" (fire-and-forget, skips self, deduplicates)
   - Web: `MentionInput` component with trailing `@word` detection, 200ms debounce, floating dropdown above input, `renderWithMentions()` highlights mentions in gold — wired into `leaderboard/[id]`, `leaderboard`, and home page comment inputs
   - Mobile: `MentionTextInput` + `renderWithMentions` — wired into `TournamentDetailScreen` PostComments, `LeaderboardScreen` CommentsSection, `HomeScreen` CommentsModal
+- **Clickable usernames and @mentions** (web deployed; mobile needs EAS build):
+  - Web: `renderWithMentions()` outputs `<a href="/profile/[username]">` links; `UserLink` helper makes all post author names, comment author names, and leaderboard entry names clickable
+  - Web: avatar circles in comments clickable; director card name on leaderboard/[id] clickable
+  - Web (leaderboard page): each feed post shows tournament name as a clickable link to tournament detail
+  - Mobile: `renderWithMentions()` accepts `onMentionPress` — tapping `@mention` navigates to `PublicProfile` screen; post/comment author names tappable in TournamentDetailScreen, LeaderboardScreen, HomeScreen
 - **Fishing Intelligence 502 fix** (deployed): added `AbortSignal.timeout(8000)` to Open-Meteo weather fetch
 - **Admin users page fixes**: `autoComplete="new-password"` on password reset; `PAGE_SIZE` 50→10; `overflowY: 'visible'`
 - **Stripe entry fee integration** (deployed):
