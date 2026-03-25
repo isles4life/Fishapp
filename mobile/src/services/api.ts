@@ -268,8 +268,16 @@ export function toggleCommentProp(commentId: string): Promise<{ propCount: numbe
   return request(`/comments/${commentId}/prop`, { method: 'POST' });
 }
 
+export function getCommentPropsWho(commentId: string): Promise<{ id: string; displayName: string; profilePhotoUrl: string | null }[]> {
+  return request(`/comments/${commentId}/props/who`, {}, false);
+}
+
 export function togglePostCommentProp(commentId: string): Promise<{ propCount: number; userHasPropped: boolean }> {
   return request(`/tournaments/posts/comments/${commentId}/prop`, { method: 'POST' });
+}
+
+export function getPostCommentPropsWho(commentId: string): Promise<{ id: string; displayName: string; profilePhotoUrl: string | null }[]> {
+  return request(`/tournaments/posts/comments/${commentId}/props/who`, {}, false);
 }
 
 // ── Warnings ──────────────────────────────────────────────────────────────────

@@ -45,4 +45,9 @@ export class CommentsController {
   toggleProp(@Param('commentId') commentId: string, @Request() req: any) {
     return this.commentsService.toggleCatchCommentProp(commentId, req.user.id);
   }
+
+  @Get('comments/:commentId/props/who')
+  getCommentProppers(@Param('commentId') commentId: string) {
+    return this.commentsService.getCatchCommentProppers(commentId);
+  }
 }

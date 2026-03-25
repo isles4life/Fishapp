@@ -497,6 +497,19 @@ export class TournamentsService {
     return resolved.map(c => ({ ...c, propCount: (c as any)._count.props, userHasPropped: proppedSet.has(c.id) }));
   }
 
+  async getPostCommentProppers(commentId: string) {
+    const props = await this.prisma.tournamentPostCommentProp.findMany({
+      where: { commentId },
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { id: true, profile: { select: { username: true, profilePhotoUrl: true } } } } },
+    });
+    return Promise.all(props.map(async p => ({
+      id: p.user.id,
+      displayName: p.user.profile?.username ?? 'Angler',
+      profilePhotoUrl: await this.s3.resolveProfilePhotoUrl(p.user.profile?.profilePhotoUrl),
+    })));
+  }
+
   async toggleTournamentPostCommentProp(commentId: string, userId: string) {
     const existing = await this.prisma.tournamentPostCommentProp.findUnique({
       where: { commentId_userId: { commentId, userId } },

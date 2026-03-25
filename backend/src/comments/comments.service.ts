@@ -78,6 +78,19 @@ export class CommentsService {
     return { ...resolved, propCount: 0, userHasPropped: false };
   }
 
+  async getCatchCommentProppers(commentId: string) {
+    const props = await this.prisma.catchCommentProp.findMany({
+      where: { commentId },
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { id: true, profile: { select: { username: true, profilePhotoUrl: true } } } } },
+    });
+    return Promise.all(props.map(async p => ({
+      id: p.user.id,
+      displayName: p.user.profile?.username ?? 'Angler',
+      profilePhotoUrl: await this.s3.resolveProfilePhotoUrl(p.user.profile?.profilePhotoUrl),
+    })));
+  }
+
   async toggleCatchCommentProp(commentId: string, userId: string) {
     const existing = await this.prisma.catchCommentProp.findUnique({
       where: { commentId_userId: { commentId, userId } },

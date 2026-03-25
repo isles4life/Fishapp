@@ -211,6 +211,38 @@ function MentionTextInput({
   );
 }
 
+type Propper = { id: string; displayName: string; profilePhotoUrl: string | null };
+
+function CommentPropsWhoModal({ fetchWho, onClose }: { fetchWho: () => Promise<Propper[]>; onClose: () => void }) {
+  const [proppers, setProppers] = useState<Propper[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { fetchWho().then(setProppers).catch(() => {}).finally(() => setLoading(false)); }, []);
+  return (
+    <Modal visible animationType="fade" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 20, width: 280, maxHeight: 360 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <Text style={{ fontWeight: '700', fontSize: 15, color: colors.text }}>👍 Props</Text>
+            <TouchableOpacity onPress={onClose}><Text style={{ color: colors.textMuted, fontSize: 20 }}>×</Text></TouchableOpacity>
+          </View>
+          {loading ? <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center' }}>Loading…</Text>
+            : proppers.length === 0 ? <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center' }}>No props yet.</Text>
+            : <FlatList data={proppers} keyExtractor={p => p.id} renderItem={({ item: p }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.surfaceHigh }}>
+                  {p.profilePhotoUrl
+                    ? <Image source={{ uri: p.profilePhotoUrl }} style={{ width: 30, height: 30, borderRadius: 15 }} />
+                    : <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: colors.surfaceHigh, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: colors.accent, fontWeight: '700', fontSize: 12 }}>{p.displayName[0]?.toUpperCase()}</Text></View>
+                  }
+                  <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600' }}>{p.displayName}</Text>
+                </View>
+              )} />
+          }
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
 function CommentsSection({ submissionId }: { submissionId: string }) {
   const navigation = useNavigation<any>();
   const [comments, setComments] = useState<CatchComment[]>([]);
@@ -218,6 +250,7 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [whoCommentId, setWhoCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     storage.getToken().then(token => {
@@ -275,9 +308,14 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
                   {c.user.profile?.username ? `@${c.user.profile.username}` : c.user.displayName}
                 </Text>
                 <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
-                <TouchableOpacity onPress={() => handleToggleProp(c.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                  <Text style={{ fontSize: 12, color: c.userHasPropped ? colors.accent : colors.textMuted }}>👍{c.propCount ? ` ${c.propCount}` : ''}</Text>
+                <TouchableOpacity onPress={() => currentUserId && handleToggleProp(c.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ marginLeft: 'auto', opacity: c.userHasPropped ? 1 : 0.35 }}>
+                  <Text style={{ fontSize: 13 }}>👍</Text>
                 </TouchableOpacity>
+                {(c.propCount ?? 0) > 0 && (
+                  <TouchableOpacity onPress={() => setWhoCommentId(c.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <Text style={{ fontSize: 11, color: c.userHasPropped ? colors.accent : colors.textSub, fontWeight: '700' }}>{c.propCount}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <Text style={styles.commentBody}>{renderWithMentions(c.body, (u) => navigation.navigate('PublicProfile', { username: u }))}</Text>
             </View>
@@ -300,6 +338,12 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
           <Text style={styles.commentSubmitText}>{submitting ? '…' : '↑'}</Text>
         </TouchableOpacity>
       </View>
+      {whoCommentId && (
+        <CommentPropsWhoModal
+          fetchWho={() => api.getCommentPropsWho(whoCommentId)}
+          onClose={() => setWhoCommentId(null)}
+        />
+      )}
     </View>
   );
 }

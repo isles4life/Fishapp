@@ -259,8 +259,12 @@ export const api = {
     apiFetch<{ ok: boolean }>(`/comments/${commentId}`, { method: 'DELETE' }, true),
   toggleCommentProp: (commentId: string) =>
     apiFetch<{ propCount: number; userHasPropped: boolean }>(`/comments/${commentId}/prop`, { method: 'POST' }, true),
+  getCommentPropsWho: (commentId: string) =>
+    apiFetch<{ id: string; displayName: string; profilePhotoUrl: string | null }[]>(`/comments/${commentId}/props/who`),
   togglePostCommentProp: (commentId: string) =>
     apiFetch<{ propCount: number; userHasPropped: boolean }>(`/tournaments/posts/comments/${commentId}/prop`, { method: 'POST' }, true),
+  getPostCommentPropsWho: (commentId: string) =>
+    apiFetch<{ id: string; displayName: string; profilePhotoUrl: string | null }[]>(`/tournaments/posts/comments/${commentId}/props/who`),
   login: (email: string, password: string) =>
     apiFetch<AuthResponse>('/auth/login', {
       method: 'POST',

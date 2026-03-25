@@ -253,6 +253,33 @@ function MentionInput({
   );
 }
 
+function CommentPropsWhoModal({ fetchWho, onClose }: { fetchWho: () => Promise<{ id: string; displayName: string; profilePhotoUrl: string | null }[]>; onClose: () => void }) {
+  const [proppers, setProppers] = useState<{ id: string; displayName: string; profilePhotoUrl: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { fetchWho().then(setProppers).catch(() => {}).finally(() => setLoading(false)); }, []);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.surface, borderRadius: 16, padding: '20px 24px', minWidth: 260, maxWidth: 340, maxHeight: 360, overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>👍 Props</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: 20 }}>×</button>
+        </div>
+        {loading ? <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: '12px 0' }}>Loading…</div>
+          : proppers.length === 0 ? <div style={{ color: C.textMuted, fontSize: 13, textAlign: 'center', padding: '12px 0' }}>No props yet.</div>
+          : proppers.map(p => (
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${C.border}` }}>
+              {p.profilePhotoUrl
+                ? <img src={p.profilePhotoUrl} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} alt="" />
+                : <div style={{ width: 30, height: 30, borderRadius: '50%', background: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: C.accent, fontSize: 12 }}>{p.displayName[0]?.toUpperCase()}</div>
+              }
+              <span style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>{p.displayName}</span>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
 function CommentsSection({ submissionId, myUserId }: { submissionId: string; myUserId?: string | null }) {
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
@@ -261,6 +288,7 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  const [whoCommentId, setWhoCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     api.getComments(submissionId).then(setComments).catch(() => {}).finally(() => setLoading(false));
@@ -327,10 +355,14 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
                 <UserLink username={c.user.profile?.username} displayName={name} style={{ fontSize: 12, fontWeight: 700, color: C.textSub }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
-                  <button onClick={() => handleToggleProp(c.id)}
-                    style={{ background: 'none', border: 'none', cursor: myUserId ? 'pointer' : 'default', color: c.userHasPropped ? C.accent : C.textMuted, fontSize: 11, padding: '1px 4px', display: 'flex', alignItems: 'center', gap: 3 }}>
-                    👍 {c.propCount ? <span style={{ fontSize: 11 }}>{c.propCount}</span> : null}
-                  </button>
+                  <button onClick={() => myUserId && handleToggleProp(c.id)}
+                    style={{ background: 'none', border: 'none', cursor: myUserId ? 'pointer' : 'default', fontSize: 13, padding: '1px 4px', opacity: c.userHasPropped ? 1 : 0.35 }}>👍</button>
+                  {(c.propCount ?? 0) > 0 && (
+                    <button onClick={() => setWhoCommentId(c.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.userHasPropped ? C.accent : C.textSub, fontSize: 11, padding: '1px 2px', fontWeight: 700 }}>
+                      {c.propCount}
+                    </button>
+                  )}
                   {myUserId && c.user.id === myUserId && editingId !== c.id && (
                     <>
                       <button onClick={() => { setEditingId(c.id); setEditBody(c.body); }}
@@ -373,6 +405,12 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
           {submitting ? '…' : 'Post'}
         </button>
       </div>
+      {whoCommentId && (
+        <CommentPropsWhoModal
+          fetchWho={() => api.getCommentPropsWho(whoCommentId)}
+          onClose={() => setWhoCommentId(null)}
+        />
+      )}
     </div>
   );
 }

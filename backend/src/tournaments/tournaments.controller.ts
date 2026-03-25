@@ -217,4 +217,9 @@ export class TournamentsController {
   togglePostCommentProp(@Param('commentId') commentId: string, @Request() req: any) {
     return this.tournamentsService.toggleTournamentPostCommentProp(commentId, req.user.id);
   }
+
+  @Get('posts/comments/:commentId/props/who')
+  getPostCommentProppers(@Param('commentId') commentId: string) {
+    return this.tournamentsService.getPostCommentProppers(commentId);
+  }
 }

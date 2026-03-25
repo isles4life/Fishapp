@@ -239,11 +239,44 @@ function MentionTextInput({
   );
 }
 
+type Propper = { id: string; displayName: string; profilePhotoUrl: string | null };
+
+function CommentPropsWhoModal({ fetchWho, onClose }: { fetchWho: () => Promise<Propper[]>; onClose: () => void }) {
+  const [proppers, setProppers] = useState<Propper[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { fetchWho().then(setProppers).catch(() => {}).finally(() => setLoading(false)); }, []);
+  return (
+    <Modal visible animationType="fade" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={{ backgroundColor: '#2E3D38', borderRadius: 16, padding: 20, width: 280, maxHeight: 360 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <Text style={{ fontWeight: '700', fontSize: 15, color: '#F0EDE4' }}>👍 Props</Text>
+            <TouchableOpacity onPress={onClose}><Text style={{ color: '#6B7D73', fontSize: 20 }}>×</Text></TouchableOpacity>
+          </View>
+          {loading ? <Text style={{ color: '#6B7D73', fontSize: 13, textAlign: 'center' }}>Loading…</Text>
+            : proppers.length === 0 ? <Text style={{ color: '#6B7D73', fontSize: 13, textAlign: 'center' }}>No props yet.</Text>
+            : <FlatList data={proppers} keyExtractor={p => p.id} renderItem={({ item: p }) => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#445C54' }}>
+                  {p.profilePhotoUrl
+                    ? <Image source={{ uri: p.profilePhotoUrl }} style={{ width: 30, height: 30, borderRadius: 15 }} />
+                    : <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#445C54', alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#CFC29C', fontWeight: '700', fontSize: 12 }}>{p.displayName[0]?.toUpperCase()}</Text></View>
+                  }
+                  <Text style={{ color: '#F0EDE4', fontSize: 13, fontWeight: '600' }}>{p.displayName}</Text>
+                </View>
+              )} />
+          }
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
 function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: string; myUserId: string | null; onClose: () => void }) {
   const navigation = useNavigation<any>();
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [whoCommentId, setWhoCommentId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
@@ -355,11 +388,16 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
                     ) : (
                       <Text style={cm.commentBody}>{renderWithMentions(item.body, (u) => { onClose(); navigation.navigate('PublicProfile', { username: u }); })}</Text>
                     )}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
                       <Text style={cm.commentTime}>{timeAgo(item.createdAt)}</Text>
-                      <TouchableOpacity onPress={() => handleToggleProp(item.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                        <Text style={{ fontSize: 12, color: item.userHasPropped ? colors.accent : colors.textMuted }}>👍{item.propCount ? ` ${item.propCount}` : ''}</Text>
+                      <TouchableOpacity onPress={() => myUserId && handleToggleProp(item.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ opacity: item.userHasPropped ? 1 : 0.35 }}>
+                        <Text style={{ fontSize: 13 }}>👍</Text>
                       </TouchableOpacity>
+                      {(item.propCount ?? 0) > 0 && (
+                        <TouchableOpacity onPress={() => setWhoCommentId(item.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                          <Text style={{ fontSize: 11, color: item.userHasPropped ? colors.accent : colors.textSub, fontWeight: '700' }}>{item.propCount}</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                   {item.user.id === myUserId && editingId !== item.id && (
@@ -386,6 +424,12 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
           </View>
         </View>
       </KeyboardAvoidingView>
+      {whoCommentId && (
+        <CommentPropsWhoModal
+          fetchWho={() => api.getCommentPropsWho(whoCommentId)}
+          onClose={() => setWhoCommentId(null)}
+        />
+      )}
     </Modal>
   );
 }
