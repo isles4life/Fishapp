@@ -66,7 +66,11 @@ export class ModerationService {
       },
     });
     if (!submission) throw new NotFoundException('Submission not found');
-    return submission;
+    const [photo1Url, photo2Url] = await Promise.all([
+      submission.photo1Key ? this.s3.getPresignedUrl(submission.photo1Key) : Promise.resolve(null),
+      submission.photo2Key ? this.s3.getPresignedUrl(submission.photo2Key) : Promise.resolve(null),
+    ]);
+    return { ...submission, photo1Url, photo2Url };
   }
 
   async moderate(submissionId: string, moderatorId: string, dto: ModerateSubmissionDto) {
@@ -78,9 +82,7 @@ export class ModerationService {
       },
     });
     if (!submission) throw new NotFoundException('Submission not found');
-    if (submission.status !== 'PENDING' && submission.status !== 'FLAGGED') {
-      throw new BadRequestException('Submission already moderated');
-    }
+    const wasAlreadyApproved = submission.status === 'APPROVED';
 
     const newStatus =
       dto.action === 'APPROVE' ? 'APPROVED' : dto.action === 'REJECT' ? 'REJECTED' : 'FLAGGED';
@@ -100,8 +102,8 @@ export class ModerationService {
       }),
     ]);
 
-    // If approved, update leaderboard + create feed post
-    if (dto.action === 'APPROVE') {
+    // If approved (and wasn't already approved), update leaderboard + create feed post
+    if (dto.action === 'APPROVE' && !wasAlreadyApproved) {
       await this.leaderboard.onSubmissionApproved(submissionId);
       this.tournaments.createCatchPost(submissionId, submission.tournamentId, submission.userId);
       this.email.sendSubmissionApproved(

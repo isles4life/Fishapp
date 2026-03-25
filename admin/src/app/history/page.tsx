@@ -110,6 +110,212 @@ function Pagination({ page, total, limit, onChange }: { page: number; total: num
   );
 }
 
+function SubmissionDetailPanel({
+  subId,
+  onClose,
+  onStatusChanged,
+}: {
+  subId: string;
+  onClose: () => void;
+  onStatusChanged: (id: string, newStatus: string) => void;
+}) {
+  const [sub, setSub] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [note, setNote] = useState('');
+  const [actioning, setActioning] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true); setError('');
+    api.getSubmission(subId)
+      .then(setSub)
+      .catch((e: any) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [subId]);
+
+  async function handleAction(action: string) {
+    if (actioning) return;
+    setActioning(true); setActionError('');
+    try {
+      await api.moderate(subId, action, note || undefined);
+      const newStatus = action === 'APPROVE' ? 'APPROVED' : action === 'REJECT' ? 'REJECTED' : 'FLAGGED';
+      setSub((prev: any) => ({ ...prev, status: newStatus }));
+      onStatusChanged(subId, newStatus);
+      setNote('');
+    } catch (e: any) {
+      setActionError(e.message ?? 'Action failed');
+    } finally {
+      setActioning(false);
+    }
+  }
+
+  const lengthIn = sub ? (sub.fishLengthCm / 2.54).toFixed(1) : '';
+  const sm = sub ? (STATUS_META[sub.status] ?? { label: sub.status, color: C.textMuted }) : null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
+
+      {/* Panel */}
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: 420,
+        backgroundColor: C.surface, borderLeft: `1px solid ${C.border}`,
+        zIndex: 50, overflowY: 'auto', display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, backgroundColor: C.surface, zIndex: 1 }}>
+          <span style={{ color: C.text, fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1 }}>Submission Detail</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+        </div>
+
+        {loading && <div style={{ padding: 40, textAlign: 'center', color: C.textMuted }}>Loading…</div>}
+        {error && <div style={{ padding: 20, color: C.red }}>{error}</div>}
+
+        {sub && (
+          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Photos */}
+            {(sub.photo1Url || sub.photo2Url) && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                {sub.photo1Url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={sub.photo1Url} alt="Photo 1" onClick={() => setLightbox(sub.photo1Url)}
+                    style={{ flex: 1, height: 160, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', border: `1px solid ${C.border}` }} />
+                )}
+                {sub.photo2Url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={sub.photo2Url} alt="Photo 2" onClick={() => setLightbox(sub.photo2Url)}
+                    style={{ flex: 1, height: 160, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', border: `1px solid ${C.border}` }} />
+                )}
+              </div>
+            )}
+
+            {/* Status */}
+            {sm && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ color: sm.color, background: sm.color + '18', border: `1px solid ${sm.color}40`, padding: '4px 12px', borderRadius: 6, fontSize: 13, fontWeight: 700 }}>
+                  {sm.label}
+                </span>
+                <span style={{ color: C.textMuted, fontSize: 12 }}>ID: {sub.id.slice(0, 8)}…</span>
+              </div>
+            )}
+
+            {/* Core info */}
+            <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Row label="Angler" value={`${sub.user.displayName} (${sub.user.email})`} />
+              <Row label="Tournament" value={sub.tournament.name} />
+              <Row label="Length" value={`${lengthIn}"`} accent />
+              {sub.speciesName && <Row label="Species" value={sub.speciesName} />}
+              {sub.fishWeightOz != null && <Row label="Weight" value={`${sub.fishWeightOz.toFixed(1)} oz`} />}
+              <Row label="GPS" value={`${sub.gpsLat?.toFixed(5)}, ${sub.gpsLng?.toFixed(5)}`} link={`https://www.google.com/maps?q=${sub.gpsLat},${sub.gpsLng}`} />
+              {sub.matSerial && <Row label="Mat Serial" value={sub.matSerial.serialCode} />}
+              {sub.released && <Row label="Released" value="Yes" />}
+              <Row label="Submitted" value={new Date(sub.createdAt).toLocaleString()} />
+            </div>
+
+            {/* AI Flags */}
+            {(sub.flagSuspectPhoto || sub.flagSuspectLength || sub.flagDuplicateHash || sub.flagDuplicateGps || sub.flagSuspectSpecies) && (
+              <div style={{ backgroundColor: C.red + '12', border: `1px solid ${C.red}40`, borderRadius: 8, padding: 12 }}>
+                <div style={{ color: C.red, fontWeight: 700, fontSize: 12, letterSpacing: 1, marginBottom: 8 }}>⚠ FLAGS</div>
+                {sub.flagSuspectPhoto && <FlagRow label="🤖 No Fish Detected" />}
+                {sub.flagSuspectLength && <FlagRow label={`🤖 Length Mismatch — AI estimated ${sub.estimatedLengthCm ? (sub.estimatedLengthCm / 2.54).toFixed(1) + '"' : '?'}, submitted ${lengthIn}"`} />}
+                {sub.flagSuspectSpecies && <FlagRow label={`🤖 Species Mismatch — AI suggested ${sub.aiSuggestedSpecies ?? '?'}`} />}
+                {sub.flagDuplicateHash && <FlagRow label="⚠ Duplicate Photo Hash" />}
+                {sub.flagDuplicateGps && <FlagRow label="⚠ Duplicate GPS" />}
+              </div>
+            )}
+
+            {/* Previous moderation actions */}
+            {sub.moderationActions?.length > 0 && (
+              <div>
+                <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>MODERATION HISTORY</div>
+                {sub.moderationActions.map((a: any) => (
+                  <div key={a.id} style={{ backgroundColor: C.surfaceHigh, borderRadius: 6, padding: '8px 12px', marginBottom: 6, fontSize: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <span style={{ fontWeight: 700, color: a.actionType === 'APPROVE' ? C.green : a.actionType === 'REJECT' ? C.red : C.orange }}>{a.actionType}</span>
+                      <span style={{ color: C.textMuted }}>{new Date(a.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div style={{ color: C.textSub }}>{a.moderator?.displayName ?? 'System'}{a.note ? ` · ${a.note}` : ''}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Change status */}
+            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+              <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>CHANGE STATUS</div>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder="Optional note (shown to angler on reject)"
+                rows={2}
+                style={{
+                  width: '100%', backgroundColor: C.bg, color: C.text, border: `1px solid ${C.border}`,
+                  borderRadius: 6, padding: '8px 10px', fontSize: 13, resize: 'vertical',
+                  fontFamily: 'inherit', marginBottom: 10, boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => handleAction('APPROVE')}
+                  disabled={actioning || sub.status === 'APPROVED'}
+                  style={{ flex: 1, padding: '8px 0', borderRadius: 6, border: 'none', cursor: actioning || sub.status === 'APPROVED' ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, backgroundColor: C.green, color: '#fff', opacity: sub.status === 'APPROVED' ? 0.4 : 1 }}
+                >
+                  ✓ Approve
+                </button>
+                <button
+                  onClick={() => handleAction('REJECT')}
+                  disabled={actioning || sub.status === 'REJECTED'}
+                  style={{ flex: 1, padding: '8px 0', borderRadius: 6, border: 'none', cursor: actioning || sub.status === 'REJECTED' ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, backgroundColor: C.red, color: '#fff', opacity: sub.status === 'REJECTED' ? 0.4 : 1 }}
+                >
+                  ✕ Reject
+                </button>
+                <button
+                  onClick={() => handleAction('FLAG')}
+                  disabled={actioning || sub.status === 'FLAGGED'}
+                  style={{ flex: 1, padding: '8px 0', borderRadius: 6, border: `1px solid ${C.orange}`, cursor: actioning || sub.status === 'FLAGGED' ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, backgroundColor: 'transparent', color: C.orange, opacity: sub.status === 'FLAGGED' ? 0.4 : 1 }}
+                >
+                  ⚑ Flag
+                </button>
+              </div>
+              {actionError && <div style={{ color: C.red, fontSize: 12, marginTop: 8 }}>{actionError}</div>}
+              {actioning && <div style={{ color: C.textMuted, fontSize: 12, marginTop: 8, textAlign: 'center' }}>Saving…</div>}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.92)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lightbox} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8 }} />
+          <button onClick={() => setLightbox(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: '#fff', fontSize: 16, cursor: 'pointer' }}>✕</button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Row({ label, value, accent, link }: { label: string; value: string; accent?: boolean; link?: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+      <span style={{ color: C.textMuted, fontSize: 12, flexShrink: 0 }}>{label}</span>
+      {link
+        ? <a href={link} target="_blank" rel="noreferrer" style={{ color: accent ? C.accent : C.text, fontSize: 12, fontWeight: accent ? 700 : 400, textAlign: 'right', textDecoration: 'underline' }}>{value}</a>
+        : <span style={{ color: accent ? C.accent : C.text, fontSize: 12, fontWeight: accent ? 700 : 400, textAlign: 'right' }}>{value}</span>
+      }
+    </div>
+  );
+}
+
+function FlagRow({ label }: { label: string }) {
+  return <div style={{ color: C.red, fontSize: 12, marginBottom: 4 }}>{label}</div>;
+}
+
 export default function HistoryPage() {
   const [pageTab, setPageTab] = useState<PageTab>('audit');
 
@@ -126,6 +332,9 @@ export default function HistoryPage() {
   const [subPage, setSubPage] = useState(1);
   const [subStatusFilter, setSubStatusFilter] = useState('ALL');
   const [subLoading, setSubLoading] = useState(false);
+
+  // Detail panel
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [error, setError] = useState('');
 
@@ -157,6 +366,10 @@ export default function HistoryPage() {
   useEffect(() => {
     if (pageTab === 'submissions') loadSubmissions(1);
   }, [pageTab, subStatusFilter]);
+
+  function handleStatusChanged(id: string, newStatus: string) {
+    setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s));
+  }
 
   const auditCategories = [
     { key: 'ALL', label: 'All' },
@@ -279,22 +492,27 @@ export default function HistoryPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                  {['Angler', 'Tournament', 'Length', 'Status', 'Flags', 'Submitted'].map(h => (
+                  {['Angler', 'Tournament', 'Length', 'Status', 'Flags', 'Submitted', ''].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {subLoading && (
-                  <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: C.textMuted }}>Loading…</td></tr>
+                  <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: C.textMuted }}>Loading…</td></tr>
                 )}
                 {!subLoading && submissions.length === 0 && (
-                  <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: C.textMuted }}>No submissions found.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: C.textMuted }}>No submissions found.</td></tr>
                 )}
                 {!subLoading && submissions.map(s => {
                   const sm = STATUS_META[s.status] ?? { label: s.status, color: C.textMuted };
+                  const isSelected = selectedId === s.id;
                   return (
-                    <tr key={s.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <tr
+                      key={s.id}
+                      style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: isSelected ? C.surfaceHigh : undefined, cursor: 'pointer' }}
+                      onClick={() => setSelectedId(s.id)}
+                    >
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>{s.user.displayName}</div>
                         <div style={{ color: C.textMuted, fontSize: 11 }}>{s.user.email}</div>
@@ -315,6 +533,9 @@ export default function HistoryPage() {
                         <div>{new Date(s.createdAt).toLocaleDateString()}</div>
                         <div style={{ fontSize: 11, marginTop: 2 }}>{new Date(s.createdAt).toLocaleTimeString()}</div>
                       </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ color: C.accent, fontSize: 13 }}>View →</span>
+                      </td>
                     </tr>
                   );
                 })}
@@ -323,6 +544,15 @@ export default function HistoryPage() {
           </div>
           <Pagination page={subPage} total={subTotal} limit={PAGE_SIZE} onChange={p => loadSubmissions(p)} />
         </>
+      )}
+
+      {/* Detail panel */}
+      {selectedId && (
+        <SubmissionDetailPanel
+          subId={selectedId}
+          onClose={() => setSelectedId(null)}
+          onStatusChanged={handleStatusChanged}
+        />
       )}
     </div>
   );
