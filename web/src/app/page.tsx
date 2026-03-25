@@ -247,7 +247,7 @@ function MentionInput({
         }}
         placeholder={placeholder}
         maxLength={500}
-        style={{ width: '100%', boxSizing: 'border-box', padding: '7px 12px', fontSize: 13, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, outline: 'none' }}
+        style={{ width: '100%', boxSizing: 'border-box', padding: '7px 12px', fontSize: 13, backgroundColor: C.surface, border: `1px solid rgba(207,194,156,0.3)`, borderRadius: 8, color: C.text, outline: 'none' }}
       />
     </div>
   );
