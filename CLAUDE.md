@@ -96,6 +96,13 @@ cd mobile && npx expo start   # start Expo dev server
 - `POST /submissions/identify` — AI species ID via iNaturalist (authenticated, returns top 3 fish suggestions with confidence %)
 - `GET /submissions/mine?tournamentId=` — user's own submissions
 - `GET /leaderboard/:tournamentId` — leaderboard entries
+- `POST /submissions/:id/prop` — toggle prop; `GET /submissions/:id/props` — count + userHasPropped; `GET /submissions/:id/props/who` — list of proppers with presigned avatars
+- `GET/POST /submissions/:id/comments` — catch comments
+- `POST /tournaments/:id/entry/intent` — Stripe PaymentIntent for entry fee; `GET /tournaments/:id/entry/me` — own entry status
+- `GET /tournaments/:id/feed` — tournament social feed (cursor-paginated); `POST /tournaments/:id/posts` — post to feed
+- `PATCH /tournaments/posts/:postId` — edit post; `DELETE /tournaments/posts/:postId` — delete post
+- `GET/POST /tournaments/posts/:postId/comments` — feed post comments; `DELETE /tournaments/posts/comments/:commentId` — delete comment
+- `POST /webhooks/stripe` — Stripe webhook handler (raw body, no auth guard)
 - `GET /admin/moderation/pending` — pending submissions queue
 - `POST /admin/moderation/:id/action` — approve/reject/flag
 - `POST /admin/moderation/bulk` — bulk moderate
@@ -251,32 +258,34 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-25)
+## Current Status (as of 2026-03-24)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #31 is latest (missing `d70f9e8` — NSPhotoLibraryUsageDescription fix — needs one more EAS build)
-- **Stripe entry fees built** (backend + mobile) — needs GitHub secrets + webhook + EAS build before live
-- Stripe keys (test): publishable in `mobile/App.tsx`, secret goes in GitHub Actions secret `STRIPE_SECRET_KEY`
+- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes in this session
+- Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
+- App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
 ### Recently Shipped
-- **Fishing Intelligence 502 fix** (deployed): added `AbortSignal.timeout(8000)` to Open-Meteo weather fetch in `fishing-intelligence.service.ts`. Previously had no timeout — if Open-Meteo was slow/down the entire `Promise.all` hung until ALB timed out with 502. Now consistent with other external calls (Overpass 6s, Nominatim 5s, NOAA 8s).
-- **Admin users page fixes**: `autoComplete="new-password"` on password reset input (suppresses browser autofill showing admin credentials); `PAGE_SIZE` 50→10 (so pagination is visible with small user base); `overflowY: 'visible'` on table wrapper (prevents implicit scroll container from `overflowX: 'auto'`)
-- **TournamentScreen payment routing**: paid tournaments now route through TournamentDetail instead of directly to SubmissionFlow
-- **SubmissionFlowScreen entry fee error**: 403 entry fee errors now show "ENTRY FEE REQUIRED" with "GO TO TOURNAMENT DETAILS" button instead of generic "SUBMISSION FAILED"
-- **Apple App Store review notes**: `docs/apple-review-notes.md` — submission fields, demo account, permission justifications, Stripe vs IAP rationale
-- **Stripe entry fee integration** (backend deployed on next push, mobile needs EAS build):
-  - `TournamentEntry` model — tracks userId, tournamentId, stripePaymentIntentId, feeCents, platformFeeCents, status (PENDING|PAID|REFUNDED)
-  - Migration: `20260325000000_tournament_entry_stripe`
-  - `POST /tournaments/:id/entry/intent` — creates Stripe PaymentIntent, returns clientSecret (15% platform fee)
-  - `POST /webhooks/stripe` — handles `payment_intent.succeeded` → marks entry PAID (raw body enabled in main.ts)
-  - `GET /tournaments/:id/entry/me` — angler checks own entry status
-  - `GET /admin/tournaments/:id/entries` — admin lists all entries for a tournament
-  - Submission validation: blocks submission if `entryFeeCents > 0` and no PAID entry exists
-  - Mobile: `@stripe/stripe-react-native` installed; `StripeProvider` wraps app in `App.tsx`; plugin in `app.json`
-  - Mobile `TournamentDetailScreen`: "Enter Tournament · $X.XX" button → Stripe payment sheet → on success navigates to SubmissionFlow; free tournaments skip payment
-  - Admin moderation queue: shows 💳 Fee Paid / 💳 Fee Unpaid badge on submissions; Entry Fee row in detail panel
-  - Platform fee: 15% (configurable via `STRIPE_PLATFORM_FEE_PERCENT` env var)
-- **Pending GitHub secrets to add**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-- **Pending webhook setup**: create endpoint in Stripe dashboard pointing to `https://api.fishleague.app/webhooks/stripe`
+- **Props "who gave props"** (backend + web deployed; mobile needs EAS build):
+  - `GET /submissions/:id/props/who` — returns list of proppers with displayName + presigned avatar URL
+  - Web: clicking the prop count opens a modal showing who gave props
+  - Mobile: "who?" link next to prop count opens bottom sheet with avatar list
+  - Fix: `props.service.ts` now calls `s3.resolveProfilePhotoUrl()` — previously returned raw S3 key causing broken avatars
+- **Tournament feed post comments** (backend + web deployed; mobile needs EAS build):
+  - New `TournamentPostComment` model + migration `20260324000000_tournament_post_comments`
+  - `GET/POST /tournaments/posts/:postId/comments` — get/add comments on feed posts
+  - `DELETE /tournaments/posts/comments/:commentId` — delete own comment
+  - Web `/leaderboard/[id]`: collapsible 💬 Comments thread under each feed post
+  - Mobile `TournamentDetailScreen`: collapsible comment section on each PostCard; tap to expand, post, delete own
+- **Docs updated**: `README.md` and `docs/architecture.md` fully reflect current stack, all API endpoints, all schema models, and design decisions
+- **Android gap analysis**: documented in post-beta backlog — ~75% Android-ready; 3 blocking gaps (Google Sign-In, Google Pay, FCM)
+- **Fishing Intelligence 502 fix** (deployed): added `AbortSignal.timeout(8000)` to Open-Meteo weather fetch
+- **Admin users page fixes**: `autoComplete="new-password"` on password reset; `PAGE_SIZE` 50→10; `overflowY: 'visible'`
+- **Stripe entry fee integration** (deployed):
+  - `TournamentEntry` model + migration `20260325000000_tournament_entry_stripe`
+  - `POST /tournaments/:id/entry/intent` → Stripe PaymentIntent (15% platform fee)
+  - `POST /webhooks/stripe` → marks entry PAID on `payment_intent.succeeded`
+  - Admin moderation: 💳 Fee Paid / 💳 Fee Unpaid badges
+- **Apple App Store review notes**: `docs/apple-review-notes.md`
 - **Avatar upload fix** (backend deployed, mobile needs EAS build for HEIC normalization):
   - Root cause: `ACL: 'public-read'` on S3 bucket with Object Ownership enforced → `InvalidBucketAclWithObjectOwnership` 500 error
   - `s3.service`: removed ACL from `uploadBuffer`; added `resolveProfilePhotoUrl()` — generates presigned URL from S3 key, passthrough for existing `https://` URLs (no network call, pure HMAC signing)
