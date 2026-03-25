@@ -93,6 +93,7 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
       const c = await api.addPostComment(postId, trimmed);
       setComments(prev => [c, ...prev]);
       setBody('');
+      setExpanded(true);
     } catch { /* silent */ } finally { setSending(false); }
   }
 
