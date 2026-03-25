@@ -262,13 +262,20 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-27)
+## Current Status (as of 2026-03-28)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions, clickable usernames, comment props)
+- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions, clickable usernames, comment props, who-gave-props on comments)
+- CI/CD optimized: Docker BuildKit GHA layer cache + `wait-for-service-stability: false` — backend deploys ~2–3 min instead of 5–10 min
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
 ### Recently Shipped
+- **Comment "who gave props"** (backend + web deployed; mobile needs EAS build):
+  - `GET /comments/:id/props/who` + `GET /tournaments/posts/comments/:id/props/who` — returns proppers with displayName + presigned avatar
+  - Web: clicking prop count on any comment opens a who-gave-props modal across all 3 pages
+  - Mobile: same modal (bottom sheet) across TournamentDetailScreen, LeaderboardScreen, HomeScreen
+  - Fix: thumbs-up active state now uses `opacity` (0.35 inactive / 1.0 active) instead of `color` — emoji ignores CSS color so it was always "active"-looking
+  - Fix: home page comment input background changed to `C.surface` + gold border for visibility against dark card
 - **Comment props (likes)** (backend + web deployed; mobile needs EAS build):
   - New `CatchCommentProp` + `TournamentPostCommentProp` models + migration `20260327000000_comment_props`
   - `POST /comments/:id/prop` — toggle prop on catch comments; `POST /tournaments/posts/comments/:id/prop` — toggle on post comments
