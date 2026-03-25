@@ -262,12 +262,22 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-25)
+## Current Status (as of 2026-03-24)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #36 is latest — WHO? prop count tap, TypeScript cleanup, hot spots photo lightbox, PublicProfile back button, director card tappable + avatar fix
+- iOS TestFlight build #36 is latest — new EAS build needed for: keyboard fix, GPS map link on catch cards, clickable feed card angler names
 - CI/CD optimized: Docker BuildKit GHA layer cache + `wait-for-service-stability: false` — backend deploys ~2–3 min instead of 5–10 min
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
+
+### Recently Shipped
+- **Keyboard fix for comment inputs** (backend + web deployed; mobile needs EAS build):
+  - `LeaderboardScreen`: wrapped in `KeyboardAvoidingView behavior="padding"` + `keyboardShouldPersistTaps="handled"` on FlatList — comment input stays visible above keyboard on iOS
+  - HomeScreen `CommentsModal` already had `KeyboardAvoidingView`; no changes needed there
+- **GPS map link on catch cards** (backend + web deployed; mobile needs EAS build):
+  - Backend `getFeed`: now includes `lat`/`lng` in response
+  - Mobile `FeedItem` model: added `lat`/`lng` optional fields
+  - Mobile `HomeScreen` FeedCard: `📍 {region}` is tappable when lat/lng available — opens Apple Maps at exact catch GPS coordinates (gold + underline style when tappable)
+  - Web home page: `📍 {region}` links to `/map` page
 
 ### Recently Shipped
 - **Full media bar (📎/GIF/😊) on all mobile comment areas** (EAS build #32 submitted):
