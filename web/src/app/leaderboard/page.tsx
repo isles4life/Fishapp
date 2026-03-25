@@ -510,7 +510,7 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
     try {
       const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app';
       const res = await fetch(`${BASE}/gifs/search?q=${encodeURIComponent(q)}`);
-      if (res.ok) { const data = await res.json(); setGifResults(data.gifs ?? []); }
+      if (res.ok) { const data = await res.json(); setGifResults(data.data ?? []); }
     } catch { /* silent */ } finally { setGifSearching(false); }
   }
 
