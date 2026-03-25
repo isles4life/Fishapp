@@ -171,6 +171,7 @@ function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete 
   const username = post.user.profile?.username ?? post.user.displayName;
   const avatar = post.user.profile?.profilePhotoUrl;
   const initials = post.user.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const isAuthor = currentUserId && post.user.id === currentUserId;
   const isAdmin = userRole === 'ADMIN' || userRole === 'TOURNAMENT_ADMIN';
@@ -217,7 +218,9 @@ function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete 
       {post.type === 'CATCH' && post.submission && (
         <View style={ps.catchBody}>
           {post.photoUrl && (
-            <Image source={{ uri: post.photoUrl }} style={ps.catchPhoto} resizeMode="cover" />
+            <TouchableOpacity activeOpacity={0.9} onPress={() => setLightboxUrl(post.photoUrl!)}>
+              <Image source={{ uri: post.photoUrl }} style={ps.catchPhoto} resizeMode="cover" />
+            </TouchableOpacity>
           )}
           <View style={ps.catchMeta}>
             <Text style={ps.catchLength}>
@@ -252,10 +255,24 @@ function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete 
       )}
 
       {post.photoUrl && post.type === 'ANGLER_POST' && (
-        <Image source={{ uri: post.photoUrl }} style={ps.anglerPhoto} resizeMode="cover" />
+        <TouchableOpacity activeOpacity={0.9} onPress={() => setLightboxUrl(post.photoUrl!)}>
+          <Image source={{ uri: post.photoUrl }} style={ps.anglerPhoto} resizeMode="cover" />
+        </TouchableOpacity>
       )}
 
       <PostComments postId={post.id} currentUserId={currentUserId} />
+
+      {/* Photo lightbox */}
+      <Modal visible={!!lightboxUrl} transparent animationType="fade" onRequestClose={() => setLightboxUrl(null)}>
+        <View style={ps.lightboxOverlay}>
+          <TouchableOpacity style={ps.lightboxClose} onPress={() => setLightboxUrl(null)}>
+            <Text style={ps.lightboxCloseText}>✕</Text>
+          </TouchableOpacity>
+          {lightboxUrl && (
+            <Image source={{ uri: lightboxUrl }} style={ps.lightboxImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -331,6 +348,10 @@ const ps = StyleSheet.create({
   },
   commentSend: { backgroundColor: colors.accent, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
   commentSendText: { fontSize: 13, fontWeight: '700', color: colors.bg },
+  lightboxOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.93)', alignItems: 'center', justifyContent: 'center' },
+  lightboxImage: { width: '100%', height: '85%' },
+  lightboxClose: { position: 'absolute', top: 52, right: 18, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  lightboxCloseText: { color: '#fff', fontSize: 18, fontWeight: '700' },
 });
 
 // ── Main screen ───────────────────────────────────────────────────────────────

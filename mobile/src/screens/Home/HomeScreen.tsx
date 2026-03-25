@@ -310,6 +310,7 @@ function FeedCard({ item, region, onComment }: { item: FeedItem; region: string;
   const initials = getInitials(item.displayName);
   const firstName = item.displayName.split(' ')[0].toUpperCase();
   const speciesLabel = item.speciesName ? item.speciesName.toUpperCase() : 'FISH';
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
     <View style={styles.feedCard}>
@@ -337,15 +338,29 @@ function FeedCard({ item, region, onComment }: { item: FeedItem; region: string;
       </View>
 
       {/* Fish photo */}
-      <View style={styles.feedPhotoPlaceholder}>
-        {item.photoUrl ? (
-          <Image source={{ uri: item.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : null}
-        <View style={[styles.feedFishInfo, item.photoUrl && styles.feedFishInfoOverlay]}>
-          <Text style={[styles.feedFishLengthLabel, item.photoUrl && { color: 'rgba(255,255,255,0.8)' }]}>CATCH LENGTH</Text>
-          <Text style={[styles.feedFishLength, item.photoUrl && { color: '#FFFFFF' }]}>{lengthIn}{'"'}</Text>
+      <TouchableOpacity activeOpacity={item.photoUrl ? 0.9 : 1} onPress={() => item.photoUrl && setLightboxOpen(true)} disabled={!item.photoUrl}>
+        <View style={styles.feedPhotoPlaceholder}>
+          {item.photoUrl ? (
+            <Image source={{ uri: item.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          ) : null}
+          <View style={[styles.feedFishInfo, item.photoUrl && styles.feedFishInfoOverlay]}>
+            <Text style={[styles.feedFishLengthLabel, item.photoUrl && { color: 'rgba(255,255,255,0.8)' }]}>CATCH LENGTH</Text>
+            <Text style={[styles.feedFishLength, item.photoUrl && { color: '#FFFFFF' }]}>{lengthIn}{'"'}</Text>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
+
+      {/* Photo lightbox */}
+      {item.photoUrl && (
+        <Modal visible={lightboxOpen} transparent animationType="fade" onRequestClose={() => setLightboxOpen(false)}>
+          <View style={styles.lightboxOverlay}>
+            <TouchableOpacity style={styles.lightboxClose} onPress={() => setLightboxOpen(false)}>
+              <Text style={styles.lightboxCloseText}>✕</Text>
+            </TouchableOpacity>
+            <Image source={{ uri: item.photoUrl }} style={styles.lightboxImage} resizeMode="contain" />
+          </View>
+        </Modal>
+      )}
 
       {/* Caption */}
       <View style={styles.feedCaption}>
@@ -1034,6 +1049,10 @@ const styles = StyleSheet.create({
     ...typography.bodyMd,
     color: colors.text,
   },
+  lightboxOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.93)', alignItems: 'center', justifyContent: 'center' },
+  lightboxImage: { width: '100%', height: '85%' },
+  lightboxClose: { position: 'absolute', top: 52, right: 18, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  lightboxCloseText: { color: '#fff', fontSize: 18, fontWeight: '700' },
 });
 
 const cm = StyleSheet.create({

@@ -58,6 +58,21 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function PhotoLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: 20, background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.8)' }} />
+    </div>
+  );
+}
+
 function PostComments({ postId, myUserId }: { postId: string; myUserId: string | null }) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [body, setBody] = useState('');
@@ -180,6 +195,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
   const [editGifResults, setEditGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
   const [editGifSearching, setEditGifSearching] = useState(false);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setIsLoggedIn(checkLogin());
@@ -370,6 +386,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg }}>
+      {lightboxUrl && <PhotoLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
       <Nav active="leaderboard" />
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px 80px' }}>
@@ -756,7 +773,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                             {post.photoUrl && (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={post.photoUrl} alt="catch" style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.border}` }} />
+                              <img src={post.photoUrl} alt="catch" onClick={() => setLightboxUrl(post.photoUrl!)} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.border}`, cursor: 'pointer' }} />
                             )}
                             <div>
                               <div style={{ fontSize: 18, fontWeight: 800, color: C.accent, fontFamily: 'Oswald, sans-serif' }}>
@@ -895,7 +912,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
 
                         {post.type === 'ANGLER_POST' && post.photoUrl && !isEditing && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={post.photoUrl} alt="" style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}` }} />
+                          <img src={post.photoUrl} alt="" onClick={() => setLightboxUrl(post.photoUrl!)} style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}`, cursor: 'pointer' }} />
                         )}
 
                         <PostComments postId={post.id} myUserId={myUserId} />

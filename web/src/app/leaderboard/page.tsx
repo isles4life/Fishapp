@@ -14,6 +14,21 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function PhotoLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: 20, background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 10, boxShadow: '0 8px 48px rgba(0,0,0,0.8)' }} />
+    </div>
+  );
+}
+
 const C = {
   bg:          '#3A4C44',
   surface:     '#2E3D38',
@@ -367,6 +382,7 @@ export default function LeaderboardPage() {
   const [gifSearching, setGifSearching] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const tournament = tournaments.find(t => t.id === selectedId) ?? tournaments[0] ?? null;
 
@@ -576,6 +592,7 @@ export default function LeaderboardPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: C.bg, paddingBottom: 80 }}>
+      {lightboxUrl && <PhotoLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
       <Nav active="leaderboard" />
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
@@ -859,7 +876,7 @@ export default function LeaderboardPage() {
                     </div>
                     {post.type === 'CATCH' && post.submission && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                        {post.photoUrl && <img src={post.photoUrl} alt="catch" style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.border}` }} />}
+                        {post.photoUrl && <img src={post.photoUrl} alt="catch" onClick={() => setLightboxUrl(post.photoUrl!)} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, border: `1px solid ${C.border}`, cursor: 'pointer' }} />}
                         <div>
                           <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{(post.submission.fishLengthCm / 2.54).toFixed(1)}"</div>
                           {post.submission.speciesName && <div style={{ fontSize: 12, color: C.textMuted }}>{post.submission.speciesName}</div>}
@@ -982,7 +999,7 @@ export default function LeaderboardPage() {
                     )}
                     {post.type === 'ANGLER_POST' && post.photoUrl && !isEditing && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={post.photoUrl} alt="" style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}` }} />
+                      <img src={post.photoUrl} alt="" onClick={() => setLightboxUrl(post.photoUrl!)} style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}`, cursor: 'pointer' }} />
                     )}
                   </div>
                 );
