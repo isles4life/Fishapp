@@ -103,7 +103,7 @@ export interface LeaderboardEntry {
 }
 export interface CatchComment {
   id: string; submissionId: string; userId: string; body: string; createdAt: string;
-  user: { id: string; displayName: string };
+  user: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null };
 }
 export interface AuthResponse { token: string; userId: string; }
 export interface TournamentAdminRequest {

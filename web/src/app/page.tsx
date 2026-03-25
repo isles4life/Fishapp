@@ -188,7 +188,7 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
     setSubmitting(true);
     try {
       const comment = await api.addComment(submissionId, trimmed);
-      setComments(prev => [...prev, comment]);
+      setComments(prev => [comment, ...prev]);
       setBody('');
     } catch { /* silently handle */ } finally { setSubmitting(false); }
   }
@@ -216,10 +216,21 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
     <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4 }}>
       {loading ? <div style={{ color: C.textMuted, fontSize: 13 }}>Loading comments…</div> : (
         <>
-          {comments.map(c => (
-            <div key={c.id} style={{ marginBottom: 10 }}>
+          {comments.map(c => {
+            const name = c.user.profile?.username ?? c.user.displayName;
+            const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
+            return (
+            <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: 1 }} />
+              ) : (
+                <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1, fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
+                  {name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{c.user.displayName}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{name}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
                   {myUserId && c.user.id === myUserId && editingId !== c.id && (
@@ -250,8 +261,10 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
               ) : (
                 <span style={{ fontSize: 13, color: C.text }}>{c.body}</span>
               )}
+              </div>
             </div>
-          ))}
+            );
+          })}
           {comments.length === 0 && <div style={{ color: C.textMuted, fontSize: 13, marginBottom: 8 }}>No comments yet.</div>}
         </>
       )}

@@ -66,9 +66,8 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
   const loggedIn = checkLogin();
 
   useEffect(() => {
-    if (!expanded) return;
     api.getPostComments(postId).then(setComments).catch(() => {});
-  }, [postId, expanded]);
+  }, [postId]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -77,7 +76,7 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
     setSending(true);
     try {
       const c = await api.addPostComment(postId, trimmed);
-      setComments(prev => [...prev, c]);
+      setComments(prev => [c, ...prev]);
       setBody('');
     } catch { /* silent */ } finally { setSending(false); }
   }
@@ -92,16 +91,24 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
   return (
     <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
       <button onClick={() => setExpanded(e => !e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSub, fontSize: 12, fontWeight: 600, padding: '2px 0' }}>
-        {expanded ? '▲ Hide comments' : `💬 Comments${comments.length > 0 ? ` (${comments.length})` : ''}`}
+        {expanded ? `▲ Hide comments (${comments.length})` : `💬 ${comments.length} comment${comments.length !== 1 ? 's' : ''}`}
       </button>
       {expanded && (
         <div style={{ marginTop: 8 }}>
           {comments.length === 0 && <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>No comments yet.</div>}
           {comments.map(c => {
             const name = c.user.profile?.username ?? c.user.displayName;
+            const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
             const isOwn = myUserId === c.userId;
             return (
               <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: 1 }} />
+                ) : (
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1, fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{name}</span>
                   <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 6 }}>{timeAgo(c.createdAt)}</span>

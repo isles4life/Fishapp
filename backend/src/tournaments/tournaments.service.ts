@@ -467,7 +467,7 @@ export class TournamentsService {
   async getPostComments(postId: string) {
     const comments = await this.prisma.tournamentPostComment.findMany({
       where: { postId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: {

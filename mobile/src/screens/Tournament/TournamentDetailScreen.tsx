@@ -66,9 +66,8 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (!expanded) return;
     api.getPostComments(postId).then(setComments).catch(() => {});
-  }, [postId, expanded]);
+  }, [postId]);
 
   async function handleSend() {
     const trimmed = body.trim();
@@ -76,7 +75,7 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
     setSending(true);
     try {
       const c = await api.addPostComment(postId, trimmed);
-      setComments(prev => [...prev, c]);
+      setComments(prev => [c, ...prev]);
       setBody('');
     } catch { /* silent */ }
     finally { setSending(false); }
@@ -93,7 +92,9 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
     <View style={ps.commentsContainer}>
       <TouchableOpacity onPress={() => setExpanded(e => !e)} style={ps.commentToggle}>
         <Text style={ps.commentToggleText}>
-          {expanded ? '▲ Hide comments' : `💬 Comments${comments.length > 0 ? ` (${comments.length})` : ''}`}
+          {expanded
+            ? `▲ Hide comments (${comments.length})`
+            : `💬 ${comments.length} comment${comments.length !== 1 ? 's' : ''}`}
         </Text>
       </TouchableOpacity>
 
@@ -104,9 +105,17 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
           ) : (
             comments.map(c => {
               const name = c.user.profile?.username ?? c.user.displayName;
+              const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
               const isOwn = currentUserId === c.userId;
               return (
                 <View key={c.id} style={ps.commentRow}>
+                  {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={ps.commentAvatar} />
+                  ) : (
+                    <View style={ps.commentAvatarFallback}>
+                      <Text style={ps.commentAvatarInitial}>{name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
                   <View style={{ flex: 1 }}>
                     <Text style={ps.commentAuthor}>{name} <Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text></Text>
                     <Text style={ps.commentBody}>{c.body}</Text>
@@ -307,6 +316,9 @@ const ps = StyleSheet.create({
   commentToggleText: { fontSize: 12, fontWeight: '600', color: colors.textSub },
   noComments: { fontSize: 12, color: colors.textMuted, marginTop: 6, marginBottom: 4 },
   commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 8 },
+  commentAvatar: { width: 26, height: 26, borderRadius: 13, marginTop: 1 },
+  commentAvatarFallback: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.surfaceHigh, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  commentAvatarInitial: { fontSize: 11, fontWeight: '700', color: colors.textMuted },
   commentAuthor: { fontSize: 12, fontWeight: '700', color: colors.text },
   commentTime: { fontSize: 11, fontWeight: '400', color: colors.textMuted },
   commentBody: { fontSize: 13, color: colors.textSub, marginTop: 2, lineHeight: 18 },
