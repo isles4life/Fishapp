@@ -19,9 +19,9 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      admin: ${{ steps.filter.outputs.admin }}
-      web: ${{ steps.filter.outputs.web }}
+      backend: ${{ steps.filter.outputs.backend == 'true' || steps.prev.outputs.force == 'true' }}
+      admin:   ${{ steps.filter.outputs.admin   == 'true' || steps.prev.outputs.force == 'true' }}
+      web:     ${{ steps.filter.outputs.web     == 'true' || steps.prev.outputs.force == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -34,6 +34,20 @@ jobs:
               - 'admin/**'
             web:
               - 'web/**'
+      - name: Force deploy if previous run was not successful
+        id: prev
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CONCLUSION=$(gh api "repos/${{ github.repository }}/actions/runs" \
+            --jq '[.workflow_runs[] | select(.name=="Deploy to AWS ECS" and .head_branch=="master")] | .[1].conclusion' \
+            2>/dev/null || echo "success")
+          echo "Previous run conclusion: $CONCLUSION"
+          if [ "$CONCLUSION" != "success" ] && [ "$CONCLUSION" != "null" ]; then
+            echo "force=true" >> $GITHUB_OUTPUT
+          else
+            echo "force=false" >> $GITHUB_OUTPUT
+          fi
 
   # ─── Backend: test → build → deploy ─────────────────────────────────────────
   backend:
