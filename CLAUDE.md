@@ -269,6 +269,13 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
+### Recently Shipped
+- **Admin history: submission detail panel + status change** (deployed):
+  - Click any row in the Submissions tab → right-side panel slides in with photos (lightbox), angler info, GPS link, AI flags, moderation history
+  - Approve / Reject / Flag buttons with optional note; status updates inline in the table
+  - Backend: `getSubmissionDetail` now resolves presigned photo URLs
+  - Backend: `moderate()` no longer blocks re-moderation of already-approved/rejected submissions; skips duplicate leaderboard/feed/email on re-approve
+
 ### Recently Shipped (needs EAS build)
 - **@mention tap fix on iOS**: changed `onPress` → `onPressIn` on suggestion rows in all three `MentionTextInput` components (HomeScreen, LeaderboardScreen, TournamentDetailScreen) — iOS was dismissing the keyboard before `onPress` could fire, swallowing the tap
 
