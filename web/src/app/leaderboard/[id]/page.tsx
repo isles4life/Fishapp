@@ -191,20 +191,37 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
   const [sending, setSending] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [whoCommentId, setWhoCommentId] = useState<string | null>(null);
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [gifQuery, setGifQuery] = useState('');
+  const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
+  const [gifSearching, setGifSearching] = useState(false);
   const loggedIn = checkLogin();
 
   useEffect(() => {
     api.getPostComments(postId).then(setComments).catch(() => {});
   }, [postId]);
 
+  async function searchGifs(q: string) {
+    if (!q.trim()) return;
+    setGifSearching(true);
+    try {
+      const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.fishleague.app';
+      const res = await fetch(`${BASE}/gifs/search?q=${encodeURIComponent(q)}`);
+      if (res.ok) { const data = await res.json(); setGifResults(data.gifs ?? []); }
+    } catch { /* silent */ } finally { setGifSearching(false); }
+  }
+
   async function handleSend() {
     const trimmed = body.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed && !gifUrl || sending) return;
     setSending(true);
     try {
-      const c = await api.addPostComment(postId, trimmed);
+      const c = await api.addPostComment(postId, trimmed, gifUrl ?? undefined);
       setComments(prev => [c, ...prev]);
       setBody('');
+      setGifUrl(null);
+      setShowGifPicker(false);
       setExpanded(true);
     } catch { /* silent */ } finally { setSending(false); }
   }
@@ -265,6 +282,9 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
                     )}
                   </div>
                   <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.5 }}>{renderWithMentions(c.body)}</div>
+                  {c.gifUrl && (
+                    <img src={c.gifUrl} alt="" style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, marginTop: 4, display: 'block' }} />
+                  )}
                 </div>
               </div>
             );
@@ -272,12 +292,48 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
         </div>
       )}
       {loggedIn && (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <MentionInput value={body} onChange={setBody} onSubmit={handleSend} placeholder="Add a comment…" />
-          <button onClick={handleSend} disabled={!body.trim() || sending}
-            style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (!body.trim() || sending) ? 0.5 : 1, flexShrink: 0 }}>
-            Post
-          </button>
+        <div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <MentionInput value={body} onChange={setBody} onSubmit={handleSend} placeholder="Add a comment…" />
+            <button onClick={handleSend} disabled={(!body.trim() && !gifUrl) || sending}
+              style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: ((!body.trim() && !gifUrl) || sending) ? 0.5 : 1, flexShrink: 0 }}>
+              Post
+            </button>
+          </div>
+          {gifUrl && (
+            <div style={{ position: 'relative', display: 'inline-block', marginTop: 6 }}>
+              <img src={gifUrl} alt="" style={{ maxHeight: 100, borderRadius: 8, border: `1px solid ${C.border}`, display: 'block' }} />
+              <button onClick={() => setGifUrl(null)} style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <button onClick={() => { setShowGifPicker(v => !v); setGifQuery(''); setGifResults([]); }}
+              style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: C.textSub, fontSize: 11, fontWeight: 700 }}>GIF</button>
+          </div>
+          {showGifPicker && (
+            <div style={{ marginTop: 8, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input value={gifQuery} onChange={e => setGifQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchGifs(gifQuery))}
+                  placeholder="Search GIFs…" autoFocus
+                  style={{ flex: 1, padding: '6px 10px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, outline: 'none' }} />
+                <button onClick={() => searchGifs(gifQuery)} style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontWeight: 700, fontSize: 12 }}>Search</button>
+              </div>
+              {gifSearching && <div style={{ color: C.textMuted, fontSize: 12, textAlign: 'center', padding: 12 }}>Searching…</div>}
+              {!gifSearching && gifResults.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
+                  {gifResults.map(g => (
+                    <button key={g.id} onClick={() => { setGifUrl(g.full); setShowGifPicker(false); }}
+                      style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', padding: 0, aspectRatio: '1', backgroundColor: C.bg }}>
+                      <img src={g.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!gifSearching && gifResults.length === 0 && (
+                <div style={{ color: C.textMuted, fontSize: 12, textAlign: 'center', padding: 10 }}>{gifQuery ? 'No results.' : 'Search for a GIF above'}</div>
+              )}
+            </div>
+          )}
         </div>
       )}
       {whoCommentId && (

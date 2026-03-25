@@ -545,11 +545,11 @@ export class TournamentsService {
     await Promise.all(pushes);
   }
 
-  async addPostComment(postId: string, userId: string, body: string) {
+  async addPostComment(postId: string, userId: string, body: string, gifUrl?: string) {
     const post = await this.prisma.tournamentPost.findUnique({ where: { id: postId } });
     if (!post) throw new NotFoundException('Post not found');
     const comment = await this.prisma.tournamentPostComment.create({
-      data: { postId, userId, body },
+      data: { postId, userId, body, ...(gifUrl ? { gifUrl } : {}) },
       include: {
         user: {
           select: {

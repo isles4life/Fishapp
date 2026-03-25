@@ -201,9 +201,9 @@ export class TournamentsController {
 
   @Post('posts/:postId/comments')
   @UseGuards(JwtAuthGuard)
-  addPostComment(@Param('postId') postId: string, @Body() body: { body: string }, @Request() req: any) {
-    if (!body.body?.trim()) throw new BadRequestException('body is required');
-    return this.tournamentsService.addPostComment(postId, req.user.id, body.body.trim());
+  addPostComment(@Param('postId') postId: string, @Body() body: { body: string; gifUrl?: string }, @Request() req: any) {
+    if (!body.body?.trim() && !body.gifUrl) throw new BadRequestException('body or gifUrl is required');
+    return this.tournamentsService.addPostComment(postId, req.user.id, body.body?.trim() ?? '', body.gifUrl);
   }
 
   @Delete('posts/comments/:commentId')

@@ -89,6 +89,7 @@ export interface PostComment {
   postId: string;
   userId: string;
   body: string;
+  gifUrl?: string | null;
   propCount?: number;
   userHasPropped?: boolean;
   createdAt: string;
@@ -325,8 +326,8 @@ export const api = {
     apiFetch<{ ok: boolean }>(`/tournaments/posts/${postId}`, { method: 'DELETE' }, true),
   getPostComments: (postId: string) =>
     apiFetch<PostComment[]>(`/tournaments/posts/${postId}/comments`, undefined, true),
-  addPostComment: (postId: string, body: string) =>
-    apiFetch<PostComment>(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body }) }, true),
+  addPostComment: (postId: string, body: string, gifUrl?: string) =>
+    apiFetch<PostComment>(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body, gifUrl }) }, true),
   deletePostComment: (commentId: string) =>
     apiFetch<{ deleted: boolean }>(`/tournaments/posts/comments/${commentId}`, { method: 'DELETE' }, true),
   searchUsers: (q: string) =>
