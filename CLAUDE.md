@@ -97,7 +97,9 @@ cd mobile && npx expo start   # start Expo dev server
 - `GET /submissions/mine?tournamentId=` — user's own submissions
 - `GET /leaderboard/:tournamentId` — leaderboard entries
 - `POST /submissions/:id/prop` — toggle prop; `GET /submissions/:id/props` — count + userHasPropped; `GET /submissions/:id/props/who` — list of proppers with presigned avatars
-- `GET/POST /submissions/:id/comments` — catch comments
+- `GET/POST /submissions/:id/comments` — catch comments; each comment includes `propCount` + `userHasPropped`
+- `POST /comments/:id/prop` — toggle prop (like) on a catch comment; returns `{ propCount, userHasPropped }`
+- `POST /tournaments/posts/comments/:id/prop` — toggle prop on a tournament post comment
 - `POST /tournaments/:id/entry/intent` — Stripe PaymentIntent for entry fee; `GET /tournaments/:id/entry/me` — own entry status
 - `GET /tournaments/:id/feed` — tournament social feed (cursor-paginated); `POST /tournaments/:id/posts` — post to feed
 - `PATCH /tournaments/posts/:postId` — edit post; `DELETE /tournaments/posts/:postId` — delete post
