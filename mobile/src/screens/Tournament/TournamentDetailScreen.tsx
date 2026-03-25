@@ -1098,9 +1098,21 @@ export default function TournamentDetailScreen() {
           {tournament.director && (
             <View style={s.sectionCard}>
               <Text style={s.sectionTitle}>TOURNAMENT DIRECTOR</Text>
-              <View style={s.directorRow}>
+              <TouchableOpacity
+                style={s.directorRow}
+                activeOpacity={tournament.director.profile?.username ? 0.7 : 1}
+                onPress={() => {
+                  if (tournament.director?.profile?.username) {
+                    (navigation as any).navigate('PublicProfile', { username: tournament.director.profile.username });
+                  }
+                }}
+              >
                 {tournament.director.profile?.profilePhotoUrl ? (
-                  <Image source={{ uri: tournament.director.profile.profilePhotoUrl }} style={s.directorAvatar} />
+                  <Image
+                    source={{ uri: tournament.director.profile.profilePhotoUrl }}
+                    style={s.directorAvatar}
+                    onError={() => {}}
+                  />
                 ) : (
                   <View style={[s.directorAvatar, s.directorAvatarFallback]}>
                     <Text style={s.directorInitials}>
@@ -1108,13 +1120,16 @@ export default function TournamentDetailScreen() {
                     </Text>
                   </View>
                 )}
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={s.directorName}>{tournament.director.displayName}</Text>
                   {tournament.director.profile?.username ? (
                     <Text style={s.directorUsername}>@{tournament.director.profile.username}</Text>
                   ) : null}
                 </View>
-              </View>
+                {tournament.director.profile?.username && (
+                  <Text style={{ color: colors.accent, fontSize: 18 }}>›</Text>
+                )}
+              </TouchableOpacity>
             </View>
           )}
 

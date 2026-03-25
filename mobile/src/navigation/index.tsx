@@ -212,7 +212,17 @@ export default function Navigation({ isAuthenticated }: { isAuthenticated: boole
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen name="Submission" component={SubmissionFlowScreen} />
-          <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+          <Stack.Screen
+            name="PublicProfile"
+            component={PublicProfileScreen}
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: colors.surface },
+              headerTintColor: colors.accent,
+              headerTitleStyle: { color: colors.text, fontFamily: 'Oswald_600SemiBold', fontSize: 16 },
+              headerBackTitle: '',
+            }}
+          />
           <Stack.Screen name="Forecast" component={FishingIntelligenceScreen} />
           <Stack.Screen name="HotSpots" component={HotSpotsScreen} />
           <Stack.Screen name="Legal" component={LegalScreen} options={{ title: 'Legal' }} />
