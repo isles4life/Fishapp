@@ -2,7 +2,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import Nav from '../../components/Nav';
 import { api, isLoggedIn, getMyUserId, getMyRole } from '../../lib/api';
-import type { Tournament, LeaderboardEntry, CatchComment, TournamentPost } from '../../lib/api';
+import type { Tournament, LeaderboardEntry, CatchComment, TournamentPost, PostComment } from '../../lib/api';
 
 type MentionUser = { id: string; username: string; displayName: string };
 
@@ -479,6 +479,113 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
       {whoCommentId && (
         <CommentPropsWhoModal
           fetchWho={() => api.getCommentPropsWho(whoCommentId)}
+          onClose={() => setWhoCommentId(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function PostComments({ postId, myUserId }: { postId: string; myUserId: string | null }) {
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [whoCommentId, setWhoCommentId] = useState<string | null>(null);
+  const loggedIn = isLoggedIn();
+
+  useEffect(() => {
+    api.getPostComments(postId).then(setComments).catch(() => {});
+  }, [postId]);
+
+  async function handleSend() {
+    const trimmed = body.trim();
+    if (!trimmed || sending) return;
+    setSending(true);
+    try {
+      const c = await api.addPostComment(postId, trimmed);
+      setComments(prev => [c, ...prev]);
+      setBody('');
+      setExpanded(true);
+    } catch { /* silent */ } finally { setSending(false); }
+  }
+
+  async function handleDelete(commentId: string) {
+    try {
+      await api.deletePostComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch { /* silent */ }
+  }
+
+  async function handleToggleProp(commentId: string) {
+    if (!myUserId) return;
+    try {
+      const res = await api.togglePostCommentProp(commentId);
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, propCount: res.propCount, userHasPropped: res.userHasPropped } : c));
+    } catch { /* silent */ }
+  }
+
+  return (
+    <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+      {comments.length > 0 && (
+        <button onClick={() => setExpanded(e => !e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSub, fontSize: 12, fontWeight: 600, padding: '2px 0', marginBottom: 8, display: 'block' }}>
+          {expanded ? `▲ Hide comments (${comments.length})` : `💬 ${comments.length} comment${comments.length !== 1 ? 's' : ''}`}
+        </button>
+      )}
+      {expanded && comments.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          {comments.map(c => {
+            const name = c.user.profile?.username ?? c.user.displayName;
+            const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
+            const isOwn = myUserId === c.userId;
+            return (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+                <a href={c.user.profile?.username ? `/profile/${c.user.profile.username}` : undefined} style={{ flexShrink: 0, marginTop: 1 }}>
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </a>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <UserLink username={c.user.profile?.username} displayName={name} style={{ fontSize: 12, fontWeight: 700, color: C.text }} />
+                    <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
+                    <button onClick={() => myUserId && handleToggleProp(c.id)}
+                      style={{ background: 'none', border: 'none', cursor: myUserId ? 'pointer' : 'default', fontSize: 13, padding: '1px 4px', opacity: c.userHasPropped ? 1 : 0.35, marginLeft: 'auto' }}>👍</button>
+                    {(c.propCount ?? 0) > 0 && (
+                      <button onClick={() => setWhoCommentId(c.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.userHasPropped ? C.accent : C.textSub, fontSize: 11, padding: '1px 2px', fontWeight: 700 }}>
+                        {c.propCount}
+                      </button>
+                    )}
+                    {isOwn && (
+                      <button onClick={() => handleDelete(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: '2px 4px', flexShrink: 0 }}>✕</button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.5 }}>{renderWithMentions(c.body, C.accent)}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {loggedIn && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <MentionInput value={body} onChange={setBody} onSubmit={handleSend} placeholder="Add a comment…"
+            accentColor={C.accent} surfaceColor={C.surface} borderColor={C.border} textColor={C.text} />
+          <button onClick={handleSend} disabled={!body.trim() || sending}
+            style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (!body.trim() || sending) ? 0.5 : 1, flexShrink: 0 }}>
+            Post
+          </button>
+        </div>
+      )}
+      {whoCommentId && (
+        <CommentPropsWhoModal
+          fetchWho={() => api.getPostCommentPropsWho(whoCommentId)}
           onClose={() => setWhoCommentId(null)}
         />
       )}
@@ -1223,6 +1330,7 @@ export default function LeaderboardPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={post.photoUrl} alt="" onClick={() => setLightboxUrl(post.photoUrl!)} style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}`, cursor: 'pointer' }} />
                     )}
+                    {!isEditing && <PostComments postId={post.id} myUserId={myUserId} />}
                   </div>
                 );
               })}
