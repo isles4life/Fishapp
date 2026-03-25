@@ -220,7 +220,7 @@ function MentionTextInput({
       {suggestions.length > 0 && mentionQuery !== null && (
         <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.accentDark, borderRadius: 8, marginBottom: 4, overflow: 'hidden' }}>
           {suggestions.map(u => (
-            <TouchableOpacity key={u.id} onPress={() => selectMention(u)} style={{ paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row' }}>
+            <TouchableOpacity key={u.id} onPressIn={() => selectMention(u)} style={{ paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row' }}>
               <Text style={{ color: colors.accent, fontWeight: '700', fontSize: 13 }}>@{u.username}</Text>
               {u.displayName !== u.username && <Text style={{ color: colors.textSub, fontSize: 13 }}> {u.displayName}</Text>}
             </TouchableOpacity>

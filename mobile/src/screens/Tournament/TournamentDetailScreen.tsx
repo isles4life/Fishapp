@@ -113,7 +113,7 @@ function MentionTextInput({
       {suggestions.length > 0 && mentionQuery !== null && (
         <View style={mentionStyles.dropdown}>
           {suggestions.map(u => (
-            <TouchableOpacity key={u.id} onPress={() => selectMention(u)} style={mentionStyles.suggestionRow}>
+            <TouchableOpacity key={u.id} onPressIn={() => selectMention(u)} style={mentionStyles.suggestionRow}>
               <Text style={mentionStyles.suggestionUsername}>@{u.username}</Text>
               {u.displayName !== u.username && (
                 <Text style={mentionStyles.suggestionDisplay}> {u.displayName}</Text>
