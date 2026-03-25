@@ -103,7 +103,12 @@ export interface LeaderboardEntry {
   profilePhotoUrl?: string | null; username?: string | null;
   speciesName?: string | null; speciesCategory?: string | null;
   photoUrl?: string | null; submittedAt?: string | null;
-  released?: boolean;
+  released?: boolean; lat?: number | null; lng?: number | null;
+}
+
+export interface TournamentEntry {
+  id: string; userId: string; tournamentId: string;
+  status: 'PENDING' | 'PAID'; feeCents: number;
 }
 export interface CatchComment {
   id: string; submissionId: string; userId: string; body: string; createdAt: string;
@@ -340,4 +345,10 @@ export const api = {
     apiFetch<{ deleted: boolean }>(`/tournaments/posts/comments/${commentId}`, { method: 'DELETE' }, true),
   searchUsers: (q: string) =>
     apiFetch<{ id: string; username: string; displayName: string }[]>(`/users/search?q=${encodeURIComponent(q)}`, undefined, true),
+  createEntryCheckout: (tournamentId: string, returnUrl: string) =>
+    apiFetch<{ url: string }>(`/tournaments/${tournamentId}/entry/checkout`, {
+      method: 'POST', body: JSON.stringify({ returnUrl }),
+    }, true),
+  getMyEntry: (tournamentId: string) =>
+    apiFetch<TournamentEntry | null>(`/tournaments/${tournamentId}/entry/me`, undefined, true).catch(() => null),
 };

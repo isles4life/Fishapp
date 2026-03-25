@@ -99,6 +99,8 @@ export interface LeaderboardEntry {
   photoUrl?: string | null;
   submittedAt?: string | null;
   released?: boolean;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface CatchComment {

@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, FlatList,
   ActivityIndicator, TouchableOpacity, Image, SafeAreaView,
-  ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform,
+  ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as api from '../../services/api';
@@ -502,6 +502,11 @@ function LeaderboardRow({
           {item.username && <Text style={styles.username}>@{item.username}</Text>}
           {item.speciesName && <Text style={styles.speciesLabel}>{item.speciesName}</Text>}
           {item.released && <Text style={styles.releasedBadge}>↩ Released</Text>}
+          {item.lat != null && item.lng != null && (
+            <TouchableOpacity onPress={() => Linking.openURL(`maps:?q=${item.lat},${item.lng}&ll=${item.lat},${item.lng}`)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
+              <Text style={styles.mapLink}>📍 Map</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Measurement + prop */}
@@ -852,6 +857,12 @@ const styles = StyleSheet.create({
   speciesLabel: {
     ...typography.caption,
     color: colors.accent,
+    marginTop: 2,
+  },
+  mapLink: {
+    fontSize: 11,
+    color: colors.accent,
+    textDecorationLine: 'underline',
     marginTop: 2,
   },
   releasedBadge: {

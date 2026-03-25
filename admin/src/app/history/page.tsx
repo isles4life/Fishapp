@@ -205,7 +205,7 @@ function SubmissionDetailPanel({
 
             {/* Core info */}
             <div style={{ backgroundColor: C.surfaceHigh, borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Row label="Angler" value={`${sub.user.displayName} (${sub.user.email})`} />
+              <Row label="Angler" value={sub.user.email ? `${sub.user.displayName} (${sub.user.email})` : sub.user.displayName} />
               <Row label="Tournament" value={sub.tournament.name} />
               <Row label="Length" value={`${lengthIn}"`} accent />
               {sub.speciesName && <Row label="Species" value={sub.speciesName} />}

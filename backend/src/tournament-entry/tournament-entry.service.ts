@@ -79,6 +79,42 @@ export class TournamentEntryService {
     };
   }
 
+  async createCheckoutSession(userId: string, tournamentId: string, returnUrl: string) {
+    const tournament = await this.prisma.tournament.findUnique({ where: { id: tournamentId } });
+    if (!tournament) throw new NotFoundException('Tournament not found');
+    if (!tournament.isOpen) throw new BadRequestException('Tournament is not open');
+    if (tournament.entryFeeCents === 0) throw new BadRequestException('This tournament has no entry fee');
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.suspended) throw new ForbiddenException('Account suspended');
+
+    const existing = await this.prisma.tournamentEntry.findUnique({
+      where: { userId_tournamentId: { userId, tournamentId } },
+    });
+    if (existing?.status === 'PAID') throw new BadRequestException('Already entered this tournament');
+
+    const platformFeeCents = Math.round(tournament.entryFeeCents * (this.platformFeePercent / 100));
+
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{ price_data: { currency: 'usd', unit_amount: tournament.entryFeeCents, product_data: { name: `FishLeague: ${tournament.name}` } }, quantity: 1 }],
+      metadata: { userId, tournamentId },
+      success_url: `${returnUrl}?entered=1`,
+      cancel_url: returnUrl,
+    });
+
+    // Retrieve the underlying PaymentIntent so webhook can match it
+    const paymentIntentId = session.payment_intent as string;
+    await this.prisma.tournamentEntry.upsert({
+      where: { userId_tournamentId: { userId, tournamentId } },
+      create: { userId, tournamentId, stripePaymentIntentId: paymentIntentId, feeCents: tournament.entryFeeCents, platformFeeCents, status: 'PENDING' },
+      update: { stripePaymentIntentId: paymentIntentId, status: 'PENDING' },
+    });
+
+    return { url: session.url };
+  }
+
   async handleWebhook(rawBody: Buffer, signature: string) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? '';
     let event: Stripe.Event;

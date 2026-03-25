@@ -105,7 +105,7 @@ export class LeaderboardService {
           },
         },
         submission: {
-          select: { speciesName: true, speciesCategory: true, photo1Key: true, createdAt: true, released: true, fishWeightOz: true },
+          select: { speciesName: true, speciesCategory: true, photo1Key: true, createdAt: true, released: true, fishWeightOz: true, gpsLat: true, gpsLng: true },
         },
       },
     });
@@ -131,6 +131,8 @@ export class LeaderboardService {
         photoUrl,
         submittedAt: e.submission?.createdAt?.toISOString() ?? null,
         released: e.submission?.released ?? false,
+        lat: e.submission?.gpsLat ?? null,
+        lng: e.submission?.gpsLng ?? null,
       };
     }));
     return mapped;

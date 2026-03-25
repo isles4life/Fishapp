@@ -5,6 +5,7 @@ import {
   Patch,
   Param,
   Req,
+  Body,
   Headers,
   RawBodyRequest,
   UseGuards,
@@ -24,6 +25,13 @@ export class TournamentEntryController {
   @Post('tournaments/:id/entry/intent')
   createIntent(@Req() req: any, @Param('id') tournamentId: string) {
     return this.service.createPaymentIntent(req.user.id, tournamentId);
+  }
+
+  // Angler: create Stripe Checkout Session (web flow)
+  @UseGuards(JwtAuthGuard)
+  @Post('tournaments/:id/entry/checkout')
+  createCheckout(@Req() req: any, @Param('id') tournamentId: string, @Body('returnUrl') returnUrl: string) {
+    return this.service.createCheckoutSession(req.user.id, tournamentId, returnUrl);
   }
 
   // Angler: check own entry status

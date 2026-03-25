@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Nav from '../../../components/Nav';
 import { api, isLoggedIn as checkLogin, getMyUserId, getMyRole } from '../../../lib/api';
-import type { Tournament, LeaderboardEntry, TournamentPost, PostComment } from '../../../lib/api';
+import type { Tournament, LeaderboardEntry, TournamentPost, PostComment, TournamentEntry } from '../../../lib/api';
 
 const C = {
   bg:          '#3A4C44',
@@ -404,6 +405,10 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
   const [feedCursor, setFeedCursor] = useState<string | null>(null);
   const [feedLoading, setFeedLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [myEntry, setMyEntry] = useState<TournamentEntry | null>(null);
+  const [enterLoading, setEnterLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const enteredSuccess = searchParams.get('entered') === '1';
   const [postBody, setPostBody] = useState('');
   const [postPhoto, setPostPhoto] = useState<File | null>(null);
   const [postPhotoPreview, setPostPhotoPreview] = useState<string | null>(null);
@@ -436,8 +441,12 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsLoggedIn(checkLogin());
-  }, []);
+    const loggedIn = checkLogin();
+    setIsLoggedIn(loggedIn);
+    if (loggedIn) {
+      api.getMyEntry(params.id).then(entry => setMyEntry(entry ?? null));
+    }
+  }, [params.id]);
 
   useEffect(() => {
     async function load() {
@@ -760,12 +769,22 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                         )}
                       </div>
 
-                      {/* Length */}
-                      <div style={{
-                        fontSize: 18, fontWeight: 800, color: rankColor(e.rank),
-                        fontFamily: 'Oswald, sans-serif', flexShrink: 0,
-                      }}>
-                        {formatScore(e)}
+                      {/* Length + GPS */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: rankColor(e.rank), fontFamily: 'Oswald, sans-serif' }}>
+                          {formatScore(e)}
+                        </div>
+                        {e.lat != null && e.lng != null && (
+                          <a
+                            href={`https://maps.google.com/?q=${e.lat},${e.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={ev => ev.stopPropagation()}
+                            style={{ fontSize: 11, color: C.accent, textDecoration: 'underline' }}
+                          >
+                            📍 Map
+                          </a>
+                        )}
                       </div>
                     </div>
                   </Link>
@@ -799,23 +818,54 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                   </div>
                 )}
                 {tournament.entryFeeCents > 0 && (
-                  <div style={{ display: 'flex', gap: 24, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Entry Fee</div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: C.accent }}>${(tournament.entryFeeCents / 100).toFixed(2)}</div>
-                    </div>
-                    {(tournament as any).prizePoolCents > 0 && (
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Prize Pool</div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: C.accent }}>${((tournament as any).prizePoolCents / 100).toFixed(2)}</div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Entry Fee</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.accent }}>${(tournament.entryFeeCents / 100).toFixed(2)}</div>
+                      </div>
+                      {(tournament as any).prizePoolCents > 0 && (
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Prize Pool</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.accent }}>${((tournament as any).prizePoolCents / 100).toFixed(2)}</div>
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Dates</div>
+                        <div style={{ fontSize: 13, color: C.textSub }}>
+                          {new Date(tournament.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(tournament.endsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Enter Tournament button */}
+                    {isLoggedIn && tournament.isOpen && (
+                      <div style={{ marginTop: 14 }}>
+                        {enteredSuccess || myEntry?.status === 'PAID' ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: '#1e3d2a', border: '1px solid #3DAF5A', borderRadius: 10, padding: '8px 16px', color: '#3DAF5A', fontSize: 13, fontWeight: 700 }}>
+                            ✓ You&apos;re entered
+                          </div>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              setEnterLoading(true);
+                              try {
+                                const returnUrl = window.location.href.split('?')[0];
+                                const { url } = await api.createEntryCheckout(tournament.id, returnUrl);
+                                window.location.href = url;
+                              } catch (e: any) {
+                                alert(e.message ?? 'Failed to start checkout');
+                              } finally {
+                                setEnterLoading(false);
+                              }
+                            }}
+                            disabled={enterLoading}
+                            style={{ backgroundColor: C.accent, color: '#1A1D1A', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 14, fontWeight: 800, cursor: enterLoading ? 'not-allowed' : 'pointer', opacity: enterLoading ? 0.6 : 1, letterSpacing: 0.5 }}
+                          >
+                            {enterLoading ? 'Redirecting…' : `Enter Tournament — $${(tournament.entryFeeCents / 100).toFixed(2)}`}
+                          </button>
+                        )}
                       </div>
                     )}
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Dates</div>
-                      <div style={{ fontSize: 13, color: C.textSub }}>
-                        {new Date(tournament.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(tournament.endsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
