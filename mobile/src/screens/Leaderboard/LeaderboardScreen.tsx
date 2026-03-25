@@ -424,12 +424,17 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
           </View>
           {gifSearching && <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', padding: 12 }}>Searching…</Text>}
           {!gifSearching && gifResults.length > 0 && (
-            <FlatList data={gifResults} numColumns={3} keyExtractor={g => g.id} style={{ maxHeight: 180 }}
-              renderItem={({ item: g }) => (
-                <TouchableOpacity onPress={() => { setGifUrl(g.full); setPhotoUri(null); setShowGifPicker(false); }} style={{ flex: 1, aspectRatio: 1, margin: 2, borderRadius: 6, overflow: 'hidden', backgroundColor: colors.bg }}>
-                  <Image source={{ uri: g.preview }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                </TouchableOpacity>
-              )} />
+            <ScrollView style={{ maxHeight: 240 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+              {Array.from({ length: Math.ceil(gifResults.length / 3) }, (_, ri) => (
+                <View key={ri} style={{ flexDirection: 'row' }}>
+                  {gifResults.slice(ri * 3, ri * 3 + 3).map(g => (
+                    <TouchableOpacity key={g.id} onPress={() => { setGifUrl(g.full); setPhotoUri(null); setShowGifPicker(false); }} style={{ flex: 1, aspectRatio: 1, margin: 2, borderRadius: 6, overflow: 'hidden', backgroundColor: colors.bg }}>
+                      <Image source={{ uri: g.preview }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+            </ScrollView>
           )}
           {!gifSearching && gifResults.length === 0 && (
             <Text style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', padding: 10 }}>{gifQuery ? 'No results.' : 'Search for a GIF above'}</Text>
