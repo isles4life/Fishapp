@@ -494,6 +494,7 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
   const [whoCommentId, setWhoCommentId] = useState<string | null>(null);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [gifQuery, setGifQuery] = useState('');
   const [gifResults, setGifResults] = useState<Array<{ id: string; preview: string; full: string }>>([]);
   const [gifSearching, setGifSearching] = useState(false);
@@ -612,9 +613,32 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
             </div>
           )}
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-            <button onClick={() => { setShowGifPicker(v => !v); setGifQuery(''); setGifResults([]); }}
-              style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: C.textSub, fontSize: 11, fontWeight: 700 }}>GIF</button>
+            <button onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setGifQuery(''); setGifResults([]); }}
+              style={{ background: 'none', border: `1px solid ${showGifPicker ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: showGifPicker ? C.accent : C.textSub, fontSize: 11, fontWeight: 700 }}>GIF</button>
+            <button onClick={() => { setShowEmojiPicker(v => !v); setShowGifPicker(false); }}
+              style={{ background: 'none', border: `1px solid ${showEmojiPicker ? C.accent : C.border}`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>😊</button>
           </div>
+          {showEmojiPicker && (
+            <div style={{ marginTop: 8, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
+              {[
+                { label: '🎣 Fishing', emojis: ['🎣','🐟','🐠','🐡','🦈','🌊','⚓','🚤','🛶','🏖️','🌅','🎯'] },
+                { label: '🏆 Sports', emojis: ['🏆','🥇','🥈','🥉','💪','🤙','👊','🙌','👏','🎉','🔥','⚡'] },
+                { label: '😀 Faces', emojis: ['😀','😂','🤣','😍','😎','🤩','😅','😭','🥳','😤','🤯','😱'] },
+              ].map(cat => (
+                <div key={cat.label} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>{cat.label}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                    {cat.emojis.map(em => (
+                      <button key={em} onClick={() => setBody(b => b + em)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: '2px 3px', borderRadius: 4 }}>
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {showGifPicker && (
             <div style={{ marginTop: 8, backgroundColor: C.surfaceHigh, border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
