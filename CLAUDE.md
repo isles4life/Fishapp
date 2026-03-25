@@ -262,15 +262,27 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 - **SubmissionFlowScreen**: shutter button inner circle = `colors.cream`; camera overlay uses `rgba(46,61,56,...)` (not old dark rgba)
 - **Auth screens (Login/Register)**: all dark green, fully using theme tokens
 
-## Current Status (as of 2026-03-24)
+## Current Status (as of 2026-03-25)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #31 is latest — new EAS build needed for all mobile changes (photo lightbox, comment improvements, @mentions, clickable usernames, comment props, who-gave-props on comments, GIF+emoji in post comments)
+- iOS TestFlight build #32 submitted — ships full media bar (📎/GIF/😊) on all mobile comment areas + TypeScript fixes
 - CI/CD optimized: Docker BuildKit GHA layer cache + `wait-for-service-stability: false` — backend deploys ~2–3 min instead of 5–10 min
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
 
 ### Recently Shipped
-- **GIF + emoji in tournament post comments** (backend + web deployed; mobile needs EAS build):
+- **Full media bar (📎/GIF/😊) on all mobile comment areas** (EAS build #32 submitted):
+  - `TournamentDetailScreen` PostComments: photo attach via expo-image-picker, GIF search, emoji picker; uploads photo via `POST /tournaments/:id/posts/media`, passes `photoKey` to `addPostComment`
+  - `LeaderboardScreen` CommentsSection: same full media bar; uploads via `POST /submissions/:id/comments/media`
+  - `HomeScreen` CommentsModal: same full media bar
+  - `PostComment` type gains `photoUrl?: string | null`; `addPostComment` gains `photoKey?` 4th param
+  - `PostCard` component gains `tournamentId` prop so `PostComments` can upload media
+  - Backend: `CatchComment` gains `gifUrl` + `photoKey`; `TournamentPostComment` gains `photoKey`; both resolved to presigned `photoUrl` in API responses
+  - Migrations: `20260324000002_post_comment_photo_key`, `20260325000000_catch_comment_media`
+  - New upload endpoint: `POST /submissions/:id/comments/media`
+  - Web: same media bar already deployed on both leaderboard pages (PostComments + CommentsSection)
+- **GIF search fix** (web deployed): PostComments `searchGifs` used `data.gifs` instead of `data.data` — now returns results correctly
+- **Media bar button border fix** (web deployed): border was `C.border` (nearly same color as `C.surfaceHigh` surface) — fixed to `rgba(255,255,255,0.22)` for visible outline
+- **GIF + emoji in tournament post comments** (backend + web deployed; shipped in build #32):
   - Backend: `gifUrl String?` added to `TournamentPostComment` model; migration `20260324000001_post_comment_gif_url`
   - `addPostComment` controller/service accept optional `gifUrl`; validates `body || gifUrl` required
   - Web `/leaderboard` and `/leaderboard/[id]`: GIF picker (backend proxy) + emoji picker (pure frontend) in PostComments comment input; GIFs rendered in comment thread
