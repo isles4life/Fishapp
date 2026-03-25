@@ -122,4 +122,10 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ note }),
     }),
+
+  getTournamentEntries: (tournamentId: string) =>
+    apiFetch<any[]>(`/admin/tournaments/${tournamentId}/entries`),
+
+  markEntryPaid: (tournamentId: string, userId: string) =>
+    apiFetch(`/admin/tournaments/${tournamentId}/entries/${userId}/mark-paid`, { method: 'PATCH' }),
 };

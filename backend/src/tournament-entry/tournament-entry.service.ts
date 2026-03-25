@@ -133,4 +133,33 @@ export class TournamentEntryService {
       orderBy: { createdAt: 'asc' },
     });
   }
+
+  async markEntryPaid(tournamentId: string, userId: string) {
+    const entry = await this.prisma.tournamentEntry.findUnique({
+      where: { userId_tournamentId: { userId, tournamentId } },
+    });
+    if (!entry) {
+      // Create a comp entry with no payment intent
+      return this.prisma.tournamentEntry.create({
+        data: {
+          userId,
+          tournamentId,
+          stripePaymentIntentId: `manual_${Date.now()}`,
+          feeCents: 0,
+          platformFeeCents: 0,
+          status: 'PAID',
+        },
+        include: {
+          user: { select: { id: true, displayName: true, profile: { select: { username: true } } } },
+        },
+      });
+    }
+    return this.prisma.tournamentEntry.update({
+      where: { userId_tournamentId: { userId, tournamentId } },
+      data: { status: 'PAID' },
+      include: {
+        user: { select: { id: true, displayName: true, profile: { select: { username: true } } } },
+      },
+    });
+  }
 }

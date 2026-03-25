@@ -99,6 +99,10 @@ export default function TournamentsPage() {
   const [editBannerPreview, setEditBannerPreview] = useState<string | null>(null);
   const [editBannerUploading, setEditBannerUploading] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [entriesTarget, setEntriesTarget] = useState<Tournament | null>(null);
+  const [entries, setEntries] = useState<any[]>([]);
+  const [entriesLoading, setEntriesLoading] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [form, setForm] = useState({
     regionId: '', name: '', weekNumber: '', year: new Date().getFullYear().toString(),
     startsDate: '', startsTime: '08:00',
@@ -233,6 +237,33 @@ export default function TournamentsPage() {
         setQrCheckInCount(res.count);
       }
     } catch { /* ignore */ }
+  }
+
+  async function openEntriesModal(t: Tournament) {
+    setEntriesTarget(t);
+    setEntries([]);
+    setEntriesLoading(true);
+    try {
+      const data = await api.getTournamentEntries(t.id);
+      setEntries(data);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setEntriesLoading(false);
+    }
+  }
+
+  async function handleMarkPaid(userId: string) {
+    if (!entriesTarget) return;
+    setMarkingPaid(userId);
+    try {
+      await api.markEntryPaid(entriesTarget.id, userId);
+      setEntries(prev => prev.map(e => e.userId === userId ? { ...e, status: 'PAID' } : e));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setMarkingPaid(null);
+    }
   }
 
   async function regenerateQrCode() {
@@ -579,6 +610,78 @@ export default function TournamentsPage() {
         </div>
       )}
 
+      {/* Entries modal */}
+      {entriesTarget && (
+        <div onClick={() => setEntriesTarget(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, width: '100%', maxWidth: 560, maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <p style={{ color: C.text, fontWeight: 700, fontSize: 15, margin: 0 }}>💳 Entry Fees — {entriesTarget.name}</p>
+                {!entriesLoading && (
+                  <p style={{ color: C.textMuted, fontSize: 12, margin: '4px 0 0' }}>
+                    {entries.filter(e => e.status === 'PAID').length} paid · {entries.filter(e => e.status !== 'PAID').length} pending · ${((entries.filter(e => e.status === 'PAID').length * entriesTarget.entryFeeCents) / 100).toFixed(2)} collected
+                  </p>
+                )}
+              </div>
+              <button onClick={() => setEntriesTarget(null)} style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: 20, cursor: 'pointer', padding: 4 }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {entriesLoading ? (
+                <div style={{ padding: 32, textAlign: 'center', color: C.textMuted }}>Loading…</div>
+              ) : entries.length === 0 ? (
+                <div style={{ padding: 32, textAlign: 'center', color: C.textMuted }}>No entries yet.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                      {['Angler', 'Fee Paid', 'Status', 'Action'].map(h => (
+                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map(entry => (
+                      <tr key={entry.id} style={{ borderBottom: `1px solid ${C.border}20` }}>
+                        <td style={{ padding: '10px 16px', color: C.text, fontSize: 13, fontWeight: 600 }}>
+                          {entry.user?.displayName ?? 'Unknown'}
+                          {entry.user?.profile?.username && (
+                            <span style={{ color: C.textMuted, fontWeight: 400, marginLeft: 6 }}>@{entry.user.profile.username}</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 16px', color: C.textSub, fontSize: 13 }}>
+                          {entry.feeCents > 0 ? `$${(entry.feeCents / 100).toFixed(2)}` : <span style={{ color: C.textMuted }}>Comp</span>}
+                        </td>
+                        <td style={{ padding: '10px 16px' }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+                            color: entry.status === 'PAID' ? C.green : C.accent,
+                            backgroundColor: entry.status === 'PAID' ? C.greenBg : C.bg,
+                            border: `1px solid ${entry.status === 'PAID' ? C.green + '50' : C.accent + '50'}`,
+                          }}>
+                            {entry.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 16px' }}>
+                          {entry.status !== 'PAID' && (
+                            <button
+                              onClick={() => handleMarkPaid(entry.userId)}
+                              disabled={markingPaid === entry.userId}
+                              style={{ background: C.greenBg, color: C.green, border: `1px solid ${C.green}50`, padding: '4px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: markingPaid === entry.userId ? 0.6 : 1 }}
+                            >
+                              {markingPaid === entry.userId ? 'Saving…' : '✓ Mark Paid'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ backgroundColor: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -659,6 +762,7 @@ export default function TournamentsPage() {
                             { label: '📢 Announce', action: () => { setAnnounceTarget(t); setAnnounceResult(null); setOpenMenu(null); } },
                             { label: '🎁 Prize Draw', action: () => { setDrawTarget(t); setDrawResult(null); setDrawWeighted(false); setOpenMenu(null); } },
                             ...(t.isOpen ? [{ label: '📱 Check-in QR', action: () => { openQrModal(t); setOpenMenu(null); } }] : []),
+                            ...(t.entryFeeCents > 0 ? [{ label: '💳 Entries', action: () => { openEntriesModal(t); setOpenMenu(null); } }] : []),
                           ].map(item => (
                             <button key={item.label} onClick={item.action} style={{ width: '100%', display: 'flex', alignItems: 'center', background: 'none', border: 'none', borderBottom: `1px solid ${C.border}20`, padding: '10px 14px', textAlign: 'left', cursor: 'pointer', fontSize: 13, color: C.text, fontWeight: 500, gap: 8 }}
                               onMouseEnter={e => (e.currentTarget.style.backgroundColor = C.surfaceHigh)}

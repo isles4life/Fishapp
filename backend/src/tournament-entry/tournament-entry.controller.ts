@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Param,
   Req,
   Headers,
@@ -37,6 +38,13 @@ export class TournamentEntryController {
   @Get('admin/tournaments/:id/entries')
   getTournamentEntries(@Param('id') tournamentId: string) {
     return this.service.getTournamentEntries(tournamentId);
+  }
+
+  // Admin: manually mark an entry as paid
+  @UseGuards(AdminGuard)
+  @Patch('admin/tournaments/:id/entries/:userId/mark-paid')
+  markEntryPaid(@Param('id') tournamentId: string, @Param('userId') userId: string) {
+    return this.service.markEntryPaid(tournamentId, userId);
   }
 
   // Stripe webhook — no auth, raw body required
