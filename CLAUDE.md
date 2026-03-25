@@ -264,7 +264,7 @@ RDS is in a private VPC with no public access. Use a one-off ECS Fargate task:
 
 ## Current Status (as of 2026-03-25)
 - MVP fully deployed: backend + admin + web live on AWS
-- iOS TestFlight build #35 is latest — all mobile changes are live (full media bar, photo/GIF/emoji in all comment areas, @mentions, clickable usernames, comment props, who-gave-props, GIF+emoji in post comments, photo lightbox, comment improvements)
+- iOS TestFlight build #36 is latest — WHO? prop count tap, TypeScript cleanup, hot spots photo lightbox, PublicProfile back button, director card tappable + avatar fix
 - CI/CD optimized: Docker BuildKit GHA layer cache + `wait-for-service-stability: false` — backend deploys ~2–3 min instead of 5–10 min
 - Stripe entry fees deployed; GitHub secrets added; webhook pointed to `https://api.fishleague.app/webhooks/stripe`
 - App Store submission in progress (screenshots uploaded, metadata filled, awaiting review)
