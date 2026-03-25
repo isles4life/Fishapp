@@ -81,6 +81,7 @@ model User {
   profile          AnglerProfile?
   props            CatchProp[]
   comments         CatchComment[]
+  postComments     TournamentPostComment[]
   warnings         UserWarning[]
   issuedWarnings   UserWarning[] @relation("IssuedWarnings")
   checkIns         TournamentCheckIn[]
@@ -423,9 +424,23 @@ model TournamentPost {
 
   createdAt    DateTime            @default(now())
 
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id])
-  submission   Submission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  tournament   Tournament          @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user         User                @relation(fields: [userId], references: [id])
+  submission   Submission?         @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  postComments TournamentPostComment[]
 
   @@index([tournamentId, createdAt(sort: Desc)])
+}
+
+model TournamentPostComment {
+  id        String          @id @default(uuid())
+  postId    String
+  userId    String
+  body      String          @db.VarChar(500)
+  createdAt DateTime        @default(now())
+
+  post      TournamentPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
 }

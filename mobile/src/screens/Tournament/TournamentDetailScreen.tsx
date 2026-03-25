@@ -57,6 +57,96 @@ function scoringLabel(method?: string): string {
   return '📏 Length';
 }
 
+// ── Post Comments ─────────────────────────────────────────────────────────────
+
+function PostComments({ postId, currentUserId }: { postId: string; currentUserId: string | null }) {
+  const [comments, setComments] = useState<api.PostComment[]>([]);
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    api.getPostComments(postId).then(setComments).catch(() => {});
+  }, [postId, expanded]);
+
+  async function handleSend() {
+    const trimmed = body.trim();
+    if (!trimmed || sending) return;
+    setSending(true);
+    try {
+      const c = await api.addPostComment(postId, trimmed);
+      setComments(prev => [...prev, c]);
+      setBody('');
+    } catch { /* silent */ }
+    finally { setSending(false); }
+  }
+
+  async function handleDelete(commentId: string) {
+    try {
+      await api.deletePostComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch { /* silent */ }
+  }
+
+  return (
+    <View style={ps.commentsContainer}>
+      <TouchableOpacity onPress={() => setExpanded(e => !e)} style={ps.commentToggle}>
+        <Text style={ps.commentToggleText}>
+          {expanded ? '▲ Hide comments' : `💬 Comments${comments.length > 0 ? ` (${comments.length})` : ''}`}
+        </Text>
+      </TouchableOpacity>
+
+      {expanded && (
+        <>
+          {comments.length === 0 ? (
+            <Text style={ps.noComments}>No comments yet.</Text>
+          ) : (
+            comments.map(c => {
+              const name = c.user.profile?.username ?? c.user.displayName;
+              const isOwn = currentUserId === c.userId;
+              return (
+                <View key={c.id} style={ps.commentRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={ps.commentAuthor}>{name} <Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text></Text>
+                    <Text style={ps.commentBody}>{c.body}</Text>
+                  </View>
+                  {isOwn && (
+                    <TouchableOpacity onPress={() => handleDelete(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Text style={ps.commentDelete}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })
+          )}
+
+          {currentUserId && (
+            <View style={ps.commentInputRow}>
+              <TextInput
+                style={ps.commentInput}
+                placeholder="Add a comment…"
+                placeholderTextColor={colors.textMuted}
+                value={body}
+                onChangeText={setBody}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={[ps.commentSend, (!body.trim() || sending) && { opacity: 0.4 }]}
+                onPress={handleSend}
+                disabled={!body.trim() || sending}
+              >
+                <Text style={ps.commentSendText}>Post</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+}
+
 // ── Post card ─────────────────────────────────────────────────────────────────
 
 interface PostCardProps {
@@ -155,6 +245,8 @@ function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete 
       {post.photoUrl && post.type === 'ANGLER_POST' && (
         <Image source={{ uri: post.photoUrl }} style={ps.anglerPhoto} resizeMode="cover" />
       )}
+
+      <PostComments postId={post.id} currentUserId={currentUserId} />
     </View>
   );
 }
@@ -210,6 +302,23 @@ const ps = StyleSheet.create({
   announceTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 4 },
   body: { ...typography.bodyMd, color: colors.text, lineHeight: 20 },
   anglerPhoto: { width: '100%', height: 200, borderRadius: 10, marginTop: 8 },
+  commentsContainer: { marginTop: 10, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 },
+  commentToggle: { paddingVertical: 4 },
+  commentToggleText: { fontSize: 12, fontWeight: '600', color: colors.textSub },
+  noComments: { fontSize: 12, color: colors.textMuted, marginTop: 6, marginBottom: 4 },
+  commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 8 },
+  commentAuthor: { fontSize: 12, fontWeight: '700', color: colors.text },
+  commentTime: { fontSize: 11, fontWeight: '400', color: colors.textMuted },
+  commentBody: { fontSize: 13, color: colors.textSub, marginTop: 2, lineHeight: 18 },
+  commentDelete: { fontSize: 12, color: colors.textMuted, paddingLeft: 4 },
+  commentInputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 10 },
+  commentInput: {
+    flex: 1, backgroundColor: colors.surfaceHigh, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 8, color: colors.text,
+    fontSize: 13, maxHeight: 80, borderWidth: 1, borderColor: colors.border,
+  },
+  commentSend: { backgroundColor: colors.accent, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  commentSendText: { fontSize: 13, fontWeight: '700', color: colors.bg },
 });
 
 // ── Main screen ───────────────────────────────────────────────────────────────

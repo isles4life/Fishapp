@@ -461,4 +461,63 @@ export class TournamentsService {
       update: {},
     }).catch(() => { /* non-critical */ });
   }
+
+  // ── Post Comments ──────────────────────────────────────────────────────────
+
+  async getPostComments(postId: string) {
+    const comments = await this.prisma.tournamentPostComment.findMany({
+      where: { postId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            profile: { select: { username: true, profilePhotoUrl: true } },
+          },
+        },
+      },
+    });
+    return Promise.all(comments.map(async c => ({
+      ...c,
+      user: {
+        ...c.user,
+        profile: c.user.profile
+          ? { ...c.user.profile, profilePhotoUrl: await this.s3.resolveProfilePhotoUrl(c.user.profile.profilePhotoUrl) }
+          : null,
+      },
+    })));
+  }
+
+  async addPostComment(postId: string, userId: string, body: string) {
+    const post = await this.prisma.tournamentPost.findUnique({ where: { id: postId } });
+    if (!post) throw new NotFoundException('Post not found');
+    const comment = await this.prisma.tournamentPostComment.create({
+      data: { postId, userId, body },
+      include: {
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            profile: { select: { username: true, profilePhotoUrl: true } },
+          },
+        },
+      },
+    });
+    const profilePhotoUrl = await this.s3.resolveProfilePhotoUrl(comment.user.profile?.profilePhotoUrl);
+    return {
+      ...comment,
+      user: { ...comment.user, profile: comment.user.profile ? { ...comment.user.profile, profilePhotoUrl } : null },
+    };
+  }
+
+  async deletePostComment(commentId: string, userId: string, userRole: string) {
+    const comment = await this.prisma.tournamentPostComment.findUnique({ where: { id: commentId } });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.userId !== userId && userRole !== 'ADMIN' && userRole !== 'TOURNAMENT_ADMIN') {
+      throw new NotFoundException('Comment not found');
+    }
+    await this.prisma.tournamentPostComment.delete({ where: { id: commentId } });
+    return { deleted: true };
+  }
 }

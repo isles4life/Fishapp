@@ -84,6 +84,15 @@ export interface TournamentPost {
     released?: boolean;
   } | null;
 }
+export interface PostComment {
+  id: string;
+  postId: string;
+  userId: string;
+  body: string;
+  createdAt: string;
+  user: { id: string; displayName: string; profile?: { username?: string | null; profilePhotoUrl?: string | null } | null };
+}
+
 export interface LeaderboardEntry {
   rank: number; submissionId?: string; userId: string; displayName: string; fishLengthCm: number;
   score: number; scoringMethod?: string; fishWeightOz?: number | null;
@@ -303,4 +312,10 @@ export const api = {
     apiFetch<TournamentPost>(`/tournaments/posts/${postId}`, { method: 'PATCH', body: JSON.stringify({ body, removePhoto, photoKey, gifUrl }) }, true),
   deleteTournamentPost: (postId: string) =>
     apiFetch<{ ok: boolean }>(`/tournaments/posts/${postId}`, { method: 'DELETE' }, true),
+  getPostComments: (postId: string) =>
+    apiFetch<PostComment[]>(`/tournaments/posts/${postId}/comments`, undefined, true),
+  addPostComment: (postId: string, body: string) =>
+    apiFetch<PostComment>(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body }) }, true),
+  deletePostComment: (commentId: string) =>
+    apiFetch<{ deleted: boolean }>(`/tournaments/posts/comments/${commentId}`, { method: 'DELETE' }, true),
 };

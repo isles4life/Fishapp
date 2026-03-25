@@ -190,4 +190,25 @@ export class TournamentsController {
     if (!file) throw new BadRequestException('photo is required');
     return this.tournamentsService.uploadPostMedia(id, file.buffer, file.mimetype);
   }
+
+  // ── Post Comments ──────────────────────────────────────────────────────────
+
+  @Get('posts/:postId/comments')
+  @UseGuards(JwtAuthGuard)
+  getPostComments(@Param('postId') postId: string) {
+    return this.tournamentsService.getPostComments(postId);
+  }
+
+  @Post('posts/:postId/comments')
+  @UseGuards(JwtAuthGuard)
+  addPostComment(@Param('postId') postId: string, @Body() body: { body: string }, @Request() req: any) {
+    if (!body.body?.trim()) throw new BadRequestException('body is required');
+    return this.tournamentsService.addPostComment(postId, req.user.id, body.body.trim());
+  }
+
+  @Delete('posts/comments/:commentId')
+  @UseGuards(JwtAuthGuard)
+  deletePostComment(@Param('commentId') commentId: string, @Request() req: any) {
+    return this.tournamentsService.deletePostComment(commentId, req.user.id, req.user.role);
+  }
 }

@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import Nav from '../../../components/Nav';
 import { api, isLoggedIn as checkLogin, getMyUserId, getMyRole } from '../../../lib/api';
-import type { Tournament, LeaderboardEntry, TournamentPost } from '../../../lib/api';
+import type { Tournament, LeaderboardEntry, TournamentPost, PostComment } from '../../../lib/api';
 
 const C = {
   bg:          '#3A4C44',
@@ -46,6 +46,92 @@ function rankLabel(rank: number) {
   if (rank === 2) return '🥈';
   if (rank === 3) return '🥉';
   return `#${rank}`;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function PostComments({ postId, myUserId }: { postId: string; myUserId: string | null }) {
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const loggedIn = checkLogin();
+
+  useEffect(() => {
+    if (!expanded) return;
+    api.getPostComments(postId).then(setComments).catch(() => {});
+  }, [postId, expanded]);
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = body.trim();
+    if (!trimmed || sending) return;
+    setSending(true);
+    try {
+      const c = await api.addPostComment(postId, trimmed);
+      setComments(prev => [...prev, c]);
+      setBody('');
+    } catch { /* silent */ } finally { setSending(false); }
+  }
+
+  async function handleDelete(commentId: string) {
+    try {
+      await api.deletePostComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch { /* silent */ }
+  }
+
+  return (
+    <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+      <button onClick={() => setExpanded(e => !e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSub, fontSize: 12, fontWeight: 600, padding: '2px 0' }}>
+        {expanded ? '▲ Hide comments' : `💬 Comments${comments.length > 0 ? ` (${comments.length})` : ''}`}
+      </button>
+      {expanded && (
+        <div style={{ marginTop: 8 }}>
+          {comments.length === 0 && <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>No comments yet.</div>}
+          {comments.map(c => {
+            const name = c.user.profile?.username ?? c.user.displayName;
+            const isOwn = myUserId === c.userId;
+            return (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{name}</span>
+                  <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 6 }}>{timeAgo(c.createdAt)}</span>
+                  <div style={{ fontSize: 13, color: C.textSub, marginTop: 2, lineHeight: 1.5 }}>{c.body}</div>
+                </div>
+                {isOwn && (
+                  <button onClick={() => handleDelete(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: '2px 4px', flexShrink: 0 }}>✕</button>
+                )}
+              </div>
+            );
+          })}
+          {loggedIn && (
+            <form onSubmit={handleSend} style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <input
+                value={body}
+                onChange={e => setBody(e.target.value)}
+                placeholder="Add a comment…"
+                maxLength={500}
+                style={{ flex: 1, padding: '7px 12px', backgroundColor: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none' }}
+              />
+              <button type="submit" disabled={!body.trim() || sending}
+                style={{ backgroundColor: C.accent, color: C.bg, border: 'none', borderRadius: 8, padding: '7px 16px', cursor: 'pointer', fontWeight: 700, fontSize: 13, opacity: (!body.trim() || sending) ? 0.5 : 1 }}>
+                Post
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PublicLeaderboardPage({ params }: { params: { id: string } }) {
@@ -804,6 +890,8 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={post.photoUrl} alt="" style={{ width: '100%', borderRadius: 8, marginTop: 8, border: `1px solid ${C.border}` }} />
                         )}
+
+                        <PostComments postId={post.id} myUserId={myUserId} />
                       </div>
                     );
                   })}

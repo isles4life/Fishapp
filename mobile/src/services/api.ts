@@ -111,6 +111,27 @@ export function deleteTournamentPost(postId: string): Promise<{ ok: boolean }> {
   return request(`/tournaments/posts/${postId}`, { method: 'DELETE' });
 }
 
+export type PostComment = {
+  id: string;
+  postId: string;
+  userId: string;
+  body: string;
+  createdAt: string;
+  user: { id: string; displayName: string; profile: { username: string; profilePhotoUrl: string | null } | null };
+};
+
+export function getPostComments(postId: string): Promise<PostComment[]> {
+  return request(`/tournaments/posts/${postId}/comments`);
+}
+
+export function addPostComment(postId: string, body: string): Promise<PostComment> {
+  return request(`/tournaments/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+}
+
+export function deletePostComment(commentId: string): Promise<{ deleted: boolean }> {
+  return request(`/tournaments/posts/comments/${commentId}`, { method: 'DELETE' });
+}
+
 export function getClosedTournaments(): Promise<(Tournament & { _count: { submissions: number } })[]> {
   return request('/tournaments/history');
 }
