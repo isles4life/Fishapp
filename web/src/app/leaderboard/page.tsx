@@ -887,6 +887,76 @@ export default function LeaderboardPage() {
           );
         })()}
 
+        {/* Leaderboard entries */}
+        {!loading && entries.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
+            {entries.map((entry) => (
+              <div key={entry.userId}>
+                <div
+                  onClick={() => toggleExpanded(entry.userId)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: entry.rank === 1 ? C.surfaceHigh : C.surface,
+                    border: `1px solid ${entry.rank === 1 ? C.accent + '40' : C.border}`,
+                    borderRadius: expandedUserId === entry.userId ? '14px 14px 0 0' : 14,
+                    padding: '16px 20px',
+                    gap: 14,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {/* Rank circle */}
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 20, flexShrink: 0,
+                    border: `2px solid ${rankBorderColor(entry.rank)}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: entry.rank <= 3 ? 18 : 13, fontWeight: 800,
+                    color: rankBorderColor(entry.rank),
+                    backgroundColor: C.bg,
+                  }}>
+                    {medalFor(entry.rank)}
+                  </div>
+
+                  {/* Avatar */}
+                  <AvatarCircle photoUrl={entry.profilePhotoUrl} name={entry.displayName} size={42} />
+
+                  {/* Name */}
+                  <div style={{ flex: 1 }}>
+                    <UserLink username={entry.username} displayName={entry.displayName} style={{ fontWeight: 700, fontSize: 16, color: C.text }} />
+                    {entry.username && (
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
+                        <a href={`/profile/${entry.username}`} style={{ color: C.textMuted, textDecoration: 'none' }}>@{entry.username}</a>
+                      </div>
+                    )}
+                    {entry.speciesName && (
+                      <div style={{ fontSize: 12, color: C.accent, marginTop: 2 }}>{entry.speciesName}</div>
+                    )}
+                  </div>
+
+                  {/* Measurement + prop btn */}
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div>
+                      <span style={{ fontSize: 22, fontWeight: 900, color: C.accent }}>{cmToInches(entry.fishLengthCm)}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub, marginLeft: 3 }}>IN</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{entry.rank} PTS</div>
+                    {entry.submissionId && (
+                      <div style={{ marginTop: 6 }} onClick={e => e.stopPropagation()}>
+                        <PropButton submissionId={entry.submissionId} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Comments section */}
+                {expandedUserId === entry.userId && entry.submissionId && (
+                  <CommentsSection submissionId={entry.submissionId} myUserId={myUserId} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Compose bar */}
         {loggedIn && tournament && !loading && (
           <div style={{ marginBottom: 32, backgroundColor: C.surface, borderRadius: 16, border: `1px solid ${C.border}`, padding: '16px 16px' }}>
@@ -1166,74 +1236,6 @@ export default function LeaderboardPage() {
           </div>
         )}
 
-        {!loading && entries.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {entries.map((entry) => (
-              <div key={entry.userId}>
-                <div
-                  onClick={() => toggleExpanded(entry.userId)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    backgroundColor: entry.rank === 1 ? C.surfaceHigh : C.surface,
-                    border: `1px solid ${entry.rank === 1 ? C.accent + '40' : C.border}`,
-                    borderRadius: expandedUserId === entry.userId ? '14px 14px 0 0' : 14,
-                    padding: '16px 20px',
-                    gap: 14,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {/* Rank circle */}
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 20, flexShrink: 0,
-                    border: `2px solid ${rankBorderColor(entry.rank)}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: entry.rank <= 3 ? 18 : 13, fontWeight: 800,
-                    color: rankBorderColor(entry.rank),
-                    backgroundColor: C.bg,
-                  }}>
-                    {medalFor(entry.rank)}
-                  </div>
-
-                  {/* Avatar */}
-                  <AvatarCircle photoUrl={entry.profilePhotoUrl} name={entry.displayName} size={42} />
-
-                  {/* Name */}
-                  <div style={{ flex: 1 }}>
-                    <UserLink username={entry.username} displayName={entry.displayName} style={{ fontWeight: 700, fontSize: 16, color: C.text }} />
-                    {entry.username && (
-                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
-                        <a href={`/profile/${entry.username}`} style={{ color: C.textMuted, textDecoration: 'none' }}>@{entry.username}</a>
-                      </div>
-                    )}
-                    {entry.speciesName && (
-                      <div style={{ fontSize: 12, color: C.accent, marginTop: 2 }}>{entry.speciesName}</div>
-                    )}
-                  </div>
-
-                  {/* Measurement + prop btn */}
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div>
-                      <span style={{ fontSize: 22, fontWeight: 900, color: C.accent }}>{cmToInches(entry.fishLengthCm)}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub, marginLeft: 3 }}>IN</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{entry.rank} PTS</div>
-                    {entry.submissionId && (
-                      <div style={{ marginTop: 6 }} onClick={e => e.stopPropagation()}>
-                        <PropButton submissionId={entry.submissionId} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Comments section */}
-                {expandedUserId === entry.userId && entry.submissionId && (
-                  <CommentsSection submissionId={entry.submissionId} myUserId={myUserId} />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
