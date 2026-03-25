@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView, Platform, Image,
+  View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView, Platform, Image, Modal,
 } from 'react-native';
 import MapView, { Marker, Callout, Region as MapRegion } from 'react-native-maps';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -34,7 +34,6 @@ function cmToIn(cm: number): string {
 
 function initialRegion(spots: HotSpot[]): MapRegion {
   if (spots.length === 0) {
-    // Default to center of contiguous US
     return { latitude: 39.5, longitude: -98.35, latitudeDelta: 30, longitudeDelta: 40 };
   }
   const lats = spots.map(s => s.lat);
@@ -56,6 +55,7 @@ export default function HotSpotsScreen() {
   const [spots, setSpots] = useState<HotSpot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lightboxSpot, setLightboxSpot] = useState<HotSpot | null>(null);
   const mapRef = useRef<MapView>(null);
 
   useFocusEffect(
@@ -134,10 +134,13 @@ export default function HotSpotsScreen() {
               coordinate={{ latitude: spot.lat, longitude: spot.lng }}
               pinColor={colors.accent}
             >
-              <Callout tooltip={false}>
+              <Callout tooltip={false} onPress={() => spot.photoUrl && setLightboxSpot(spot)}>
                 <View style={styles.callout}>
                   {spot.photoUrl ? (
-                    <Image source={{ uri: spot.photoUrl }} style={styles.calloutPhoto} resizeMode="cover" />
+                    <>
+                      <Image source={{ uri: spot.photoUrl }} style={styles.calloutPhoto} resizeMode="cover" />
+                      <Text style={styles.calloutHint}>Tap to expand</Text>
+                    </>
                   ) : (
                     <Text style={styles.calloutEmoji}>{speciesEmoji(spot.species)}</Text>
                   )}
@@ -157,6 +160,37 @@ export default function HotSpotsScreen() {
           <Text style={styles.legendText}>Tap a pin to see catch photo &amp; details</Text>
         </View>
       )}
+
+      {/* Photo lightbox */}
+      <Modal
+        visible={!!lightboxSpot}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLightboxSpot(null)}
+      >
+        <TouchableOpacity
+          style={styles.lightboxOverlay}
+          activeOpacity={1}
+          onPress={() => setLightboxSpot(null)}
+        >
+          {lightboxSpot?.photoUrl && (
+            <Image
+              source={{ uri: lightboxSpot.photoUrl }}
+              style={styles.lightboxImage}
+              resizeMode="contain"
+            />
+          )}
+          {lightboxSpot && (
+            <View style={styles.lightboxCaption}>
+              <Text style={styles.lightboxSpecies}>{lightboxSpot.species}</Text>
+              <Text style={styles.lightboxLength}>{cmToIn(lightboxSpot.lengthCm)}"</Text>
+            </View>
+          )}
+          <TouchableOpacity style={styles.lightboxClose} onPress={() => setLightboxSpot(null)}>
+            <Text style={styles.lightboxCloseText}>✕</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -246,7 +280,12 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 8,
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  calloutHint: {
+    fontSize: 10,
+    color: colors.accent,
+    marginBottom: 4,
   },
   calloutEmoji: {
     fontSize: 20,
@@ -283,5 +322,44 @@ const styles = StyleSheet.create({
   legendText: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  lightboxOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lightboxImage: {
+    width: '92%',
+    height: '75%',
+  },
+  lightboxCaption: {
+    marginTop: 16,
+    alignItems: 'center',
+    gap: 4,
+  },
+  lightboxSpecies: {
+    ...typography.displaySm,
+    color: colors.text,
+  },
+  lightboxLength: {
+    ...typography.numMd,
+    color: colors.accent,
+  },
+  lightboxClose: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lightboxCloseText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
