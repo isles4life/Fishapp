@@ -207,7 +207,12 @@ export function ProfileView({
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
         {/* Header bar */}
         <View style={s.headerBar}>
-          <Text style={s.headerTitle}>MY PROFILE</Text>
+          {!isOwn && (
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+              <Text style={s.backArrow}>‹</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={s.headerTitle}>{isOwn ? 'MY PROFILE' : `@${profile.username}`}</Text>
           {isOwn && onEdit && (
             <TouchableOpacity style={s.editBtn} onPress={onEdit} activeOpacity={0.8}>
               <Text style={s.editBtnText}>EDIT</Text>
@@ -1008,6 +1013,15 @@ const s = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: 0,
+  },
+  backBtn: {
+    marginRight: 8,
+    paddingRight: 4,
+  },
+  backArrow: {
+    fontSize: 34,
+    color: colors.accent,
+    lineHeight: 36,
   },
   headerTitle: {
     ...typography.displayMd,

@@ -541,27 +541,34 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
 }
 
 function FeedCard({ item, region, onComment }: { item: FeedItem; region: string; onComment: () => void }) {
+  const navigation = useNavigation<any>();
   const lengthIn = (item.fishLengthCm / 2.54).toFixed(1);
   const initials = getInitials(item.displayName);
   const firstName = item.displayName.split(' ')[0].toUpperCase();
   const speciesLabel = item.speciesName ? item.speciesName.toUpperCase() : 'FISH';
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
+  function goToProfile() {
+    if (item.username) navigation.navigate('PublicProfile', { username: item.username });
+  }
+
   return (
     <View style={styles.feedCard}>
       {/* Card header */}
       <View style={styles.feedCardHeader}>
-        <View style={styles.feedAvatar}>
-          {item.profilePhotoUrl ? (
-            <Image source={{ uri: item.profilePhotoUrl }} style={styles.feedAvatarImg} />
-          ) : (
-            <Text style={styles.feedAvatarText}>{initials}</Text>
-          )}
-        </View>
-        <View style={{ flex: 1 }}>
+        <TouchableOpacity onPress={goToProfile} disabled={!item.username} activeOpacity={0.7}>
+          <View style={styles.feedAvatar}>
+            {item.profilePhotoUrl ? (
+              <Image source={{ uri: item.profilePhotoUrl }} style={styles.feedAvatarImg} />
+            ) : (
+              <Text style={styles.feedAvatarText}>{initials}</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={{ flex: 1 }} onPress={goToProfile} disabled={!item.username} activeOpacity={0.7}>
           <Text style={styles.feedAnglerName}>{item.displayName}</Text>
           {item.username && <Text style={styles.feedUsername}>@{item.username}</Text>}
-        </View>
+        </TouchableOpacity>
         {item.released && (
           <View style={styles.releasedBadge}>
             <Text style={styles.releasedBadgeText}>🐟 RELEASED</Text>
