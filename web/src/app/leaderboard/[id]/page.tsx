@@ -79,9 +79,16 @@ function renderWithMentions(text: string): React.ReactNode {
   const parts = text.split(/(@\w+)/g);
   return parts.map((part, i) =>
     /^@\w+$/.test(part)
-      ? <span key={i} style={{ color: C.accent, fontWeight: 600 }}>{part}</span>
+      ? <a key={i} href={`/profile/${part.slice(1)}`} style={{ color: C.accent, fontWeight: 600, textDecoration: 'none' }}>{part}</a>
       : part
   );
+}
+
+function UserLink({ username, displayName, style }: { username?: string | null; displayName: string; style?: React.CSSProperties }) {
+  if (username) {
+    return <a href={`/profile/${username}`} style={{ textDecoration: 'none', ...style }}>{displayName}</a>;
+  }
+  return <span style={style}>{displayName}</span>;
 }
 
 function MentionInput({
@@ -196,15 +203,17 @@ function PostComments({ postId, myUserId }: { postId: string; myUserId: string |
             const isOwn = myUserId === c.userId;
             return (
               <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: 1 }} />
-                ) : (
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1, fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
-                    {name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <a href={c.user.profile?.username ? `/profile/${c.user.profile.username}` : undefined} style={{ flexShrink: 0, marginTop: 1 }}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </a>
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{name}</span>
+                  <UserLink username={c.user.profile?.username} displayName={name} style={{ fontSize: 12, fontWeight: 700, color: C.text }} />
                   <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 6 }}>{timeAgo(c.createdAt)}</span>
                   <div style={{ fontSize: 13, color: C.textSub, marginTop: 2, lineHeight: 1.5 }}>{renderWithMentions(c.body)}</div>
                 </div>
@@ -629,7 +638,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                     )}
                     <div>
                       <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>Tournament Director</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{tournament.director.displayName}</div>
+                      <UserLink username={tournament.director.profile?.username} displayName={tournament.director.displayName} style={{ fontSize: 14, fontWeight: 700, color: C.text }} />
                     </div>
                   </div>
                 )}
@@ -822,7 +831,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                             </div>
                           )}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{post.user.displayName}</div>
+                            <UserLink username={post.user.profile?.username} displayName={post.user.displayName} style={{ fontSize: 13, fontWeight: 700, color: C.text }} />
                             <div style={{ fontSize: 11, color: C.textMuted }}>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
                           </div>
                           <span style={{ fontSize: 11, fontWeight: 700, color: badgeColor, backgroundColor: badgeColor + '20', border: `1px solid ${badgeColor}40`, borderRadius: 6, padding: '2px 8px' }}>{badgeLabel}</span>
@@ -859,7 +868,7 @@ export default function PublicLeaderboardPage({ params }: { params: { id: string
                         )}
 
                         {post.type === 'CHECK_IN' && (
-                          <div style={{ fontSize: 13, color: C.textSub }}>{post.user.displayName} checked in to the tournament.</div>
+                          <div style={{ fontSize: 13, color: C.textSub }}><UserLink username={post.user.profile?.username} displayName={post.user.displayName} style={{ color: C.textSub, fontWeight: 600 }} /> checked in to the tournament.</div>
                         )}
 
                         {(post.type === 'ANNOUNCEMENT' || post.type === 'ANGLER_POST') && !isEditing && post.body && (

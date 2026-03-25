@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, FlatList,
   ActivityIndicator, TouchableOpacity, Image, SafeAreaView,
@@ -140,11 +141,11 @@ function PropButton({
 
 type MentionUser = { id: string; username: string; displayName: string };
 
-function renderWithMentions(text: string): React.ReactNode {
+function renderWithMentions(text: string, onMentionPress?: (username: string) => void): React.ReactNode {
   const parts = text.split(/(@\w+)/g);
   return parts.map((part, i) =>
     /^@\w+$/.test(part)
-      ? <Text key={i} style={{ color: colors.accent, fontWeight: '700' }}>{part}</Text>
+      ? <Text key={i} style={{ color: colors.accent, fontWeight: '700' }} onPress={onMentionPress ? () => onMentionPress(part.slice(1)) : undefined}>{part}</Text>
       : <Text key={i}>{part}</Text>
   );
 }
@@ -210,6 +211,7 @@ function MentionTextInput({
 }
 
 function CommentsSection({ submissionId }: { submissionId: string }) {
+  const navigation = useNavigation<any>();
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
@@ -252,10 +254,12 @@ function CommentsSection({ submissionId }: { submissionId: string }) {
           {comments.map(c => (
             <View key={c.id} style={styles.commentRow}>
               <View style={styles.commentMeta}>
-                <Text style={styles.commentAuthor}>{c.user.displayName}</Text>
+                <Text style={styles.commentAuthor} onPress={() => c.user.profile?.username && navigation.navigate('PublicProfile', { username: c.user.profile.username })} >
+                  {c.user.profile?.username ? `@${c.user.profile.username}` : c.user.displayName}
+                </Text>
                 <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
               </View>
-              <Text style={styles.commentBody}>{renderWithMentions(c.body)}</Text>
+              <Text style={styles.commentBody}>{renderWithMentions(c.body, (u) => navigation.navigate('PublicProfile', { username: u }))}</Text>
             </View>
           ))}
         </>

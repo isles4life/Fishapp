@@ -61,11 +61,11 @@ function scoringLabel(method?: string): string {
 
 type MentionUser = { id: string; username: string; displayName: string };
 
-function renderWithMentions(text: string): React.ReactNode {
+function renderWithMentions(text: string, onMentionPress?: (username: string) => void): React.ReactNode {
   const parts = text.split(/(@\w+)/g);
   return parts.map((part, i) =>
     /^@\w+$/.test(part)
-      ? <Text key={i} style={{ color: colors.accent, fontWeight: '700' }}>{part}</Text>
+      ? <Text key={i} style={{ color: colors.accent, fontWeight: '700' }} onPress={onMentionPress ? () => onMentionPress(part.slice(1)) : undefined}>{part}</Text>
       : <Text key={i}>{part}</Text>
   );
 }
@@ -165,6 +165,7 @@ const mentionStyles = StyleSheet.create({
 // ── Post Comments ─────────────────────────────────────────────────────────────
 
 function PostComments({ postId, currentUserId }: { postId: string; currentUserId: string | null }) {
+  const navigation = useNavigation<any>();
   const [comments, setComments] = useState<api.PostComment[]>([]);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -221,8 +222,11 @@ function PostComments({ postId, currentUserId }: { postId: string; currentUserId
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={ps.commentAuthor}>{name} <Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text></Text>
-                <Text style={ps.commentBody}>{renderWithMentions(c.body)}</Text>
+                <Text style={ps.commentAuthor}>
+                  <Text onPress={() => c.user.profile?.username && navigation.navigate('PublicProfile', { username: c.user.profile.username })} style={c.user.profile?.username ? { color: colors.accent } : undefined}>{name}</Text>
+                  {' '}<Text style={ps.commentTime}>{relativeTime(c.createdAt)}</Text>
+                </Text>
+                <Text style={ps.commentBody}>{renderWithMentions(c.body, (u) => navigation.navigate('PublicProfile', { username: u }))}</Text>
               </View>
               {isOwn && (
                 <TouchableOpacity onPress={() => handleDelete(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -268,7 +272,9 @@ interface PostCardProps {
 }
 
 function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete }: PostCardProps) {
-  const username = post.user.profile?.username ?? post.user.displayName;
+  const navigation = useNavigation<any>();
+  const profileUsername = post.user.profile?.username ?? null;
+  const username = profileUsername ?? post.user.displayName;
   const avatar = post.user.profile?.profilePhotoUrl;
   const initials = post.user.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -303,7 +309,7 @@ function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete 
           </View>
         )}
         <View style={{ flex: 1 }}>
-          <Text style={ps.name}>{username}</Text>
+          <Text style={ps.name} onPress={profileUsername ? () => navigation.navigate('PublicProfile', { username: profileUsername }) : undefined}>{username}</Text>
           <Text style={ps.time}>{relativeTime(post.createdAt)}</Text>
         </View>
         <PostTypeBadge type={post.type} />
@@ -348,7 +354,7 @@ function PostCard({ post, currentUserId, userRole, directorId, onEdit, onDelete 
       })()}
 
       {/* ANGLER_POST / CHECK_IN body */}
-      {post.type !== 'ANNOUNCEMENT' && post.body ? <Text style={ps.body}>{post.body}</Text> : null}
+      {post.type !== 'ANNOUNCEMENT' && post.body ? <Text style={ps.body}>{renderWithMentions(post.body, (u) => navigation.navigate('PublicProfile', { username: u }))}</Text> : null}
 
       {post.type === 'CHECK_IN' && !post.body && (
         <Text style={ps.body}>Checked in to the tournament 🎣</Text>

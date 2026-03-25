@@ -174,9 +174,16 @@ function renderWithMentions(text: string): React.ReactNode {
   const parts = text.split(/(@\w+)/g);
   return parts.map((part, i) =>
     /^@\w+$/.test(part)
-      ? <span key={i} style={{ color: C.accent, fontWeight: 600 }}>{part}</span>
+      ? <a key={i} href={`/profile/${part.slice(1)}`} style={{ color: C.accent, fontWeight: 600, textDecoration: 'none' }}>{part}</a>
       : part
   );
+}
+
+function UserLink({ username, displayName, style }: { username?: string | null; displayName: string; style?: React.CSSProperties }) {
+  if (username) {
+    return <a href={`/profile/${username}`} style={{ textDecoration: 'none', ...style }}>{displayName}</a>;
+  }
+  return <span style={style}>{displayName}</span>;
 }
 
 function MentionInput({
@@ -298,16 +305,18 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
             const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
             return (
             <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: 1 }} />
-              ) : (
-                <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1, fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
-                  {name.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <a href={c.user.profile?.username ? `/profile/${c.user.profile.username}` : undefined} style={{ flexShrink: 0, marginTop: 1 }}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                ) : (
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </a>
               <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{name}</span>
+                <UserLink username={c.user.profile?.username} displayName={name} style={{ fontSize: 12, fontWeight: 700, color: C.textSub }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
                   {myUserId && c.user.id === myUserId && editingId !== c.id && (

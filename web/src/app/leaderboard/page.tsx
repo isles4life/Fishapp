@@ -10,9 +10,16 @@ function renderWithMentions(text: string, accentColor: string): React.ReactNode 
   const parts = text.split(/(@\w+)/g);
   return parts.map((part, i) =>
     /^@\w+$/.test(part)
-      ? <span key={i} style={{ color: accentColor, fontWeight: 600 }}>{part}</span>
+      ? <a key={i} href={`/profile/${part.slice(1)}`} style={{ color: accentColor, fontWeight: 600, textDecoration: 'none' }}>{part}</a>
       : part
   );
+}
+
+function UserLink({ username, displayName, style }: { username?: string | null; displayName: string; style?: React.CSSProperties }) {
+  if (username) {
+    return <a href={`/profile/${username}`} style={{ textDecoration: 'none', ...style }}>{displayName}</a>;
+  }
+  return <span style={style}>{displayName}</span>;
 }
 
 function MentionInput({
@@ -347,16 +354,18 @@ function CommentsSection({ submissionId, myUserId }: { submissionId: string; myU
             const avatarUrl = c.user.profile?.profilePhotoUrl ?? null;
             return (
             <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: 1 }} />
-              ) : (
-                <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1, fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
-                  {name.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <a href={c.user.profile?.username ? `/profile/${c.user.profile.username}` : undefined} style={{ flexShrink: 0, marginTop: 1 }}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                ) : (
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: C.surfaceHigh, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: C.textMuted, fontWeight: 700 }}>
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </a>
               <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.textSub }}>{name}</span>
+                <UserLink username={c.user.profile?.username} displayName={name} style={{ fontSize: 12, fontWeight: 700, color: C.textSub }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(c.createdAt)}</span>
                   {myUserId && c.user.id === myUserId && editingId !== c.id && (
@@ -946,8 +955,11 @@ export default function LeaderboardPage() {
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{post.user.displayName}</div>
-                        <div style={{ fontSize: 11, color: C.textMuted }}>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
+                        <UserLink username={post.user.profile?.username} displayName={post.user.displayName} style={{ fontSize: 13, fontWeight: 700, color: C.text }} />
+                        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>
+                          {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          {tournament && <>{' · '}<a href={`/leaderboard/${tournament.id}`} style={{ color: C.textMuted, textDecoration: 'none', fontWeight: 600 }} onMouseOver={e => (e.currentTarget.style.color = C.accent)} onMouseOut={e => (e.currentTarget.style.color = C.textMuted)}>{tournament.name}</a></>}
+                        </div>
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: badgeColor, backgroundColor: badgeColor + '20', border: `1px solid ${badgeColor}40`, borderRadius: 6, padding: '2px 8px' }}>{badgeLabel}</span>
                       {(canEdit || canDelete) && !isEditing && (
@@ -972,9 +984,9 @@ export default function LeaderboardPage() {
                         </div>
                       </div>
                     )}
-                    {post.type === 'CHECK_IN' && <div style={{ fontSize: 13, color: C.textSub }}>{post.user.displayName} checked in to the tournament.</div>}
+                    {post.type === 'CHECK_IN' && <div style={{ fontSize: 13, color: C.textSub }}><UserLink username={post.user.profile?.username} displayName={post.user.displayName} style={{ color: C.textSub, fontWeight: 600 }} /> checked in to the tournament.</div>}
                     {(post.type === 'ANNOUNCEMENT' || post.type === 'ANGLER_POST') && !isEditing && post.body && (
-                      <div style={{ fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.body.replace(/\*\*(.*?)\*\*/g, '$1')}</div>
+                      <div style={{ fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{renderWithMentions(post.body.replace(/\*\*(.*?)\*\*/g, '$1'), C.accent)}</div>
                     )}
                     {isEditing && (
                       <div style={{ marginTop: 4 }}>
@@ -1137,9 +1149,11 @@ export default function LeaderboardPage() {
 
                   {/* Name */}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{entry.displayName}</div>
+                    <UserLink username={entry.username} displayName={entry.displayName} style={{ fontWeight: 700, fontSize: 16, color: C.text }} />
                     {entry.username && (
-                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>@{entry.username}</div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
+                        <a href={`/profile/${entry.username}`} style={{ color: C.textMuted, textDecoration: 'none' }}>@{entry.username}</a>
+                      </div>
                     )}
                     {entry.speciesName && (
                       <div style={{ fontSize: 12, color: C.accent, marginTop: 2 }}>{entry.speciesName}</div>

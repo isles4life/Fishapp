@@ -169,11 +169,11 @@ function PropButton({ submissionId, initialCount }: { submissionId: string; init
 
 type MentionUser = { id: string; username: string; displayName: string };
 
-function renderWithMentions(text: string): React.ReactNode {
+function renderWithMentions(text: string, onMentionPress?: (username: string) => void): React.ReactNode {
   const parts = text.split(/(@\w+)/g);
   return parts.map((part, i) =>
     /^@\w+$/.test(part)
-      ? <Text key={i} style={{ color: colors.accent, fontWeight: '700' }}>{part}</Text>
+      ? <Text key={i} style={{ color: colors.accent, fontWeight: '700' }} onPress={onMentionPress ? () => onMentionPress(part.slice(1)) : undefined}>{part}</Text>
       : <Text key={i}>{part}</Text>
   );
 }
@@ -240,6 +240,7 @@ function MentionTextInput({
 }
 
 function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: string; myUserId: string | null; onClose: () => void }) {
+  const navigation = useNavigation<any>();
   const [comments, setComments] = useState<CatchComment[]>([]);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -317,7 +318,9 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
               >
                 <View style={cm.comment}>
                   <View style={{ flex: 1 }}>
-                    <Text style={cm.commentName}>{item.user.displayName}</Text>
+                    <Text style={[cm.commentName, item.user.profile?.username && { color: colors.accent }]} onPress={item.user.profile?.username ? () => { onClose(); navigation.navigate('PublicProfile', { username: item.user.profile!.username }); } : undefined}>
+                      {item.user.profile?.username ? `@${item.user.profile.username}` : item.user.displayName}
+                    </Text>
                     {editingId === item.id ? (
                       <View style={cm.editRow}>
                         <TextInput
@@ -342,7 +345,7 @@ function CommentsModal({ submissionId, myUserId, onClose }: { submissionId: stri
                         </View>
                       </View>
                     ) : (
-                      <Text style={cm.commentBody}>{renderWithMentions(item.body)}</Text>
+                      <Text style={cm.commentBody}>{renderWithMentions(item.body, (u) => { onClose(); navigation.navigate('PublicProfile', { username: u }); })}</Text>
                     )}
                     <Text style={cm.commentTime}>{timeAgo(item.createdAt)}</Text>
                   </View>
